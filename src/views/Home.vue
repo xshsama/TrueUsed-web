@@ -36,18 +36,8 @@
                     </div>
 
                     <div class="product-pair-grid">
-                        <div v-for="product in section.products" :key="product.id" class="product-card"
-                            @click="goToProductDetail(product.id)">
-                            <van-image :src="product.image" :alt="product.title" class="product-image" fit="cover" />
-                            <div class="product-info">
-                                <h3 class="product-title">{{ product.title }}</h3>
-                                <p class="product-desc">{{ product.description }}</p>
-                                <div class="price-row">
-                                    <span class="product-price">¥{{ product.price }}</span>
-                                    <span class="product-location">{{ product.location }}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <ProductCard v-for="product in section.products" :key="product.id" :product="product"
+                            :show-desc="true" @click="() => goToProductDetail(product.id)" />
                     </div>
                 </div>
 
@@ -60,11 +50,13 @@
 </template>
 
 <script>
+import ProductCard from '@/components/ProductCard.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
     name: 'Home',
+    components: { ProductCard },
     setup() {
         const router = useRouter()
 
