@@ -1,17 +1,35 @@
 <template>
     <div id="app">
-        <!-- 全局顶部导航 -->
-        <header class="global-top-navbar" v-if="!route.meta.hideTabbar">
-            <nav class="global-nav-links">
-                <button :class="['g-nav-item', { active: topActive === 'home' }]" @click="goTop('home')">首页</button>
-                <button :class="['g-nav-item', { active: topActive === 'messages' }]" @click="goTop('messages')">
-                    消息 <span v-if="unreadCount" class="g-badge">{{ unreadCount }}</span>
-                </button>
-                <button :class="['g-nav-item', { active: topActive === 'favorites' }]"
-                    @click="goTop('favorites')">收藏</button>
-                <button :class="['g-nav-item', { active: topActive === 'profile' }]"
-                    @click="goTop('profile')">我的</button>
-            </nav>
+        <!-- 全局顶部导航（大气分散布局） -->
+        <header class="global-top-navbar elevated" v-if="!route.meta.hideTabbar">
+            <div class="navbar-inner">
+                <!-- 品牌 / Logo -->
+                <div class="brand" @click="goTop('home')">
+                    <span class="brand-icon">♻️</span>
+                    <span class="brand-text">TrueUsed</span>
+                </div>
+
+                <!-- 中部导航 -->
+                <nav class="global-nav-links underline-style large-spread">
+                    <button :class="['g-nav-item line', { active: topActive === 'home' }]"
+                        @click="goTop('home')">首页</button>
+                    <button :class="['g-nav-item line', { active: topActive === 'messages' }]"
+                        @click="goTop('messages')">
+                        消息 <span v-if="unreadCount" class="g-badge dot">{{ unreadCount }}</span>
+                    </button>
+                    <button :class="['g-nav-item line', { active: topActive === 'favorites' }]"
+                        @click="goTop('favorites')">收藏</button>
+                    <button :class="['g-nav-item line', { active: topActive === 'profile' }]"
+                        @click="goTop('profile')">我的</button>
+                </nav>
+
+                <!-- 右侧操作区（可放搜索 / 登录 / 主题切换）-->
+                <div class="nav-actions">
+                    <div class="search-box" v-show="showWide">
+                        <input type="text" placeholder="搜索商品 / 关键词..." @keyup.enter="goSearch($event.target.value)" />
+                    </div>
+                </div>
+            </div>
         </header>
 
         <router-view />
@@ -88,6 +106,13 @@ export default {
             syncTopActive()
         })
 
+        const showWide = computed(() => window.innerWidth > 860) // 简单判定（可后续用响应式方案改进）
+
+        const goSearch = (kw) => {
+            if (!kw) return
+            router.push({ path: '/search', query: { q: kw } })
+        }
+
         return {
             active,
             unreadCount,
@@ -96,7 +121,9 @@ export default {
             goTop,
             route,
             router,
-            showTabbar
+            showTabbar,
+            showWide,
+            goSearch
         }
     }
 }
@@ -110,58 +137,258 @@ export default {
     background-color: #f7f8fa;
 }
 
-/* 顶部导航全局样式 */
-.global-top-navbar {
+/* 顶部导航（重构版） */
+.global-top-navbar.elevated {
     position: sticky;
     top: 0;
     z-index: 200;
     background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid #e5e5e7;
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid rgba(230, 233, 238, 0.75);
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.06);
 }
 
-.global-nav-links {
-    display: flex;
-    gap: 6px;
-    width: 92%;
+.global-top-navbar .navbar-inner {
+    max-width: 1380px;
     margin: 0 auto;
-    padding: 8px 0;
+    padding: 10px 48px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 42px;
 }
 
-.g-nav-item {
-    flex: 1;
-    background: transparent;
-    border: none;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 10px 6px;
-    border-radius: 20px !important;
+.brand {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: .5px;
+    color: #1a1a1a;
     cursor: pointer;
-    color: #444;
+    user-select: none;
+    transition: transform .25s ease;
+}
+
+.brand:hover {
+    transform: translateY(-2px);
+}
+
+.brand-icon {
+    font-size: 22px;
+    margin-right: 6px;
+}
+
+.brand-text {
+    background: linear-gradient(90deg, #0d47a1, #1976d2 55%, #42a5f5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    /* 标准属性 */
+    color: transparent;
+}
+
+.brand-text {
+    background: linear-gradient(90deg, #0d47a1, #1976d2 55%, #42a5f5);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.global-nav-links.underline-style.large-spread {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: clamp(42px, 5.5vw, 88px);
+    padding: 0;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 180px;
+    justify-content: flex-end;
+}
+
+.search-box {
     position: relative;
-    transition: background 0.25s, color 0.25s;
 }
 
-.g-nav-item:hover {
-    background: #f2f2f7;
+.search-box input {
+    background: rgba(255, 255, 255, .6);
+    border: 1px solid #d9dde3;
+    border-radius: 24px;
+    padding: 6px 14px 6px 14px;
+    font-size: 13px;
+    width: 200px;
+    outline: none;
+    transition: border-color .25s, background .25s, box-shadow .25s;
 }
 
-.g-nav-item.active {
-    background: #007AFF;
+.search-box input:focus {
+    border-color: #2f81f7;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(47, 129, 247, .15);
+}
+
+.minimal-action {
+    background: linear-gradient(135deg, #2f81f7, #155ed5);
     color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 22px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px -4px rgba(47, 129, 247, .55);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.minimal-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 24px -4px rgba(47, 129, 247, .6);
+}
+
+.minimal-action:active {
+    transform: scale(.92);
+}
+
+/* 导航按钮 */
+.g-nav-item.line {
+    background: none;
+    border: none;
+    padding: 14px 4px 18px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #3d4652;
+    cursor: pointer;
+    position: relative;
+    letter-spacing: .5px;
+    transition: color .35s, opacity .35s;
+}
+
+.g-nav-item.line:hover {
+    color: #111;
+}
+
+.g-nav-item.line:focus {
+    outline: none;
+}
+
+/* 下划线动画更平滑更宽阔 */
+.g-nav-item.line::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    height: 3px;
+    width: 0;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #2f81f7, #155ed5 55%, #2f81f7);
+    border-radius: 3px;
+    box-shadow: 0 2px 6px -2px rgba(21, 94, 213, .55);
+    transition: width .45s cubic-bezier(.55, .1, .25, 1);
+}
+
+.g-nav-item.line.active {
+    color: #0f1f33;
     font-weight: 600;
 }
 
-.g-badge {
-    display: inline-block;
+.g-nav-item.line.active::after {
+    width: 100%;
+}
+
+.g-badge.dot {
     background: #ff3b30;
     color: #fff;
     font-size: 11px;
     line-height: 1;
     padding: 2px 6px;
     border-radius: 10px;
-    margin-left: 4px;
+    margin-left: 6px;
+    box-shadow: 0 2px 6px rgba(255, 59, 48, .45);
+}
+
+/* 响应式 */
+@media (max-width: 1180px) {
+    .global-top-navbar .navbar-inner {
+        padding: 10px 36px 6px;
+        gap: 34px;
+    }
+
+    .global-nav-links.underline-style.large-spread {
+        gap: clamp(34px, 5vw, 70px);
+    }
+}
+
+@media (max-width: 980px) {
+    .search-box {
+        display: none;
+    }
+
+    .global-top-navbar .navbar-inner {
+        padding: 10px 28px 4px;
+    }
+
+    .g-nav-item.line {
+        font-size: 15px;
+        padding: 12px 4px 16px;
+    }
+}
+
+@media (max-width: 780px) {
+    .global-top-navbar .navbar-inner {
+        gap: 24px;
+    }
+
+    .global-nav-links.underline-style.large-spread {
+        gap: clamp(26px, 5vw, 54px);
+    }
+
+    .brand-text {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 660px) {
+    .brand-icon {
+        margin-right: 4px;
+    }
+
+    .brand-text {
+        display: none;
+    }
+
+    .global-top-navbar .navbar-inner {
+        padding: 8px 18px 2px;
+    }
+
+    .g-nav-item.line {
+        font-size: 14px;
+        padding: 10px 2px 14px;
+    }
+}
+
+@media (max-width: 520px) {
+    .global-nav-links.underline-style.large-spread {
+        gap: 20px;
+    }
+
+    .g-nav-item.line {
+        font-size: 13px;
+    }
+
+    .minimal-action {
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    .nav-actions {
+        gap: 12px;
+        min-width: auto;
+    }
 }
 
 /* 浮动卖出按钮（全局） */

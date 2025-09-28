@@ -1,18 +1,6 @@
 <template>
     <div class="home-page">
 
-        <!-- 顶部搜索栏 -->
-        <div class="search-section">
-            <div class="search-container">
-                <van-search v-model="searchValue" placeholder="搜索你想要的二手好物" shape="round" readonly
-                    @click="$router.push('/search')">
-                    <template #left-icon>
-                        <van-icon name="search" color="#999" />
-                    </template>
-                </van-search>
-            </div>
-        </div>
-
         <!-- 轮播图 -->
         <div class="banner-section">
             <van-swipe class="banner-swipe" :autoplay="4000" indicator-color="#d0d0d0">
