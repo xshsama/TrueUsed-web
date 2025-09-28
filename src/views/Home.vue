@@ -1,5 +1,6 @@
 <template>
     <div class="home-page">
+
         <!-- 顶部搜索栏 -->
         <div class="search-section">
             <div class="search-container">
@@ -66,6 +67,7 @@
                 <van-loading v-if="loading" class="loading-more">加载更多商品...</van-loading>
             </div>
         </div>
+        <!-- 全局卖出按钮已移动到 App.vue -->
     </div>
 </template>
 
@@ -326,6 +328,7 @@ export default {
     background-color: #f2f2f7;
     min-height: 100vh;
 }
+
 
 /* 搜索区域 */
 .search-section {
@@ -597,6 +600,7 @@ export default {
         padding: 0 16px 16px 16px;
     }
 
+
     .sidebar {
         width: 100%;
         margin-bottom: 20px;
@@ -652,5 +656,6 @@ export default {
     .section-title {
         font-size: 22px;
     }
+
 }
 </style>
