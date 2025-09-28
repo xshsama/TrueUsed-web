@@ -11,6 +11,21 @@ body {
   line-height: 1.5;
 }
 
+/* 设计 Tokens */
+:root {
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 2px 6px -1px rgba(20,25,30,0.08), 0 1px 3px rgba(20,25,30,0.08);
+  --shadow-medium: 0 4px 14px -4px rgba(20,25,30,0.14);
+  --shadow-pop: 0 6px 22px -6px rgba(40,60,90,0.18);
+  --blend-surface: rgba(255,255,255,0.85);
+  --border-soft: 1px solid rgba(210,215,222,0.6);
+  --ease-standard: cubic-bezier(.4,0,.2,1);
+}
+
 .page {
   min-height: calc(100vh - 50px);
   padding-bottom: 50px;
@@ -53,6 +68,7 @@ body {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
