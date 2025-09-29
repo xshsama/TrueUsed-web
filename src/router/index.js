@@ -11,6 +11,7 @@ import PostCreate from '@/views/PostCreate.vue'
 import PostManage from '@/views/PostManage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
+import Register from '@/views/Register.vue'
 import Search from '@/views/Search.vue'
 
 const routes = [
@@ -69,6 +70,12 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login,
+    meta: { hideTabbar: true },
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register,
     meta: { hideTabbar: true },
   },
   {

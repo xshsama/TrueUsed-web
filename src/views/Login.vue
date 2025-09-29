@@ -1,38 +1,51 @@
 <template>
     <div class="login-page">
-        <div class="login-header">
-            <van-nav-bar title="登录" left-arrow @click-left="$router.go(-1)" />
-        </div>
-
-        <div class="login-content">
-            <div class="logo-section">
-                <div class="app-logo">TrueUsed</div>
-                <div class="app-desc">二手交易，真实可靠</div>
+        <van-nav-bar title="登录" fixed left-arrow @click-left="$router.go(-1)" />
+        <div class="page-wrapper">
+            <div class="logo-block">
+                <div class="brand-mark">TrueUsed</div>
+                <p class="slogan">二手交易 · 真实可靠</p>
             </div>
 
-            <van-form @submit="onSubmit">
-                <van-cell-group>
-                    <van-field v-model="form.phone" name="phone" label="手机号" placeholder="请输入手机号"
-                        :rules="[{ required: true, message: '请输入手机号' }]" />
-                    <van-field v-model="form.code" name="code" label="验证码" placeholder="请输入验证码"
-                        :rules="[{ required: true, message: '请输入验证码' }]">
-                        <template #button>
-                            <van-button size="small" type="primary" @click="sendCode">
-                                发送验证码
-                            </van-button>
-                        </template>
-                    </van-field>
-                </van-cell-group>
+            <div class="login-card">
+                <van-form @submit="onSubmit">
+                    <van-cell-group inset>
+                        <van-field v-model="form.phone" name="phone" type="tel" label="手机号" placeholder="请输入手机号"
+                            :rules="phoneRules" clearable />
+                        <van-field v-model="form.password" :type="showPassword ? 'text' : 'password'" name="password"
+                            label="密码" placeholder="请输入密码" :rules="passwordRules" clearable>
+                            <template #button>
+                                <van-icon :name="showPassword ? 'eye-o' : 'closed-eye'" @click="toggleShowPassword" />
+                            </template>
+                        </van-field>
+                    </van-cell-group>
 
-                <div class="login-btn">
-                    <van-button type="primary" size="large" block native-type="submit">
-                        登录
-                    </van-button>
+                    <div class="form-extra between">
+                        <div class="remember" @click="toggleRemember">
+                            <van-icon :name="remember ? 'checked' : 'circle'" />
+                            <span class="remember-text">记住我</span>
+                        </div>
+                        <div class="switch-login link" @click="forgotPassword">找回密码</div>
+                    </div>
+
+                    <div class="submit-wrap">
+                        <van-button class="gradient-btn" block round type="primary" native-type="submit"
+                            :loading="submitting">
+                            {{ submitting ? '登录中...' : '登录' }}
+                        </van-button>
+                    </div>
+                </van-form>
+
+                <div class="agreements">
+                    登录即表示同意 <span class="link" @click="openAgreement('user')">《用户协议》</span> 与 <span class="link"
+                        @click="openAgreement('privacy')">《隐私政策》</span>
                 </div>
-            </van-form>
+            </div>
 
-            <div class="login-tips">
-                <p>登录即表示同意<span class="link">《用户协议》</span>和<span class="link">《隐私政策》</span></p>
+            <div class="bottom-links">
+                <span class="link" @click="goRegister">注册账号</span>
+                <span class="divider">|</span>
+                <span class="link" @click="goHelp">遇到问题</span>
             </div>
         </div>
     </div>
@@ -41,7 +54,7 @@
 <script>
 import { useUserStore } from '@/stores/user'
 import { Toast } from 'vant'
-import { reactive } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -50,46 +63,108 @@ export default {
         const router = useRouter()
         const userStore = useUserStore()
 
+        const submitting = ref(false)
+        const showPassword = ref(false)
+        const remember = ref(true)
+
         const form = reactive({
             phone: '',
-            code: ''
+            password: ''
         })
 
-        const sendCode = () => {
-            if (!form.phone) {
-                Toast('请输入手机号')
-                return
+        // 读取记住的手机号（可扩展为 localStorage 存密码哈希，这里仅手机号）
+        const rememberedPhone = localStorage.getItem('remember_phone')
+        if (rememberedPhone) form.phone = rememberedPhone
+
+        const phoneRules = [
+            { required: true, message: '请输入手机号' },
+            {
+                validator: (val) => /^1[3-9]\d{9}$/.test(val),
+                message: '手机号格式不正确'
             }
-            Toast.success('验证码已发送')
+        ]
+
+        const passwordRules = [
+            { required: true, message: '请输入密码' },
+            {
+                validator: (val) => val.length >= 6,
+                message: '密码至少 6 位'
+            }
+        ]
+
+        const validPhone = computed(() => /^1[3-9]\d{9}$/.test(form.phone))
+
+        const toggleShowPassword = () => {
+            showPassword.value = !showPassword.value
         }
 
-        const onSubmit = () => {
-            // 模拟登录
-            Toast.loading({ message: '登录中...', duration: 0 })
+        const toggleRemember = () => {
+            remember.value = !remember.value
+        }
 
-            setTimeout(() => {
-                Toast.clear()
+        const simulateLogin = () => new Promise(resolve => setTimeout(resolve, 1200))
 
-                // 设置用户信息
+        const onSubmit = async () => {
+            if (!validPhone.value) {
+                Toast('手机号无效')
+                return
+            }
+            if (form.password.length < 6) {
+                Toast('密码至少 6 位')
+                return
+            }
+            submitting.value = true
+            Toast.loading({ message: '登录中...', duration: 0, forbidClick: true })
+            try {
+                await simulateLogin()
+                // 记住手机号
+                if (remember.value) {
+                    localStorage.setItem('remember_phone', form.phone)
+                } else {
+                    localStorage.removeItem('remember_phone')
+                }
                 userStore.setUser({
-                    id: 1,
-                    name: '用户昵称',
+                    id: Date.now(),
+                    name: '用户' + form.phone.slice(-4),
                     phone: form.phone,
                     avatar: 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户'
                 })
-                userStore.setToken('mock-token-123456')
-
+                userStore.setToken('mock-token-' + Math.random().toString(36).slice(2, 10))
                 Toast.success('登录成功')
-
-                // 跳转回之前的页面或首页
                 router.back() || router.push('/home')
-            }, 2000)
+            } catch (e) {
+                Toast.fail('登录失败，请稍后再试')
+            } finally {
+                submitting.value = false
+                Toast.clear()
+            }
         }
+
+        const openAgreement = (type) => {
+            Toast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
+        }
+        const forgotPassword = () => Toast('找回密码（占位）')
+        const goRegister = () => router.push('/register')
+        const goHelp = () => Toast('帮助中心（占位）')
+
+        onBeforeUnmount(() => {
+            // 清理可能的计时器（虽然当前无倒计时，留作扩展安全）
+        })
 
         return {
             form,
-            sendCode,
-            onSubmit
+            phoneRules,
+            passwordRules,
+            submitting,
+            showPassword,
+            toggleShowPassword,
+            remember,
+            toggleRemember,
+            onSubmit,
+            openAgreement,
+            forgotPassword,
+            goRegister,
+            goHelp
         }
     }
 }
@@ -98,46 +173,144 @@ export default {
 <style scoped>
 .login-page {
     min-height: 100vh;
-    background-color: #f7f8fa;
+    background: #f5f7fa;
 }
 
-.login-content {
-    padding: 40px 20px;
+.page-wrapper {
+    padding: 70px 20px 40px;
+    /* 预留 NavBar 高度 */
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
 }
 
-.logo-section {
+.logo-block {
     text-align: center;
-    margin-bottom: 60px;
+    margin-top: 10px;
 }
 
-.app-logo {
-    font-size: 36px;
-    font-weight: bold;
-    color: #1989fa;
-    margin-bottom: 8px;
+.brand-mark {
+    font-size: 40px;
+    font-weight: 800;
+    background: linear-gradient(120deg, #007AFF, #3296ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
 }
 
-.app-desc {
+.slogan {
     font-size: 14px;
-    color: #969799;
+    color: #6b7075;
+    margin-top: 6px;
 }
 
-.login-btn {
-    margin-top: 40px;
+.login-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 26px 24px 32px;
+    box-shadow: 0 6px 22px -8px rgba(0, 0, 0, .12);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
-.login-tips {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.login-tips p {
+.form-extra {
+    margin-top: 4px;
+    display: flex;
+    justify-content: flex-end;
     font-size: 12px;
-    color: #969799;
-    line-height: 1.5;
+    color: #666;
 }
 
-.link {
-    color: #1989fa;
+.form-extra.between {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #444;
+}
+
+.remember-text {
+    font-size: 12px;
+}
+
+.switch-login {
+    cursor: pointer;
+    color: #007aff;
+}
+
+.submit-wrap {
+    margin-top: 8px;
+}
+
+.gradient-btn {
+    background: linear-gradient(135deg, #007AFF, #3296ff);
+    border: none;
+}
+
+.agreements {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.agreements .link {
+    color: #007aff;
+}
+
+.bottom-links {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+}
+
+.bottom-links .link {
+    color: #007aff;
+    cursor: pointer;
+}
+
+.bottom-links .divider {
+    margin: 0 10px;
+    color: #bbb;
+}
+
+/* 优化表单内元素 */
+:deep(.van-field__label) {
+    width: 60px;
+}
+
+:deep(.van-cell-group--inset) {
+    margin: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px -4px rgba(0, 0, 0, .08);
+}
+
+:deep(.van-field) {
+    background: #fff;
+}
+
+:deep(.van-button[disabled]) {
+    opacity: .6;
+}
+
+@media (max-width: 420px) {
+    .brand-mark {
+        font-size: 34px;
+    }
+
+    .login-card {
+        padding: 22px 18px 28px;
+    }
 }
 </style>
