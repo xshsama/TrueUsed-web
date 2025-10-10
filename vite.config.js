@@ -13,11 +13,13 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: true,
-  },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: '@import "@/styles/variables.scss";',
+    proxy: {
+      // 将 /api 代理到后端 Spring Boot
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        // 去掉前缀 /api，再转发给后端
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

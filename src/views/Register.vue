@@ -12,6 +12,8 @@
                     <van-cell-group inset>
                         <van-field v-model="form.phone" name="phone" type="tel" label="手机号" placeholder="请输入手机号"
                             :rules="phoneRules" clearable />
+                        <van-field v-model="form.email" name="email" type="text" label="邮箱" placeholder="请输入邮箱"
+                            :rules="emailRules" clearable />
                         <van-field v-model="form.password" :type="showPassword ? 'text' : 'password'" name="password"
                             label="密码" placeholder="设置登录密码" :rules="passwordRules" clearable>
                             <template #button>
@@ -45,7 +47,8 @@
 </template>
 
 <script>
-import { Toast } from 'vant';
+import { registerApi } from '@/api/auth';
+import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
 import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -60,7 +63,8 @@ export default {
         const agreed = ref(false)
 
         const form = reactive({
-            phone: '',
+            phone: '', // 作为后端 username 使用
+            email: '',
             password: '',
             confirm: ''
         })
@@ -70,9 +74,14 @@ export default {
             { validator: v => /^1[3-9]\d{9}$/.test(v), message: '手机号格式不正确' }
         ]
 
+        const emailRules = [
+            { required: true, message: '请输入邮箱' },
+            { validator: v => /\S+@\S+\.\S+/.test(v), message: '邮箱格式不正确' }
+        ]
+
         const passwordRules = [
             { required: true, message: '请输入密码' },
-            { validator: v => v.length >= 6, message: '密码至少 6 位' }
+            { validator: v => v.length >= 6 && v.length <= 100, message: '密码长度需在 6-100 位' }
         ]
 
         const confirmRules = [
@@ -80,34 +89,43 @@ export default {
             { validator: v => v === form.password, message: '两次输入不一致' }
         ]
 
-        const valid = computed(() => /^1[3-9]\d{9}$/.test(form.phone) && form.password.length >= 6 && form.password === form.confirm && agreed.value)
+        const valid = computed(() =>
+            /^1[3-9]\d{9}$/.test(form.phone) &&
+            /\S+@\S+\.\S+/.test(form.email) &&
+            form.password.length >= 6 && form.password.length <= 100 &&
+            form.password === form.confirm &&
+            agreed.value
+        )
 
         const toggleShowPassword = () => { showPassword.value = !showPassword.value }
         const toggleShowConfirm = () => { showConfirm.value = !showConfirm.value }
         const toggleAgree = () => { agreed.value = !agreed.value }
 
         const openAgreement = (type) => {
-            Toast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
+            showToast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
         }
-
-        const simulateRegister = () => new Promise(resolve => setTimeout(resolve, 1400))
 
         const onSubmit = async () => {
             if (!valid.value) {
-                Toast('请完整填写信息并同意协议')
+                showToast('请完整填写信息并同意协议')
                 return
             }
             submitting.value = true
-            Toast.loading({ message: '创建账号...', duration: 0, forbidClick: true })
+            showLoadingToast({ message: '创建账号...', duration: 0, forbidClick: true, loadingType: 'spinner' })
             try {
-                await simulateRegister()
-                Toast.success('注册成功')
-                router.replace('/login')
+                // 后端 RegisterRequest: { username, email, password }
+                const payload = { username: form.phone, email: form.email, password: form.password }
+                await registerApi(payload)
+                showSuccessToast('注册成功，请登录')
+                // 便捷：将手机号记住，登录页可直接使用
+                localStorage.setItem('remember_phone', form.phone)
+                router.replace({ name: 'Login' })
             } catch (e) {
-                Toast.fail('注册失败，请稍后再试')
+                const msg = e?.response?.data?.message || e?.message || '注册失败，请稍后再试'
+                showFailToast(msg)
             } finally {
                 submitting.value = false
-                Toast.clear()
+                closeToast()
             }
         }
 
@@ -116,6 +134,7 @@ export default {
         return {
             form,
             phoneRules,
+            emailRules,
             passwordRules,
             confirmRules,
             submitting,

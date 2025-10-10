@@ -1,3 +1,4 @@
+import { useUserStore } from '@/stores/user'
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 导入页面组件
@@ -108,12 +109,13 @@ router.beforeEach((to, from, next) => {
 
   // 检查是否需要登录
   if (to.meta.requiresAuth) {
-    // 这里应该检查用户登录状态，暂时跳过
-    // const isLoggedIn = localStorage.getItem('token')
-    // if (!isLoggedIn) {
-    //   next('/login')
-    //   return
-    // }
+    // pinia 可能尚未初始化，这里兜底读取 localStorage
+    const store = useUserStore()
+    const hasToken = store?.token || localStorage.getItem('token')
+    if (!hasToken) {
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
   }
 
   next()

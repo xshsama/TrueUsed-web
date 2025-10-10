@@ -52,8 +52,9 @@
 </template>
 
 <script>
+import { loginApi } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
-import { Toast } from 'vant'
+import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -102,50 +103,64 @@ export default {
             remember.value = !remember.value
         }
 
-        const simulateLogin = () => new Promise(resolve => setTimeout(resolve, 1200))
+        // API 已通过静态导入
 
         const onSubmit = async () => {
             if (!validPhone.value) {
-                Toast('手机号无效')
+                showToast('手机号无效')
                 return
             }
             if (form.password.length < 6) {
-                Toast('密码至少 6 位')
+                showToast('密码至少 6 位')
                 return
             }
             submitting.value = true
-            Toast.loading({ message: '登录中...', duration: 0, forbidClick: true })
+            showLoadingToast({ message: '登录中...', duration: 0, forbidClick: true, loadingType: 'spinner' })
             try {
-                await simulateLogin()
+                // 后端定义 LoginRequest: { username, password }
+                const payload = { username: form.phone, password: form.password }
+                const res = await loginApi(payload)
+                // res 结构: { userId, username, token, expiresInMs, roles }
+                if (!res || !res.token) throw new Error('登录返回异常')
+
                 // 记住手机号
                 if (remember.value) {
                     localStorage.setItem('remember_phone', form.phone)
                 } else {
                     localStorage.removeItem('remember_phone')
                 }
+
+                userStore.setToken(res.token)
                 userStore.setUser({
-                    id: Date.now(),
-                    name: '用户' + form.phone.slice(-4),
+                    id: res.userId,
+                    name: res.username,
                     phone: form.phone,
-                    avatar: 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户'
+                    roles: res.roles || [],
                 })
-                userStore.setToken('mock-token-' + Math.random().toString(36).slice(2, 10))
-                Toast.success('登录成功')
-                router.back() || router.push('/home')
+
+                showSuccessToast('登录成功')
+
+                const redirect = router.currentRoute.value.query?.redirect
+                if (redirect) {
+                    router.replace(redirect)
+                } else {
+                    router.back() || router.push('/home')
+                }
             } catch (e) {
-                Toast.fail('登录失败，请稍后再试')
+                const msg = e?.response?.data?.message || e?.message || '登录失败，请稍后再试'
+                showFailToast(msg)
             } finally {
                 submitting.value = false
-                Toast.clear()
+                closeToast()
             }
         }
 
         const openAgreement = (type) => {
-            Toast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
+            showToast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
         }
-        const forgotPassword = () => Toast('找回密码（占位）')
+        const forgotPassword = () => showToast('找回密码（占位）')
         const goRegister = () => router.push('/register')
-        const goHelp = () => Toast('帮助中心（占位）')
+        const goHelp = () => showToast('帮助中心（占位）')
 
         onBeforeUnmount(() => {
             // 清理可能的计时器（虽然当前无倒计时，留作扩展安全）
