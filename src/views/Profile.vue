@@ -5,16 +5,16 @@
             <!-- 顶部身份信息区 -->
             <section class="identity-card">
                 <div class="identity-main">
-                    <van-image :src="userInfo.avatar" class="avatar" round fit="cover" />
+                    <van-image :src="userInfo.avatarUrl || defaultAvatar" class="avatar" round fit="cover" />
                     <div class="identity-text">
                         <div class="row">
-                            <h1 class="nickname">{{ userInfo.name }}</h1>
+                            <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '游客' }}</h1>
                             <van-tag type="primary" size="small" round>{{ creditStatus.level }}</van-tag>
                         </div>
-                        <p class="signature" v-if="userInfo.desc">{{ userInfo.desc }}</p>
+                        <p class="signature" v-if="userInfo.bio">{{ userInfo.bio }}</p>
                         <div class="auth-badges">
-                            <van-tag v-if="creditStatus.verified" type="success" size="mini" round>已实名</van-tag>
-                            <van-tag v-if="creditStatus.phoneBound" type="primary" size="mini" round>已绑定手机</van-tag>
+                            <van-tag v-if="userInfo.emailVerified" type="success" size="mini" round>邮箱已验证</van-tag>
+                            <van-tag v-if="userInfo.phoneVerified" type="primary" size="mini" round>已绑定手机</van-tag>
                             <van-tag plain type="warning" size="mini" round>信用 {{ creditStatus.score }}</van-tag>
                         </div>
                     </div>
@@ -60,6 +60,17 @@
                     </div>
                 </div>
             </section>
+
+            <!-- 编辑资料弹窗 -->
+            <van-dialog v-model:show="showEdit" title="编辑资料" show-cancel-button @confirm="submitEdit">
+                <div class="form-grid">
+                    <van-field v-model="form.nickname" label="昵称" maxlength="50" placeholder="请输入昵称" />
+                    <van-field v-model="form.avatarUrl" label="头像URL" placeholder="https://..." />
+                    <van-field v-model="form.phone" label="手机号" maxlength="20" placeholder="请输入手机号" />
+                    <van-field v-model="form.bio" type="textarea" rows="3" maxlength="300" show-word-limit label="简介"
+                        placeholder="一句话介绍自己" />
+                </div>
+            </van-dialog>
         </div>
     </div>
 </template>
@@ -67,7 +78,7 @@
 <script>
 import { useUserStore } from '@/stores/user'
 import { Dialog, Toast } from 'vant'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -75,9 +86,15 @@ export default {
     setup() {
         const router = useRouter()
         const userStore = useUserStore()
-        // 优先展示登录后存储的用户信息（保持与 Pinia 同步）
-        const defaultUser = { name: '游客', desc: '登录后可展示个性签名', avatar: 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户' }
-        const userInfo = computed(() => userStore.user || defaultUser)
+        const defaultAvatar = 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户'
+        const userInfo = computed(() => userStore.user || {})
+
+        // 加载我的资料
+        onMounted(async () => {
+            if (userStore.isLoggedIn) {
+                try { await userStore.loadMe() } catch { }
+            }
+        })
 
         // 认证/信用状态
         const creditStatus = ref({
@@ -98,7 +115,26 @@ export default {
         // 钱包余额
         const walletBalance = ref(2356.78)
 
-        const editProfile = () => Toast('编辑资料（占位）')
+        const showEdit = ref(false)
+        const form = ref({ nickname: '', avatarUrl: '', bio: '', phone: '' })
+        const editProfile = () => {
+            form.value = {
+                nickname: userInfo.value.nickname || '',
+                avatarUrl: userInfo.value.avatarUrl || '',
+                bio: userInfo.value.bio || '',
+                phone: userInfo.value.phone || ''
+            }
+            showEdit.value = true
+        }
+        const submitEdit = async () => {
+            try {
+                await userStore.saveMe(form.value)
+                Toast.success('已更新资料')
+                showEdit.value = false
+            } catch (e) {
+                Toast.fail('更新失败')
+            }
+        }
         const openSecurity = () => Toast('安全设置（占位）')
 
         // 跳转到统计详情
@@ -154,10 +190,14 @@ export default {
 
         return {
             userInfo,
+            defaultAvatar,
             creditStatus,
             orderStatus,
             walletBalance,
             editProfile,
+            showEdit,
+            form,
+            submitEdit,
             openSecurity,
             viewAllOrders,
             goToOrderStatus,

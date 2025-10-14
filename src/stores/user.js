@@ -1,4 +1,4 @@
-import { logoutApi } from '@/api/auth'
+import { fetchMe, logoutApi, updateMe } from '@/api/auth'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -25,6 +25,18 @@ export const useUserStore = defineStore('user', () => {
       // 忽略存储异常
     }
     isLoggedIn.value = true
+  }
+
+  const loadMe = async () => {
+    const res = await fetchMe()
+    setUser(res.data)
+    return res.data
+  }
+
+  const saveMe = async (payload) => {
+    const res = await updateMe(payload)
+    setUser(res.data)
+    return res.data
   }
 
   const setToken = (tokenValue) => {
@@ -54,6 +66,8 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     setUser,
     setToken,
+    loadMe,
+    saveMe,
     logout,
   }
 })
