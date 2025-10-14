@@ -60,35 +60,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 资产与账户区 -->
-            <section class="asset-section">
-                <div class="wallet card-block">
-                    <div class="wallet-main">
-                        <div class="amount">¥ {{ walletBalance }}</div>
-                        <div class="caption">可用余额</div>
-                    </div>
-                    <div class="wallet-actions">
-                        <van-button size="small" type="primary" round plain @click="withdraw">提现</van-button>
-                        <van-button size="small" type="default" round plain @click="viewWalletDetail">明细</van-button>
-                    </div>
-                </div>
-                <div class="account-manage card-block">
-                    <div class="manage-grid">
-                        <div class="manage-item" @click="goToAddress"><van-icon name="location-o" /><span>地址管理</span>
-                        </div>
-                        <div class="manage-item" @click="goToVerification"><van-icon
-                                name="certificate" /><span>实名认证</span></div>
-                        <div class="manage-item" @click="openSecurity"><van-icon name="shield-o" /><span>安全设置</span>
-                        </div>
-                        <div class="manage-item" @click="goToSettings"><van-icon name="setting-o" /><span>系统设置</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="logout-block card-block">
-                    <van-button type="danger" block round @click="logout">退出登录</van-button>
-                </div>
-            </section>
         </div>
     </div>
 </template>
@@ -96,7 +67,7 @@
 <script>
 import { useUserStore } from '@/stores/user'
 import { Dialog, Toast } from 'vant'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -104,13 +75,9 @@ export default {
     setup() {
         const router = useRouter()
         const userStore = useUserStore()
-
-        // 用户信息（可与 Pinia 结合，这里先用 mock / fallback）
-        const userInfo = ref({
-            name: '用户昵称',
-            desc: '这个人很懒，什么都没留下~',
-            avatar: 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户'
-        })
+        // 优先展示登录后存储的用户信息（保持与 Pinia 同步）
+        const defaultUser = { name: '游客', desc: '登录后可展示个性签名', avatar: 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户' }
+        const userInfo = computed(() => userStore.user || defaultUser)
 
         // 认证/信用状态
         const creditStatus = ref({
@@ -392,39 +359,7 @@ export default {
     right: -10px;
 }
 
-/* 钱包 */
-.wallet {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-}
 
-.wallet-main {
-    display: flex;
-    flex-direction: column;
-}
-
-.wallet .amount {
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    background: linear-gradient(120deg, #007AFF, #3296ff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.wallet .caption {
-    font-size: 13px;
-    color: #868e96;
-    margin-top: 4px;
-}
-
-.wallet-actions {
-    display: flex;
-    gap: 10px;
-}
 
 /* 账户管理 */
 .manage-grid {

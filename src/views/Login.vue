@@ -131,6 +131,13 @@ export default {
                 }
 
                 userStore.setToken(res.token)
+                // 记录 token 过期时间戳（当前时间 + expiresInMs）
+                if (typeof res.expiresInMs === 'number' && res.expiresInMs > 0) {
+                    const expAt = Date.now() + res.expiresInMs
+                    localStorage.setItem('token_expires_at', String(expAt))
+                } else {
+                    localStorage.removeItem('token_expires_at')
+                }
                 userStore.setUser({
                     id: res.userId,
                     name: res.username,

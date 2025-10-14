@@ -8,3 +8,8 @@ export function loginApi(data) {
 export function registerApi(data) {
   return request.post('/auth/register', data)
 }
+
+export function logoutApi() {
+  // 调用后端登出以清除 HttpOnly 刷新 Cookie
+  return request.post('/auth/logout')
+}
