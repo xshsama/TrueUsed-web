@@ -30,22 +30,35 @@
             </div>
         </div>
 
-        <!-- 搜索结果 -->
-        <div v-if="searchValue" class="search-results">
+        <!-- 搜索与筛选结果 -->
+        <div class="search-results">
+            <!-- 顶部筛选栏（排序/价格区间/类目占位） -->
+            <div class="filter-bar">
+                <van-dropdown-menu>
+                    <van-dropdown-item v-model="sort" :options="sortOptions" @change="onSortChange" />
+                </van-dropdown-menu>
+                <div class="price-range">
+                    <van-field v-model.number="priceMin" type="number" placeholder="最低价" input-align="center" />
+                    <span class="sep">-</span>
+                    <van-field v-model.number="priceMax" type="number" placeholder="最高价" input-align="center" />
+                    <van-button size="small" type="primary" @click="applyFilters">筛选</van-button>
+                </div>
+            </div>
+
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                 <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
                     <div v-if="resultList.length > 0" class="result-list">
                         <div v-for="item in resultList" :key="item.id" class="result-item"
                             @click="goToProductDetail(item.id)">
-                            <van-image :src="item.image" :alt="item.title" class="item-image" fit="cover" lazy-load />
+                            <van-image :src="(item.images && item.images[0]?.url) || placeholderImg" :alt="item.title"
+                                class="item-image" fit="cover" lazy-load />
                             <div class="item-content">
                                 <div class="item-title" v-html="highlightKeyword(item.title)"></div>
                                 <div class="item-price">¥{{ item.price }}</div>
-                                <div class="item-location">{{ item.location }}</div>
+                                <div class="item-location">{{ item.locationText }}</div>
                             </div>
                         </div>
                     </div>
-
                     <van-empty v-else-if="searched" image="search" description="没有找到相关商品" />
                 </van-list>
             </van-pull-refresh>
@@ -54,6 +67,7 @@
 </template>
 
 <script>
+import { listProducts } from '@/api/products'
 import { Toast } from 'vant'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -69,6 +83,21 @@ export default {
         const finished = ref(false)
         const searched = ref(false)
         const resultList = ref([])
+        const page = ref(0)
+        const size = ref(10)
+        const sort = ref('created,desc')
+        const priceMin = ref()
+        const priceMax = ref()
+        const categoryId = ref()
+        const placeholderImg = ref('https://via.placeholder.com/120x120/eeeeee/999999?text=No+Image')
+
+        const sortOptions = [
+            { text: '最新发布', value: 'created,desc' },
+            { text: '价格从低到高', value: 'price,asc' },
+            { text: '价格从高到低', value: 'price,desc' },
+            { text: '收藏最多', value: 'favorites,desc' },
+            { text: '浏览最多', value: 'views,desc' },
+        ]
 
         // 搜索历史
         const searchHistory = ref([
@@ -88,23 +117,34 @@ export default {
             '平板电脑'
         ])
 
-        // 模拟搜索结果
-        const mockResults = [
-            {
-                id: 1,
-                title: 'iPhone 14 Pro 256GB 深空黑色，9成新，原装正品',
-                price: '6888',
-                image: 'https://via.placeholder.com/120x120/333333/ffffff?text=iPhone+14',
-                location: '上海·浦东新区'
-            },
-            {
-                id: 2,
-                title: 'iPhone 13 Pro Max 512GB 远峰蓝色',
-                price: '5999',
-                image: 'https://via.placeholder.com/120x120/1E90FF/ffffff?text=iPhone+13',
-                location: '北京·朝阳区'
+        // 拉取列表
+        const fetchList = async () => {
+            loading.value = true
+            try {
+                const params = {
+                    q: searchValue.value || undefined,
+                    categoryId: categoryId.value || undefined,
+                    priceMin: priceMin.value || undefined,
+                    priceMax: priceMax.value || undefined,
+                    sort: sort.value || undefined,
+                    page: page.value,
+                    size: size.value,
+                }
+                const res = await listProducts(params)
+                // 后端返回 Page<ProductDTO>
+                const content = res?.content || []
+                if (page.value === 0) resultList.value = []
+                resultList.value.push(...content)
+                finished.value = res?.last || content.length < size.value
+                page.value += 1
+            } catch (e) {
+                Toast.fail('加载失败')
+                finished.value = true
+            } finally {
+                loading.value = false
+                refreshing.value = false
             }
-        ]
+        }
 
         // 搜索
         const onSearch = () => {
@@ -121,9 +161,10 @@ export default {
 
             // 执行搜索
             searched.value = true
+            page.value = 0
             resultList.value = []
             finished.value = false
-            onLoad()
+            fetchList()
         }
 
         // 清空搜索
@@ -140,22 +181,29 @@ export default {
 
         // 下拉刷新
         const onRefresh = () => {
-            setTimeout(() => {
-                resultList.value = [...mockResults]
-                refreshing.value = false
-                loading.value = false
-                finished.value = false
-                Toast.success('刷新成功')
-            }, 1000)
+            page.value = 0
+            finished.value = false
+            fetchList()
         }
 
         // 加载更多
         const onLoad = () => {
-            setTimeout(() => {
-                resultList.value.push(...mockResults)
-                loading.value = false
-                finished.value = true
-            }, 1000)
+            if (finished.value) return
+            fetchList()
+        }
+
+        const onSortChange = () => {
+            page.value = 0
+            resultList.value = []
+            finished.value = false
+            fetchList()
+        }
+
+        const applyFilters = () => {
+            page.value = 0
+            resultList.value = []
+            finished.value = false
+            fetchList()
         }
 
         // 高亮关键词
@@ -177,6 +225,14 @@ export default {
             finished,
             searched,
             resultList,
+            page,
+            size,
+            sort,
+            sortOptions,
+            priceMin,
+            priceMax,
+            categoryId,
+            placeholderImg,
             searchHistory,
             hotSearch,
             onSearch,
@@ -184,6 +240,8 @@ export default {
             clearHistory,
             onRefresh,
             onLoad,
+            onSortChange,
+            applyFilters,
             highlightKeyword,
             goToProductDetail
         }
@@ -227,6 +285,25 @@ export default {
 
 .result-list {
     padding: 0 16px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    background: #fff;
+    margin-bottom: 8px;
+}
+
+.price-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.price-range .sep {
+    color: #c8c9cc;
 }
 
 .result-item {

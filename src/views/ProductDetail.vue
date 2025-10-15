@@ -15,8 +15,9 @@
                 <div class="product-price">¥{{ productInfo.price }}</div>
                 <div class="product-title">{{ productInfo.title }}</div>
                 <div class="product-meta">
-                    <span class="product-views">{{ productInfo.views }}人看过</span>
-                    <span class="product-time">{{ productInfo.publishTime }}</span>
+                    <span class="product-views">{{ productInfo.viewsCount }}人看过</span>
+                    <span class="product-time">{{ productInfo.createdAt && (new
+                        Date(productInfo.createdAt)).toLocaleString() }}</span>
                 </div>
             </div>
 
@@ -50,8 +51,10 @@
 </template>
 
 <script>
+import { addFavorite, removeFavorite } from '@/api/favorites'
+import { getProduct } from '@/api/products'
 import { ImagePreview, Toast } from 'vant'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default {
@@ -63,27 +66,16 @@ export default {
         const isFavorited = ref(false)
 
         // 商品图片
-        const productImages = ref([
-            'https://via.placeholder.com/375x300/333333/ffffff?text=iPhone+14+1',
-            'https://via.placeholder.com/375x300/666666/ffffff?text=iPhone+14+2',
-            'https://via.placeholder.com/375x300/999999/ffffff?text=iPhone+14+3'
-        ])
+        const productImages = ref([])
 
         // 商品信息
-        const productInfo = ref({
-            id: route.params.id,
-            title: 'iPhone 14 Pro 256GB 深空黑色，9成新，原装正品',
-            price: '6888',
-            views: 125,
-            publishTime: '2天前发布',
-            description: '购买于2023年3月，使用时间不长，9成新。原装充电器、数据线、耳机都在。手机运行流畅，无维修记录，支持面交验机。因为换新手机所以出售，诚心出售，价格可小刀。'
-        })
+        const productInfo = ref({})
 
         // 卖家信息
         const sellerInfo = ref({
-            id: 1,
-            name: '张小明',
-            avatar: 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=张',
+            id: 0,
+            name: '卖家',
+            avatar: 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=U',
             credit: 95
         })
 
@@ -96,9 +88,20 @@ export default {
         }
 
         // 切换收藏状态
-        const toggleFavorite = () => {
-            isFavorited.value = !isFavorited.value
-            Toast.success(isFavorited.value ? '已添加到收藏' : '已取消收藏')
+        const toggleFavorite = async () => {
+            try {
+                if (isFavorited.value) {
+                    await removeFavorite(route.params.id)
+                    isFavorited.value = false
+                    Toast.success('已取消收藏')
+                } else {
+                    await addFavorite(route.params.id)
+                    isFavorited.value = true
+                    Toast.success('已添加到收藏')
+                }
+            } catch (e) {
+                Toast.fail('操作失败')
+            }
         }
 
         // 联系卖家
@@ -110,6 +113,21 @@ export default {
         const goToSellerProfile = () => {
             Toast('卖家主页功能开发中')
         }
+
+        const loadDetail = async () => {
+            try {
+                const res = await getProduct(route.params.id)
+                productInfo.value = res
+                productImages.value = (res.images || []).map((img) => img.url)
+                // isFavorited 后端未直接返回，后续可通过单独接口判断；这里默认 false
+            } catch (e) {
+                Toast.fail('加载失败')
+            }
+        }
+
+        onMounted(() => {
+            loadDetail()
+        })
 
         return {
             productImages,

@@ -28,15 +28,15 @@
 
             <!-- 右侧内容区 -->
             <div class="content-area">
-                <!-- 商品分区 -->
-                <div v-for="section in productSections" :key="section.id" class="product-section">
+                <!-- 推荐列表 / 类目筛选结果 -->
+                <div class="product-section">
                     <div class="section-header">
-                        <h2 class="section-title">{{ section.title }}</h2>
-                        <span class="section-subtitle">{{ section.subtitle }}</span>
+                        <h2 class="section-title">{{ activeCategory === 0 ? '今日精选' : currentCategoryName + '商品' }}</h2>
+                        <span class="section-subtitle">{{ subtitleText }}</span>
                     </div>
 
                     <div class="product-pair-grid">
-                        <ProductCard v-for="product in section.products" :key="product.id" :product="product"
+                        <ProductCard v-for="product in productList" :key="product.id" :product="toCard(product)"
                             :show-desc="true" @click="() => goToProductDetail(product.id)" />
                     </div>
                 </div>
@@ -50,8 +50,9 @@
 </template>
 
 <script>
+import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -68,15 +69,15 @@ export default {
         const banners = ref([
             {
                 title: '精选二手数码',
-                image: 'https://via.placeholder.com/375x160/6c7b7f/ffffff?text=精选数码产品'
+                image: 'https://placehold.co/375x160/6c7b7f/ffffff?text=精选数码产品'
             },
             {
                 title: '时尚服饰专区',
-                image: 'https://via.placeholder.com/375x160/8d9098/ffffff?text=时尚服饰专区'
+                image: 'https://placehold.co/375x160/8d9098/ffffff?text=时尚服饰专区'
             },
             {
                 title: '居家好物',
-                image: 'https://via.placeholder.com/375x160/9ba0a6/ffffff?text=居家生活好物'
+                image: 'https://placehold.co/375x160/9ba0a6/ffffff?text=居家生活好物'
             }
         ])
 
@@ -93,20 +94,23 @@ export default {
         ])
 
         // 商品分区数据
-        const productSections = ref([])
+        const productList = ref([])
+        const page = ref(0)
+        const size = ref(10)
+        const loadingMore = ref(false)
+        const currentCategoryName = computed(() => {
+            return categories.value.find(c => c.id === activeCategory.value)?.name || '分类'
+        })
+        const subtitleText = computed(() => {
+            return activeCategory.value === 0 ? '编辑为您精心挑选' : `为您找到 ${productList.value.length} 个${currentCategoryName.value}商品`
+        })
 
         // 选择分类
         const selectCategory = (categoryId) => {
             activeCategory.value = categoryId
-            const selectedCategory = categories.value.find(cat => cat.id === categoryId)
-
-            if (categoryId === 0) {
-                // 显示所有商品（推荐）
-                initProductSections()
-            } else {
-                // 按分类筛选商品
-                filterProductsByCategory(selectedCategory.categoryKey)
-            }
+            page.value = 0
+            productList.value = []
+            fetchProducts()
         }
 
         // 处理轮播图点击
@@ -117,175 +121,43 @@ export default {
         // 跳转到商品详情
         const goToProductDetail = (id) => {
             router.push(`/product/${id}`)
-        }        // 初始化商品分区数据
-        const initProductSections = () => {
-            productSections.value = [
-                {
-                    id: 1,
-                    title: '今日精选',
-                    subtitle: '编辑为您精心挑选',
-                    products: [
-                        {
-                            id: 1,
-                            title: 'iPhone 14 Pro',
-                            description: '256GB 深空黑色，9成新',
-                            price: '6888',
-                            location: '上海',
-                            category: 'digital',
-                            image: 'https://via.placeholder.com/160x120/1c1c1e/ffffff?text=iPhone+14'
-                        },
-                        {
-                            id: 2,
-                            title: 'MacBook Air M2',
-                            description: '13英寸 8GB+256GB 银色',
-                            price: '8999',
-                            location: '北京',
-                            category: 'digital',
-                            image: 'https://via.placeholder.com/160x120/6c6c70/ffffff?text=MacBook'
-                        }
-                    ]
-                },
-                {
-                    id: 2,
-                    title: '热门数码',
-                    subtitle: '品质保证，性价比之选',
-                    products: [
-                        {
-                            id: 3,
-                            title: '小米13 Ultra',
-                            description: '512GB 黑色 徕卡影像',
-                            price: '4999',
-                            location: '杭州',
-                            category: 'digital',
-                            image: 'https://via.placeholder.com/160x120/48484a/ffffff?text=小米13'
-                        },
-                        {
-                            id: 4,
-                            title: 'iPad Pro 11',
-                            description: '128GB WiFi版 深空灰',
-                            price: '4299',
-                            location: '深圳',
-                            category: 'digital',
-                            image: 'https://via.placeholder.com/160x120/8e8e93/ffffff?text=iPad+Pro'
-                        }
-                    ]
-                },
-                {
-                    id: 3,
-                    title: '时尚穿搭',
-                    subtitle: '品味生活，彰显个性',
-                    products: [
-                        {
-                            id: 5,
-                            title: 'Nike Air Jordan 1',
-                            description: '黑红配色 US10码 95新',
-                            price: '1299',
-                            location: '广州',
-                            category: 'sports',
-                            image: 'https://via.placeholder.com/160x120/d70015/ffffff?text=Jordan+1'
-                        },
-                        {
-                            id: 6,
-                            title: 'Adidas Yeezy 350',
-                            description: '椰子鞋 Cream White',
-                            price: '2199',
-                            location: '成都',
-                            category: 'sports',
-                            image: 'https://via.placeholder.com/160x120/f5f5dc/000000?text=Yeezy'
-                        }
-                    ]
-                },
-                {
-                    id: 4,
-                    title: '生活家居',
-                    subtitle: '温馨家庭，品质生活',
-                    products: [
-                        {
-                            id: 7,
-                            title: '宜家IKEA 书桶',
-                            description: '白色简约书柜 9成新',
-                            price: '299',
-                            location: '上海',
-                            category: 'furniture',
-                            image: 'https://via.placeholder.com/160x120/f0f0f0/666666?text=书柜'
-                        },
-                        {
-                            id: 8,
-                            title: '戸外折叠桌椅',
-                            description: '铝合金材质 便携式',
-                            price: '199',
-                            location: '深圳',
-                            category: 'furniture',
-                            image: 'https://via.placeholder.com/160x120/8b4513/ffffff?text=折叠桌'
-                        }
-                    ]
-                },
-                {
-                    id: 5,
-                    title: '美妆护肤',
-                    subtitle: '美丽从这里开始',
-                    products: [
-                        {
-                            id: 9,
-                            title: 'SK-II 神仙水',
-                            description: '230ml 全新未开封',
-                            price: '899',
-                            location: '北京',
-                            category: 'beauty',
-                            image: 'https://via.placeholder.com/160x120/ff69b4/ffffff?text=SK-II'
-                        },
-                        {
-                            id: 10,
-                            title: '雅诗兰黛口红',
-                            description: '多色号可选 8成新',
-                            price: '189',
-                            location: '成都',
-                            category: 'beauty',
-                            image: 'https://via.placeholder.com/160x120/dc143c/ffffff?text=口红'
-                        }
-                    ]
-                }
-            ]
         }
 
-        // 按分类筛选商品
-        const filterProductsByCategory = (categoryKey) => {
-            // 获取所有商品
-            const allProducts = []
-            // 从初始化数据中获取所有商品
-            const tempSections = []
-            // 重新初始化以获取所有数据
-            initProductSections()
-            tempSections.push(...productSections.value)
-
-            tempSections.forEach(section => {
-                allProducts.push(...section.products)
-            })
-
-            // 按分类筛选
-            const filteredProducts = allProducts.filter(product => product.category === categoryKey)
-
-            if (filteredProducts.length > 0) {
-                const categoryName = categories.value.find(cat => cat.categoryKey === categoryKey)?.name || '分类'
-                productSections.value = [{
-                    id: 999,
-                    title: `${categoryName}商品`,
-                    subtitle: `为您找到 ${filteredProducts.length} 个${categoryName}商品`,
-                    products: filteredProducts
-                }]
-            } else {
-                const categoryName = categories.value.find(cat => cat.categoryKey === categoryKey)?.name || '分类'
-                productSections.value = [{
-                    id: 999,
-                    title: `${categoryName}商品`,
-                    subtitle: '暂无相关商品',
-                    products: []
-                }]
+        const fetchProducts = async () => {
+            loading.value = true
+            loadingMore.value = true
+            try {
+                const params = {
+                    page: page.value,
+                    size: size.value,
+                    sort: 'created,desc',
+                    categoryId: activeCategory.value === 0 ? undefined : activeCategory.value,
+                }
+                const res = await listProducts(params)
+                const content = res?.content || []
+                if (page.value === 0) productList.value = []
+                productList.value.push(...content)
+                page.value += 1
+            } catch (e) {
+                // 可选：Toast.fail('加载失败')
+            } finally {
+                loading.value = false
+                loadingMore.value = false
             }
         }
 
-        // 初始化数据
-        initProductSections()
+        const toCard = (p) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            price: p.price,
+            location: p.locationText,
+            image: (p.images && p.images[0]?.url) || 'https://via.placeholder.com/160x120/eeeeee/999999?text=No+Image'
+        })
+
+        onMounted(() => {
+            fetchProducts()
+        })
 
         return {
             searchValue,
@@ -293,11 +165,13 @@ export default {
             loading,
             banners,
             categories,
-            productSections,
+            productList,
+            currentCategoryName,
+            subtitleText,
             selectCategory,
             handleBannerClick,
             goToProductDetail,
-            filterProductsByCategory
+            toCard
         }
     }
 }

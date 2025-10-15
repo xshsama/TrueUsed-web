@@ -1,0 +1,97 @@
+<template>
+    <div class="category-select">
+        <van-field :model-value="selectedLabel" :label="label" :placeholder="placeholder" readonly is-link
+            @click="show = true" />
+        <van-popup v-model:show="show" position="bottom" round>
+            <div class="cascader-wrap">
+                <van-nav-bar title="选择类目" left-text="取消" right-text="确定" @click-left="onCancel"
+                    @click-right="onConfirm" />
+                <van-cascader v-model="innerValue" :options="options"
+                    :field-names="{ text: 'text', value: 'value', children: 'children' }" @change="onChange" />
+            </div>
+        </van-popup>
+    </div>
+
+</template>
+
+<script>
+import { listCategories } from '@/api/categories';
+import { computed, onMounted, ref, watch } from 'vue';
+
+export default {
+    name: 'CategorySelect',
+    props: {
+        modelValue: { type: [Number, String, null], default: null }, // categoryId
+        label: { type: String, default: '分类' },
+        placeholder: { type: String, default: '请选择分类' },
+    },
+    emits: ['update:modelValue', 'change'],
+    setup(props, { emit }) {
+        const show = ref(false)
+        const options = ref([])
+        const innerValue = ref(props.modelValue)
+        const labelMap = ref(new Map())
+
+        watch(
+            () => props.modelValue,
+            (v) => {
+                innerValue.value = v
+            },
+        )
+
+        const selectedLabel = computed(() => labelMap.value.get(innerValue.value) || '')
+
+        const buildTree = (flat) => {
+            const nodes = new Map()
+            flat.forEach((c) => {
+                nodes.set(c.id, { text: c.name, value: c.id, parentId: c.parentId, children: [] })
+                labelMap.value.set(c.id, c.name)
+            })
+            const roots = []
+            nodes.forEach((node) => {
+                if (node.parentId && nodes.has(node.parentId)) {
+                    nodes.get(node.parentId).children.push(node)
+                } else {
+                    roots.push(node)
+                }
+            })
+            return roots
+        }
+
+        const load = async () => {
+            const res = await listCategories()
+            options.value = buildTree(res || [])
+        }
+
+        const onChange = ({ value, selectedOptions }) => {
+            // noop for now
+        }
+
+        const onCancel = () => {
+            show.value = false
+        }
+
+        const onConfirm = () => {
+            emit('update:modelValue', innerValue.value)
+            emit('change', innerValue.value)
+            show.value = false
+        }
+
+        onMounted(load)
+
+        return { show, options, innerValue, selectedLabel, onChange, onCancel, onConfirm }
+    },
+}
+</script>
+
+<style scoped>
+.cascader-wrap {
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+}
+
+:deep(.van-cascader) {
+    flex: 1;
+}
+</style>

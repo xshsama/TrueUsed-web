@@ -24,8 +24,7 @@
                             <span style="color: #ee0a24;">¥</span>
                         </template>
                     </van-field>
-                    <van-field v-model="form.category" label="分类" placeholder="请选择分类" readonly required is-link
-                        @click="showCategoryPicker = true" />
+                    <CategorySelect v-model="form.categoryId" label="分类" />
                     <van-field v-model="form.condition" label="新旧程度" placeholder="请选择新旧程度" readonly required is-link
                         @click="showConditionPicker = true" />
                 </van-cell-group>
@@ -66,10 +65,7 @@
             </van-form>
         </div>
 
-        <!-- 分类选择器 -->
-        <van-popup v-model:show="showCategoryPicker" position="bottom">
-            <van-picker :columns="categoryColumns" @confirm="onCategoryConfirm" @cancel="showCategoryPicker = false" />
-        </van-popup>
+        <!-- 分类选择器 已替换为 CategorySelect 组件 -->
 
         <!-- 新旧程度选择器 -->
         <van-popup v-model:show="showConditionPicker" position="bottom">
@@ -85,6 +81,8 @@
 </template>
 
 <script>
+import { createProduct } from '@/api/products'
+import CategorySelect from '@/components/CategorySelect.vue'
 import { Dialog, Toast } from 'vant'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -103,7 +101,7 @@ export default {
         const form = reactive({
             title: '',
             price: '',
-            category: '',
+            categoryId: null,
             condition: '',
             description: '',
             tradeTypes: ['meetup'],
@@ -111,15 +109,7 @@ export default {
             contact: ''
         })
 
-        // 分类选项
-        const categoryColumns = ref([
-            { text: '数码产品', value: 'digital' },
-            { text: '服装配饰', value: 'clothing' },
-            { text: '家具家电', value: 'furniture' },
-            { text: '图书音像', value: 'books' },
-            { text: '运动户外', value: 'sports' },
-            { text: '其他', value: 'other' }
-        ])
+        // 分类选项由 CategorySelect 动态加载
 
         // 新旧程度选项
         const conditionColumns = ref([
@@ -145,11 +135,7 @@ export default {
             console.log('删除图片:', file, detail)
         }
 
-        // 分类选择确认
-        const onCategoryConfirm = ({ selectedOptions }) => {
-            form.category = selectedOptions[0]?.text || ''
-            showCategoryPicker.value = false
-        }
+        // 分类选择确认由 CategorySelect 直接回填 v-model 实现
 
         // 新旧程度选择确认
         const onConditionConfirm = ({ selectedOptions }) => {
@@ -176,7 +162,7 @@ export default {
         }
 
         // 提交表单
-        const onSubmit = () => {
+        const onSubmit = async () => {
             // 表单验证
             if (!form.title) {
                 Toast('请输入商品标题')
@@ -186,7 +172,7 @@ export default {
                 Toast('请输入价格')
                 return
             }
-            if (!form.category) {
+            if (!form.categoryId) {
                 Toast('请选择分类')
                 return
             }
@@ -207,14 +193,39 @@ export default {
                 return
             }
 
-            // 模拟提交
             Toast.loading({ message: '发布中...', duration: 0 })
-
-            setTimeout(() => {
+            try {
+                const payload = {
+                    title: form.title,
+                    description: form.description,
+                    price: Number(form.price),
+                    currency: 'CNY',
+                    // 将中文成色映射为后端枚举
+                    condition: mapCondition(form.condition),
+                    categoryId: form.categoryId,
+                    locationText: form.location || undefined,
+                    imageUrls: fileList.value.map(f => f.url || f.content || f.thumbUrl).filter(Boolean).slice(0, 9),
+                }
+                await createProduct(payload)
                 Toast.clear()
                 Toast.success('发布成功')
                 router.replace('/post')
-            }, 2000)
+            } catch (e) {
+                Toast.clear()
+                Toast.fail('发布失败')
+            }
+        }
+
+        const mapCondition = (text) => {
+            const map = {
+                '全新': 'NEW',
+                '几乎全新': 'LIKE_NEW',
+                '轻微使用痕迹': 'GOOD',
+                '明显使用痕迹': 'FAIR',
+                '重度使用痕迹': 'POOR',
+            }
+            // 若直接传英文也支持透传
+            return map[text] || text || null
         }
 
         return {
@@ -223,11 +234,11 @@ export default {
             showConditionPicker,
             showLocationPicker,
             form,
-            categoryColumns,
+            // categoryColumns,
             conditionColumns,
             locationColumns,
             onImageDelete,
-            onCategoryConfirm,
+            // onCategoryConfirm,
             onConditionConfirm,
             onLocationConfirm,
             onCancel,

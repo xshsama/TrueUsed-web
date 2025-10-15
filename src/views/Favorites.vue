@@ -45,6 +45,8 @@
 </template>
 
 <script>
+import { removeFavorite as apiRemoveFavorite, listMyFavorites } from '@/api/favorites'
+import { getProduct } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
 import { Dialog, Toast } from 'vant'
 import { computed, onMounted, ref } from 'vue'
@@ -73,45 +75,51 @@ export default {
             )
         })
 
-        // 模拟收藏数据
-        const mockFavorites = [
-            {
-                id: 1,
-                title: 'iPhone 14 Pro 256GB 深空黑色，9成新，原装正品',
-                price: '6888',
-                image: 'https://via.placeholder.com/120x120/333333/ffffff?text=iPhone+14',
-                location: '上海·浦东新区',
-                favoriteTime: '2天前收藏',
-                status: 'selling'
-            },
-            {
-                id: 2,
-                title: '全新MacBook Air M2芯片 13英寸 8GB+256GB',
-                price: '8999',
-                image: 'https://via.placeholder.com/120x120/silver/000000?text=MacBook',
-                location: '北京·朝阳区',
-                favoriteTime: '1周前收藏',
-                status: 'sold'
-            },
-            {
-                id: 3,
-                title: 'NIKE Air Jordan 1 黑红配色 US10码 95新',
-                price: '1299',
-                image: 'https://via.placeholder.com/120x120/ff0000/ffffff?text=Jordan+1',
-                location: '深圳·南山区',
-                favoriteTime: '3天前收藏',
-                status: 'selling'
-            },
-            {
-                id: 4,
-                title: '小米13 Ultra 512GB 黑色 徕卡影像',
-                price: '4999',
-                image: 'https://via.placeholder.com/120x120/000000/ffffff?text=小米13',
-                location: '杭州·西湖区',
-                favoriteTime: '5天前收藏',
-                status: 'offline'
+        const fetchFavorites = async () => {
+            loading.value = true
+            try {
+                const res = await listMyFavorites({ page: page.value, size: size.value })
+                const favs = res?.content || []
+                // 先占位，再并行获取详情
+                const content = favs.map(f => ({
+                    id: f.productId,
+                    title: `商品 #${f.productId}`,
+                    price: '-',
+                    image: 'https://via.placeholder.com/160x120/eeeeee/999999?text=No+Image',
+                    location: '',
+                    favoriteTime: new Date(f.createdAt).toLocaleString(),
+                    status: 'selling',
+                }))
+                if (page.value === 0) favoriteList.value = []
+                favoriteList.value.push(...content)
+                // 并行拉取产品详情，更新对应卡片
+                await Promise.all(
+                    favs.map(async (f, idx) => {
+                        try {
+                            const p = await getProduct(f.productId)
+                            const card = favoriteList.value[(page.value === 0 ? 0 : favoriteList.value.length - content.length) + idx]
+                            if (card && card.id === f.productId) {
+                                card.title = p.title
+                                card.price = p.price
+                                card.image = (p.images && p.images[0]?.url) || card.image
+                                card.location = p.locationText || ''
+                            }
+                        } catch (e) { /* ignore single item errors */ }
+                    })
+                )
+                finished.value = res?.last || content.length < size.value
+                page.value += 1
+            } catch (e) {
+                Toast.fail('加载失败')
+                finished.value = true
+            } finally {
+                loading.value = false
+                refreshing.value = false
             }
-        ]
+        }
+
+        const page = ref(0)
+        const size = ref(12)
 
         // 标签切换
         const onTabChange = (name) => {
@@ -129,23 +137,15 @@ export default {
 
         // 下拉刷新
         const onRefresh = () => {
-            setTimeout(() => {
-                favoriteList.value = [...mockFavorites]
-                refreshing.value = false
-                loading.value = false
-                finished.value = false
-                Toast.success('刷新成功')
-            }, 1000)
+            page.value = 0
+            finished.value = false
+            fetchFavorites()
         }
 
         // 上拉加载更多
         const onLoad = () => {
-            setTimeout(() => {
-                const filteredData = filterByStatus(mockFavorites, activeTab.value)
-                favoriteList.value.push(...filteredData)
-                loading.value = false
-                finished.value = true // 模拟数据已全部加载
-            }, 1000)
+            if (finished.value) return
+            fetchFavorites()
         }
 
         // 根据状态筛选数据
@@ -179,11 +179,15 @@ export default {
             Dialog.confirm({
                 title: '确认取消收藏',
                 message: '取消收藏后，该商品将从收藏列表中移除',
-            }).then(() => {
-                favoriteList.value = favoriteList.value.filter(item => item.id !== id)
-                Toast.success('已取消收藏')
-            }).catch(() => {
-                console.log('取消操作')
+            }).then(async () => {
+                try {
+                    // 后端以 productId 为路径参数
+                    await apiRemoveFavorite(id)
+                    favoriteList.value = favoriteList.value.filter(item => item.id !== id)
+                    Toast.success('已取消收藏')
+                } catch (e) {
+                    Toast.fail('操作失败')
+                }
             })
         }
 

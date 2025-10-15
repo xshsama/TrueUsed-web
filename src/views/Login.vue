@@ -55,13 +55,14 @@
 import { loginApi } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant'
-import { computed, onBeforeUnmount, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'Login',
     setup() {
         const router = useRouter()
+        const route = useRoute()
         const userStore = useUserStore()
 
         const submitting = ref(false)
@@ -103,7 +104,29 @@ export default {
             remember.value = !remember.value
         }
 
-        // API 已通过静态导入
+        // 安全重定向校验，仅允许站内路径，且不指向登录页
+        const getSafeRedirect = (val) => {
+            let target = val
+            if (Array.isArray(target)) target = target[0]
+            if (typeof target !== 'string') return null
+            if (!target.startsWith('/')) return null
+            // 防止协议相对或双斜杠导致跳转到外部
+            if (target.startsWith('//')) return null
+            // 避免回到登录页
+            if (target === '/login' || target.startsWith('/login?')) return null
+            const resolved = router.resolve(target)
+            if (resolved?.name === 'Login') return null
+            return target
+        }
+
+        // 若已登录，直接按 redirect 或主页跳转
+        onMounted(() => {
+            if (userStore?.token) {
+                const raw = route.query?.redirect
+                const target = getSafeRedirect(raw)
+                router.replace(target || '/home')
+            }
+        })
 
         const onSubmit = async () => {
             if (!validPhone.value) {
@@ -147,11 +170,17 @@ export default {
 
                 showSuccessToast('登录成功')
 
-                const redirect = router.currentRoute.value.query?.redirect
-                if (redirect) {
-                    router.replace(redirect)
+                const rawRedirect = route.query?.redirect
+                const target = getSafeRedirect(rawRedirect)
+                if (target) {
+                    router.replace(target)
                 } else {
-                    router.back() || router.push('/home')
+                    // 有历史则返回，无历史则回到首页；避免二次导航
+                    if (window.history.length > 1) {
+                        router.back()
+                    } else {
+                        router.replace('/home')
+                    }
                 }
             } catch (e) {
                 const msg = e?.response?.data?.message || e?.message || '登录失败，请稍后再试'
