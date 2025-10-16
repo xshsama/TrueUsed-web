@@ -75,7 +75,7 @@ export default {
         const sellerInfo = ref({
             id: 0,
             name: '卖家',
-            avatar: 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=U',
+            avatar: 'https://placehold.co/40x40/4CAF50/ffffff?text=U',
             credit: 95
         })
 
@@ -89,18 +89,21 @@ export default {
 
         // 切换收藏状态
         const toggleFavorite = async () => {
+            const prev = isFavorited.value
+            // 乐观更新
+            isFavorited.value = !prev
             try {
-                if (isFavorited.value) {
+                if (prev) {
                     await removeFavorite(route.params.id)
-                    isFavorited.value = false
                     Toast.success('已取消收藏')
                 } else {
                     await addFavorite(route.params.id)
-                    isFavorited.value = true
                     Toast.success('已添加到收藏')
                 }
             } catch (e) {
-                Toast.fail('操作失败')
+                // 回滚
+                isFavorited.value = prev
+                // 详细错误由拦截器提示，这里避免重复
             }
         }
 

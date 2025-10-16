@@ -130,7 +130,8 @@ export default {
                 const params = {
                     page: page.value,
                     size: size.value,
-                    sort: 'created,desc',
+                    // 后端约定的排序键：created_asc/price_desc/fav_desc/views_desc
+                    sort: 'created_desc',
                     categoryId: activeCategory.value === 0 ? undefined : activeCategory.value,
                 }
                 const res = await listProducts(params)
@@ -152,7 +153,7 @@ export default {
             description: p.description,
             price: p.price,
             location: p.locationText,
-            image: (p.images && p.images[0]?.url) || 'https://via.placeholder.com/160x120/eeeeee/999999?text=No+Image'
+            image: (p.images && p.images[0]?.url) || 'https://placehold.co/160x120/eeeeee/999999?text=No+Image'
         })
 
         onMounted(() => {

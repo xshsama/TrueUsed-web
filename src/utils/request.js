@@ -1,6 +1,7 @@
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
 import axios from 'axios'
+import { Toast } from 'vant'
 
 // 创建 axios 实例，统一走 /api，交由 Vite 代理到后端
 const request = axios.create({
@@ -74,6 +75,17 @@ request.interceptors.response.use(
         router.replace({ name: 'Login', query: { redirect } })
       }
     }
+    // 非 401 的错误，统一弹出提示（可通过 config.silent 抑制）
+    try {
+      if (!original?.silent) {
+        const msg =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message ||
+          '请求失败，请稍后重试'
+        Toast.fail(String(msg))
+      }
+    } catch {}
     return Promise.reject(error)
   },
 )

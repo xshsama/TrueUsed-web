@@ -62,8 +62,9 @@
 </template>
 
 <script>
+import { deleteProduct, updateProduct } from '@/api/products'
 import { Dialog, Toast } from 'vant'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -88,45 +89,8 @@ export default {
             { name: '删除商品', value: 'delete', color: '#ee0a24' }
         ])
 
-        // 模拟商品数据
-        const mockProducts = [
-            {
-                id: 1,
-                title: 'iPhone 14 Pro 256GB 深空黑色',
-                price: '6888',
-                image: 'https://via.placeholder.com/120x120/333333/ffffff?text=iPhone+14',
-                publishTime: '2天前发布',
-                views: 125,
-                status: 'selling'
-            },
-            {
-                id: 2,
-                title: '全新MacBook Air M2芯片 13英寸',
-                price: '8999',
-                image: 'https://via.placeholder.com/120x120/silver/000000?text=MacBook',
-                publishTime: '1周前发布',
-                views: 89,
-                status: 'reviewing'
-            },
-            {
-                id: 3,
-                title: 'NIKE Air Jordan 1 黑红配色',
-                price: '1299',
-                image: 'https://via.placeholder.com/120x120/ff0000/ffffff?text=Jordan+1',
-                publishTime: '3天前发布',
-                views: 203,
-                status: 'sold'
-            },
-            {
-                id: 4,
-                title: '小米13 Ultra 512GB 黑色',
-                price: '4999',
-                image: 'https://via.placeholder.com/120x120/000000/ffffff?text=小米13',
-                publishTime: '5天前发布',
-                views: 67,
-                status: 'offline'
-            }
-        ]
+        // TODO: 后端尚未提供“我的商品”列表接口，这里暂用空列表占位，等待后端补充 /products?mine=true 或 /users/me/products
+        const mockProducts = []
 
         // 标签切换
         const onTabChange = (name) => {
@@ -138,23 +102,26 @@ export default {
 
         // 下拉刷新
         const onRefresh = () => {
+            loading.value = true
+            refreshing.value = true
             setTimeout(() => {
                 productList.value = [...mockProducts]
                 refreshing.value = false
                 loading.value = false
-                finished.value = false
+                finished.value = true
                 Toast.success('刷新成功')
-            }, 1000)
+            }, 600)
         }
 
         // 上拉加载更多
         const onLoad = () => {
+            loading.value = true
             setTimeout(() => {
                 const filteredData = filterByStatus(mockProducts, activeTab.value)
                 productList.value.push(...filteredData)
                 loading.value = false
                 finished.value = true
-            }, 1000)
+            }, 600)
         }
 
         // 根据状态筛选数据
@@ -187,6 +154,7 @@ export default {
 
         // 编辑商品
         const editProduct = (product) => {
+            // 未来可跳转到编辑页并回填表单，这里先做占位
             Toast(`编辑商品：${product.title}`)
         }
 
@@ -231,22 +199,35 @@ export default {
                     Dialog.confirm({
                         title: '确认下架',
                         message: '下架后买家将无法搜索到该商品',
-                    }).then(() => {
-                        product.status = 'offline'
-                        Toast.success('商品已下架')
                     })
+                        .then(async () => {
+                            try {
+                                // 约定：将状态更新为 HIDDEN 对应“下架”。后端 ProductStatus.HIDDEN
+                                await updateProduct(product.id, { status: 'HIDDEN' })
+                                product.status = 'offline'
+                                Toast.success('商品已下架')
+                            } catch (e) {
+                                // 错误提示已由拦截器处理
+                            }
+                        })
                     break
                 case 'delete':
                     Dialog.confirm({
                         title: '确认删除',
                         message: '删除后无法恢复，确认删除该商品？',
-                    }).then(() => {
-                        const index = productList.value.findIndex(item => item.id === product.id)
-                        if (index > -1) {
-                            productList.value.splice(index, 1)
-                            Toast.success('商品已删除')
-                        }
                     })
+                        .then(async () => {
+                            try {
+                                await deleteProduct(product.id)
+                                const index = productList.value.findIndex(item => item.id === product.id)
+                                if (index > -1) {
+                                    productList.value.splice(index, 1)
+                                }
+                                Toast.success('商品已删除')
+                            } catch (e) {
+                                // 错误提示已由拦截器处理
+                            }
+                        })
                     break
             }
 
@@ -254,8 +235,9 @@ export default {
             currentProduct.value = null
         }
 
-        // 初始加载
-        onLoad()
+        onMounted(() => {
+            onLoad()
+        })
 
         return {
             activeTab,
