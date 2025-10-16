@@ -26,6 +26,7 @@ import {
   Popup,
   PullRefresh,
   Search,
+  Skeleton,
   Swipe,
   SwipeItem,
   Tab,
@@ -40,6 +41,8 @@ import 'vant/lib/index.css'
 
 // 全局样式
 import './styles/global.css'
+// UnoCSS runtime (virtual CSS)
+import 'virtual:uno.css'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -75,6 +78,7 @@ app.use(Divider)
 app.use(Tab)
 app.use(Tabs)
 app.use(NoticeBar)
+app.use(Skeleton)
 
 app.use(pinia)
 app.use(router)

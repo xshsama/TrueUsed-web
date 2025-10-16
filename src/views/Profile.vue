@@ -1,11 +1,21 @@
 <template>
     <div class="profile-page">
         <van-nav-bar title="我的" fixed />
+        <!-- 顶部封面（浅色柔和渐变） -->
+        <div class="top-cover bg-cover-soft"></div>
+        <!-- 顶层悬浮头像（置于最上层） -->
+        <div class="avatar-top">
+            <van-image :src="userInfo.avatarUrl || defaultAvatar" class="avatar" round fit="cover" />
+        </div>
         <div class="page-content">
+            <!-- 路由化分区：用户中心 | 卖家中心 -->
+            <div class="tu-seg shadow-soft-lg">
+                <button class="tu-seg-btn is-active">用户中心</button>
+                <button class="tu-seg-btn" @click="goSeller">卖家中心</button>
+            </div>
             <!-- 顶部身份信息区 -->
-            <section class="identity-card">
-                <div class="identity-main">
-                    <van-image :src="userInfo.avatarUrl || defaultAvatar" class="avatar" round fit="cover" />
+            <section class="identity-card shadow-soft-lg glass-card">
+                <div class="identity-main" v-if="!loading">
                     <div class="identity-text">
                         <div class="row">
                             <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '游客' }}</h1>
@@ -19,43 +29,46 @@
                         </div>
                     </div>
                 </div>
+                <div v-else class="identity-skeleton">
+                    <van-skeleton avatar title :row="2" avatar-size="70px" />
+                </div>
                 <div class="identity-actions">
                     <van-button size="small" round type="primary" plain @click="editProfile">编辑资料</van-button>
                     <van-button size="small" round type="default" plain @click="openSecurity">安全设置</van-button>
                 </div>
             </section>
 
-            <!-- 交易管理区 -->
-            <section class="trade-section">
-                <div class="seller-manage card-block">
-                    <div class="block-head">
-                        <h2 class="block-title">卖家管理</h2>
-                        <van-button size="mini" type="primary" round plain @click="createProduct">发布商品</van-button>
-                    </div>
-                    <div class="seller-links">
-                        <div class="seller-entry" @click="goToMyProducts">
-                            <van-icon name="apps-o" />
-                            <span>我的发布</span>
+            <!-- 用户区：常用入口、订单状态等 -->
+            <section class="user-section">
+                <div class="tu-list-card shadow-soft-lg">
+                    <div class="tu-list-item" @click="viewAllOrders">
+                        <div class="tu-list-icon-bubble" style="background:#3b82f6"><van-icon name="orders-o" /></div>
+                        <div>
+                            <div class="tu-list-title">我的订单</div>
+                            <div class="tu-list-subtitle">查看全部订单记录</div>
                         </div>
-                        <div class="seller-entry" @click="goToSoldProducts">
-                            <van-icon name="passed" />
-                            <span>已售出</span>
+                        <div class="tu-list-right">
+                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
                         </div>
                     </div>
-                </div>
-                <div class="order-status card-block">
-                    <div class="block-head">
-                        <h2 class="block-title">订单状态</h2>
-                        <van-button size="mini" type="default" round plain @click="viewAllOrders">全部订单</van-button>
+                    <div class="tu-list-item" @click="goToOrderStatus('favorites')">
+                        <div class="tu-list-icon-bubble" style="background:#ef4444"><van-icon name="like-o" /></div>
+                        <div>
+                            <div class="tu-list-title">我的收藏</div>
+                            <div class="tu-list-subtitle">关注的商品与店铺</div>
+                        </div>
+                        <div class="tu-list-right">
+                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+                        </div>
                     </div>
-                    <div class="status-grid">
-                        <div v-for="st in orderStatus" :key="st.key" class="status-item"
-                            @click="goToOrderStatus(st.key)">
-                            <div class="icon-wrap">
-                                <van-icon :name="st.icon" size="24" />
-                                <van-badge v-if="st.count > 0" :content="st.count" />
-                            </div>
-                            <span class="label">{{ st.label }}</span>
+                    <div class="tu-list-item" @click="goToAddress">
+                        <div class="tu-list-icon-bubble" style="background:#06b6d4"><van-icon name="location-o" /></div>
+                        <div>
+                            <div class="tu-list-title">地址管理</div>
+                            <div class="tu-list-subtitle">收货地址与常用地址</div>
+                        </div>
+                        <div class="tu-list-right">
+                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
                         </div>
                     </div>
                 </div>
@@ -78,7 +91,7 @@
 <script>
 import { useUserStore } from '@/stores/user'
 import { Dialog, Toast } from 'vant'
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -86,13 +99,18 @@ export default {
     setup() {
         const router = useRouter()
         const userStore = useUserStore()
-        const defaultAvatar = 'https://via.placeholder.com/80x80/4CAF50/ffffff?text=用户'
+        const defaultAvatar = 'https://placehold.co/80x80/4CAF50/ffffff?text=用户'
         const userInfo = computed(() => userStore.user || {})
+        const loading = ref(true)
 
         // 加载我的资料
         onMounted(async () => {
-            if (userStore.isLoggedIn) {
-                try { await userStore.loadMe() } catch { }
+            try {
+                if (userStore.isLoggedIn) {
+                    await userStore.loadMe()
+                }
+            } finally {
+                loading.value = false
             }
         })
 
@@ -104,13 +122,23 @@ export default {
             score: 95
         })
 
-        // 订单状态宫格数据
+        // 订单状态列表数据
         const orderStatus = ref([
             { key: 'unpaid', label: '待付款', icon: 'pending-payment', count: 1 },
             { key: 'toship', label: '待发货', icon: 'logistics', count: 0 },
             { key: 'toreceive', label: '待收货', icon: 'cart-o', count: 2 },
             { key: 'afterSale', label: '退款/售后', icon: 'after-sale', count: 0 }
         ])
+
+        const iconBg = (key) => {
+            const map = {
+                unpaid: '#38bdf8',
+                toship: '#a78bfa',
+                toreceive: '#22c55e',
+                afterSale: '#f43f5e'
+            }
+            return `background:${map[key] || '#93c5fd'}`
+        }
 
         // 钱包余额
         const walletBalance = ref(2356.78)
@@ -144,6 +172,8 @@ export default {
 
         const viewAllOrders = () => Toast('全部订单（占位）')
         const goToOrderStatus = (key) => Toast(`进入状态：${key}`)
+
+        const goSeller = () => router.push('/seller')
 
         const withdraw = () => Toast('提现（占位）')
         const viewWalletDetail = () => Toast('钱包明细（占位）')
@@ -191,6 +221,8 @@ export default {
         return {
             userInfo,
             defaultAvatar,
+            loading,
+            goSeller,
             creditStatus,
             orderStatus,
             walletBalance,
@@ -213,7 +245,8 @@ export default {
             createProduct,
             goToMyProducts,
             goToSoldProducts,
-            logout
+            logout,
+            iconBg
         }
     }
 }
@@ -222,12 +255,37 @@ export default {
 <style scoped>
 /* 新版样式 */
 .profile-page {
-    background: #f5f7fa;
+    background: #f6f9ff;
     min-height: 100vh;
 }
 
+.top-cover {
+    position: sticky;
+    top: 0;
+    height: 180px;
+    z-index: 0;
+    border-bottom-left-radius: 32px;
+    border-bottom-right-radius: 32px;
+}
+
+.avatar-top {
+    position: relative;
+    margin-top: -48px;
+    /* 轻微上移，使头像压住封面底缘 */
+    display: flex;
+    justify-content: center;
+    z-index: 3;
+}
+
+.avatar-top .avatar {
+    width: 86px;
+    height: 86px;
+    box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .35);
+    border: 4px solid #fff;
+}
+
 .page-content {
-    padding-top: 46px;
+    padding-top: 0;
     padding-bottom: 40px;
     max-width: 880px;
     /* 统一竖直布局收窄宽度更聚焦 */
@@ -235,6 +293,40 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    margin-top: -40px;
+    /* 调整卡片与头像的重叠关系 */
+    /* 让卡片上移覆盖封面下缘 */
+    position: relative;
+    z-index: 1;
+}
+
+/* 分段控制（用户/卖家） */
+.tu-seg {
+    background: rgba(255, 255, 255, .6);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(31, 41, 55, 0.06);
+    border-radius: 16px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.tu-seg-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #475569;
+}
+
+.tu-seg-btn.is-active {
+    color: #ffffff;
+    background-image: linear-gradient(90deg, var(--primary-color), var(--primary-color-2));
+    box-shadow: 0 6px 20px -8px rgba(59, 130, 246, .6);
 }
 
 /* 基础块通用样式 */
@@ -295,6 +387,10 @@ export default {
     box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .15);
 }
 
+.avatar-ring .avatar {
+    border: 0;
+}
+
 .identity-text {
     flex: 1;
     min-width: 0;
@@ -331,34 +427,9 @@ export default {
     gap: 10px;
 }
 
-/* 卖家管理 */
-.seller-links {
-    display: flex;
-    gap: 18px;
-}
+/* 旧卖家宫格样式已废弃，保留 tu-list-card 体系 */
 
-.seller-entry {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 14px 18px;
-    background: #f5f7fa;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: .25s;
-    font-size: 13px;
-    color: #333;
-}
-
-.seller-entry:hover {
-    background: #eef3ff;
-}
-
-.seller-entry .van-icon {
-    font-size: 22px;
-}
+/* 旧快捷宫格样式移除，改为 list-card/list-item 全局样式（在 global.css 中） */
 
 /* 订单状态 */
 .status-grid {

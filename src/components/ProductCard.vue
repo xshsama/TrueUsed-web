@@ -1,5 +1,5 @@
 <template>
-    <div class="product-card-wrapper" @click="onClick">
+    <div class="product-card-wrapper tu-card" @click="onClick">
         <div class="media">
             <van-image :src="product.image" :alt="product.title" fit="cover" class="media-img" lazy-load />
             <slot name="badge"></slot>
@@ -51,20 +51,11 @@ export default {
 
 <style scoped>
 .product-card-wrapper {
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
+    border-radius: var(--card-radius);
     cursor: pointer;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, .06);
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: transform .25s ease, box-shadow .25s ease;
-}
-
-.product-card-wrapper:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .12);
 }
 
 .product-card-wrapper:active {
@@ -153,7 +144,7 @@ export default {
 .price {
     font-size: 18px;
     font-weight: 700;
-    color: #007AFF;
+    color: var(--primary-color);
 }
 
 .loc {
@@ -191,9 +182,5 @@ export default {
     }
 }
 
-@media (max-width:520px) {
-    .product-card-wrapper {
-        border-radius: 14px;
-    }
-}
+@media (max-width:520px) {}
 </style>

@@ -24,6 +24,23 @@ body {
   --blend-surface: rgba(255,255,255,0.85);
   --border-soft: 1px solid rgba(210,215,222,0.6);
   --ease-standard: cubic-bezier(.4,0,.2,1);
+  /* 统一主题 */
+  --primary-color: #007aff;
+  --primary-color-2: #66A6FF;
+  --card-radius: 16px;
+  --card-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.15);
+  /* Vant 主题映射 */
+  --van-primary-color: var(--primary-color);
+  /* 语义色映射（Button/Tag/Badge 统一） */
+  --van-success-color: #22c55e; /* 绿色 */
+  --van-danger-color: #ef4444;  /* 红色 */
+  --van-warning-color: #f59e0b; /* 橙色 */
+  --van-badge-background-color: var(--van-danger-color);
+  --van-badge-color: #fff;
+  /* 卖家中心强调色 */
+  --accent-purple: #7c3aed; /* 紫色 */
+  --accent-orange: #f59e0b; /* 橙色 */
+  --accent-blue: var(--primary-color); /* 品牌蓝 */
 }
 
 .page {
@@ -141,6 +158,89 @@ body {
   padding: 20px;
   text-align: center;
 }
+
+/* 蓝色主题辅助与渐变（与 UnoCSS 一起使用） */
+
+.bg-cover-blue { /* 顶部封面渐变背景 */
+  background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 50%, #60a5fa 100%);
+}
+
+/* 浅色柔和封面背景（替换蓝色时使用） */
+.bg-cover-soft {
+  background: linear-gradient(180deg, #f7fbff 0%, #eef6ff 55%, #eaf9ff 100%);
+}
+
+.shadow-soft-lg { /* 更柔和的大阴影 */
+  box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* 统一卡片与按钮（与 UnoCSS 共存，提供兜底） */
+.tu-card {
+  background: #fff;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: transform .25s var(--ease-standard), box-shadow .25s var(--ease-standard);
+}
+.tu-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .12);
+}
+.btn-primary {
+  color: #fff !important;
+  background-image: linear-gradient(90deg, var(--primary-color), var(--primary-color-2));
+  border: none !important;
+}
+
+/* 卖家中心图标泡泡（品牌蓝 + 紫/橙点缀） */
+.tu-bubble-blue { background: var(--accent-blue) !important; }
+.tu-bubble-purple { background: var(--accent-purple) !important; }
+.tu-bubble-orange { background: var(--accent-orange) !important; }
+
+/* 列表卡片样式（拟合截图风格） */
+.tu-list-card {
+  background: rgba(255,255,255,0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(31,41,55,0.06);
+  border-radius: 24px;
+  padding: 8px;
+}
+.tu-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  transition: background .2s ease;
+}
+.tu-list-item + .tu-list-item { margin-top: 6px; }
+.tu-list-item:hover { background: rgba(255,255,255,0.6); }
+.tu-list-icon-bubble {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.tu-list-title { font-size: 14px; font-weight: 600; color: #1d1d1f; }
+.tu-list-subtitle { font-size: 12px; color: #6b7280; }
+.tu-list-right {
+  margin-left: auto; display: flex; align-items: center; gap: 8px; color: #9ca3af;
+}
+.tu-list-right-bubble {
+  width: 28px; height: 28px; border-radius: 999px; background: rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center; color: #9ca3af; border: 1px solid rgba(31,41,55,0.06);
+}
+
+/* 概览卡片（两列） */
+.tu-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tu-overview-item {
+  border-radius: 20px; padding: 16px; display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3));
+  border: 1px solid rgba(31,41,55,0.06);
+}
+.tu-overview-icon { width: 44px; height: 44px; border-radius: 14px; display:flex; align-items:center; justify-content:center; color: #fff; }
+.tu-overview-title { font-size: 14px; font-weight: 600; color: #1f2937; }
+.tu-overview-desc { font-size: 12px; color: #6b7280; }
 
 /* 搜索样式 */
 .search-container {

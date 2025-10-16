@@ -14,6 +14,7 @@ import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
 import Register from '@/views/Register.vue'
 import Search from '@/views/Search.vue'
+import Seller from '@/views/Seller.vue'
 
 const routes = [
   {
@@ -65,6 +66,12 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/seller',
+    name: 'Seller',
+    component: Seller,
     meta: { requiresAuth: true },
   },
   {
