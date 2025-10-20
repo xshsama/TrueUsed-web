@@ -2,19 +2,32 @@ import { useUserStore } from '@/stores/user'
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 导入页面组件
+import About from '@/views/About.vue'
+import Address from '@/views/Address.vue'
 import Favorites from '@/views/Favorites.vue'
+import Feedback from '@/views/Feedback.vue'
+import Help from '@/views/Help.vue'
 import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
 import MessageChat from '@/views/MessageChat.vue'
 import Messages from '@/views/Messages.vue'
+import MyProducts from '@/views/MyProducts.vue'
+import OrderManage from '@/views/OrderManage.vue'
+import Orders from '@/views/Orders.vue'
 import Post from '@/views/Post.vue'
 import PostCreate from '@/views/PostCreate.vue'
 import PostManage from '@/views/PostManage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
+import ProductManageCenter from '@/views/ProductManageCenter.vue'
 import Profile from '@/views/Profile.vue'
 import Register from '@/views/Register.vue'
 import Search from '@/views/Search.vue'
-import Seller from '@/views/Seller.vue'
+import ServiceCenter from '@/views/ServiceCenter.vue'
+import ServiceMessages from '@/views/ServiceMessages.vue'
+import Settings from '@/views/Settings.vue'
+import Settlement from '@/views/Settlement.vue'
+import SoldProducts from '@/views/SoldProducts.vue'
+import Verification from '@/views/Verification.vue'
 
 const routes = [
   {
@@ -69,12 +82,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/seller',
-    name: 'Seller',
-    component: Seller,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/login',
     name: 'Login',
     component: Login,
@@ -97,6 +104,75 @@ const routes = [
     name: 'Search',
     component: Search,
     meta: { hideTabbar: true },
+  },
+  {
+    path: '/orders',
+    name: 'Orders',
+    component: Orders,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/address',
+    name: 'Address',
+    component: Address,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/verification',
+    name: 'Verification',
+    component: Verification,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/service',
+    name: 'ServiceCenter',
+    component: ServiceCenter,
+    meta: { requiresAuth: true },
+  },
+  { path: '/help', name: 'Help', component: Help },
+  { path: '/feedback', name: 'Feedback', component: Feedback },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
+    meta: { requiresAuth: true },
+  },
+  { path: '/about', name: 'About', component: About },
+  {
+    path: '/my-products',
+    name: 'MyProducts',
+    component: MyProducts,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/sold-products',
+    name: 'SoldProducts',
+    component: SoldProducts,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/product-manage',
+    name: 'ProductManageCenter',
+    component: ProductManageCenter,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/order-manage',
+    name: 'OrderManage',
+    component: OrderManage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/settlement',
+    name: 'Settlement',
+    component: Settlement,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/service-messages',
+    name: 'ServiceMessages',
+    component: ServiceMessages,
+    meta: { requiresAuth: true },
   },
 ]
 

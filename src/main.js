@@ -10,6 +10,8 @@ import {
   Card,
   Cell,
   CellGroup,
+  Collapse,
+  CollapseItem,
   Dialog,
   Divider,
   Empty,
@@ -28,11 +30,14 @@ import {
   Search,
   Skeleton,
   Swipe,
+  SwipeCell,
   SwipeItem,
+  Switch,
   Tab,
   Tabbar,
   TabbarItem,
   Tabs,
+  Tag,
   Toast,
   Uploader,
   Image as VanImage,
@@ -79,6 +84,11 @@ app.use(Tab)
 app.use(Tabs)
 app.use(NoticeBar)
 app.use(Skeleton)
+app.use(Tag)
+app.use(Switch)
+app.use(SwipeCell)
+app.use(Collapse)
+app.use(CollapseItem)
 
 app.use(pinia)
 app.use(router)

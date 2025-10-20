@@ -1,16 +1,17 @@
 <template>
     <div class="product-card-wrapper tu-card" @click="onClick">
         <div class="media">
-            <van-image :src="product.image" :alt="product.title" fit="cover" class="media-img" lazy-load />
+            <van-image :src="product.image || 'https://placehold.co/400x300/eeeeee/999999?text=No+Image'"
+                :alt="product.title || '商品'" fit="cover" class="media-img" lazy-load />
             <slot name="badge"></slot>
             <slot name="favorite"></slot>
             <div v-if="statusText" class="status-chip" :class="'status-' + statusType">{{ statusText }}</div>
         </div>
         <div class="info">
-            <h3 class="title" :title="product.title">{{ product.title }}</h3>
+            <h3 class="title" :title="product.title || '商品'">{{ product.title || '商品' }}</h3>
             <p v-if="showDesc && product.description" class="desc">{{ product.description }}</p>
             <div class="meta-row">
-                <span class="price">¥{{ product.price }}</span>
+                <span class="price">¥{{ product.price ?? '-' }}</span>
                 <span v-if="product.location" class="loc">{{ product.location }}</span>
             </div>
             <div class="footer-row">
@@ -65,7 +66,7 @@ export default {
 .media {
     position: relative;
     aspect-ratio: 4/3;
-    background: #f2f2f7;
+    background: #f2f3f5;
 }
 
 .media-img {
@@ -82,23 +83,23 @@ export default {
     padding: 4px 10px;
     font-size: 12px;
     font-weight: 600;
-    border-radius: 14px;
+    border-radius: var(--radius-pill);
     backdrop-filter: blur(6px);
     color: #fff;
     letter-spacing: .5px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+    box-shadow: var(--shadow-soft);
 }
 
 .status-selling {
-    background: linear-gradient(135deg, #34c759, #2faa4f);
+    background: var(--van-success-color);
 }
 
 .status-sold {
-    background: linear-gradient(135deg, #ffa726, #fb8c00);
+    background: var(--van-warning-color);
 }
 
 .status-offline {
-    background: linear-gradient(135deg, #ff3b30, #d32f2f);
+    background: var(--van-danger-color);
 }
 
 .info {
@@ -126,7 +127,7 @@ export default {
     color: #8e8e93;
     line-height: 1.4;
     margin: 0 0 10px;
-    height: 38px;
+    /* 遵循行数裁剪，避免固定高度的魔法数 */
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;

@@ -2,7 +2,8 @@ import request from '@/utils/request'
 
 export function loginApi(data) {
   // 后端登录路径为 /auth/login，这里通过 Vite 代理前缀 /api 调用
-  return request.post('/auth/login', data)
+  // 显式开启 withCredentials 以确保跨域环境下浏览器接受 Set-Cookie(refresh_token)
+  return request.post('/auth/login', data, { withCredentials: true })
 }
 
 export function registerApi(data) {

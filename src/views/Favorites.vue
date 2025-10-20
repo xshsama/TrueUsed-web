@@ -22,7 +22,10 @@
                 <!-- 收藏网格 -->
                 <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                     <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
-                        <div v-if="filteredList.length" class="fav-grid">
+                        <div v-if="loading && page === 0" class="fav-grid">
+                            <van-skeleton v-for="i in 6" :key="i" animated :row="4" />
+                        </div>
+                        <div v-else-if="filteredList.length" class="fav-grid">
                             <ProductCard v-for="item in filteredList" :key="item.id" :product="item" :show-desc="false"
                                 :status="item.status" @click="() => goToProductDetail(item.id)">
                                 <template #footer-left>
@@ -37,6 +40,7 @@
                         <van-empty v-else image="search" description="还没有收藏任何商品">
                             <van-button type="primary" size="small" @click="$router.push('/home')">去看看</van-button>
                         </van-empty>
+                        <div v-if="filteredList.length && finished" class="finished-text">没有更多了</div>
                     </van-list>
                 </van-pull-refresh>
             </div>

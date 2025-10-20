@@ -35,14 +35,28 @@
                         <span class="section-subtitle">{{ subtitleText }}</span>
                     </div>
 
-                    <div class="product-pair-grid">
+                    <!-- 骨架屏：首屏加载 -->
+                    <div v-if="isInitialLoading" class="product-pair-grid">
+                        <van-skeleton v-for="i in 4" :key="i" animated :row="3" />
+                    </div>
+
+                    <!-- 空状态 -->
+                    <van-empty v-else-if="productList.length === 0" description="暂无商品" />
+
+                    <!-- 列表 -->
+                    <div v-else class="product-pair-grid">
                         <ProductCard v-for="product in productList" :key="product.id" :product="toCard(product)"
                             :show-desc="true" @click="() => goToProductDetail(product.id)" />
                     </div>
-                </div>
 
-                <!-- 加载更多 -->
-                <van-loading v-if="loading" class="loading-more">加载更多商品...</van-loading>
+                    <!-- 加载更多/完成 -->
+                    <div v-if="productList.length" class="load-more-area">
+                        <van-loading v-if="loading" class="loading-more">加载中...</van-loading>
+                        <div v-else-if="!hasMore" class="finished-text">没有更多了</div>
+                        <van-button v-else size="small" type="primary" class="btn-primary" block
+                            @click="fetchProducts">加载更多</van-button>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- 全局卖出按钮已移动到 App.vue -->
@@ -64,6 +78,7 @@ export default {
         const searchValue = ref('')
         const activeCategory = ref(0)
         const loading = ref(false)
+        const hasMore = ref(true)
 
         // 轮播图数据
         const banners = ref([
@@ -98,6 +113,7 @@ export default {
         const page = ref(0)
         const size = ref(10)
         const loadingMore = ref(false)
+        const isInitialLoading = computed(() => loading.value && page.value === 0)
         const currentCategoryName = computed(() => {
             return categories.value.find(c => c.id === activeCategory.value)?.name || '分类'
         })
@@ -138,6 +154,8 @@ export default {
                 const content = res?.content || []
                 if (page.value === 0) productList.value = []
                 productList.value.push(...content)
+                // 判断是否还有更多
+                hasMore.value = !(res?.last || content.length < size.value)
                 page.value += 1
             } catch (e) {
                 // 可选：Toast.fail('加载失败')
@@ -167,12 +185,15 @@ export default {
             banners,
             categories,
             productList,
+            hasMore,
+            isInitialLoading,
             currentCategoryName,
             subtitleText,
             selectCategory,
             handleBannerClick,
             goToProductDetail,
-            toCard
+            toCard,
+            fetchProducts
         }
     }
 }
@@ -446,6 +467,16 @@ export default {
     text-align: center;
     padding: 20px;
     color: #86868b;
+}
+
+.load-more-area {
+    padding: 16px 0 4px;
+}
+
+.finished-text {
+    text-align: center;
+    color: #8e8e93;
+    padding: 8px 0;
 }
 
 /* 响应式设计 */

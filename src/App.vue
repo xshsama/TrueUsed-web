@@ -40,9 +40,9 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useMessageStore } from './stores/message'
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useMessageStore } from './stores/message';
 
 export default {
     name: 'App',
@@ -91,12 +91,7 @@ export default {
             router.push(map[key])
         }
 
-        // 监听路由变化
-        router.beforeEach(() => {
-            updateActiveTab()
-            syncTopActive()
-        })
-
+        // 初始化与监听路由变化（使用 watch，不注册 beforeEach 以免阻塞导航）
         updateActiveTab()
         syncTopActive()
 
@@ -191,6 +186,7 @@ export default {
 .brand-text {
     background: linear-gradient(90deg, #0d47a1, #1976d2 55%, #42a5f5);
     -webkit-background-clip: text;
+    background-clip: text;
     color: transparent;
 }
 

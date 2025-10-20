@@ -47,7 +47,11 @@
 
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                 <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
-                    <div v-if="resultList.length > 0" class="result-list">
+                    <!-- 骨架屏 -->
+                    <div v-if="loading && page === 0" class="result-list">
+                        <van-skeleton v-for="i in 4" :key="i" animated avatar :row="3" />
+                    </div>
+                    <div v-else-if="resultList.length > 0" class="result-list">
                         <div v-for="item in resultList" :key="item.id" class="result-item"
                             @click="goToProductDetail(item.id)">
                             <van-image :src="(item.images && item.images[0]?.url) || placeholderImg" :alt="item.title"
@@ -59,7 +63,7 @@
                             </div>
                         </div>
                     </div>
-                    <van-empty v-else-if="searched" image="search" description="没有找到相关商品" />
+                    <van-empty v-else-if="searched && !loading" image="search" description="没有找到相关商品" />
                 </van-list>
             </van-pull-refresh>
         </div>
@@ -200,6 +204,10 @@ export default {
         }
 
         const applyFilters = () => {
+            if (priceMin.value && priceMax.value && Number(priceMin.value) > Number(priceMax.value)) {
+                Toast.fail('最小价格不能大于最大价格')
+                return
+            }
             page.value = 0
             resultList.value = []
             finished.value = false
@@ -207,10 +215,14 @@ export default {
         }
 
         // 高亮关键词
+        const escapeHtml = (s) =>
+            String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
         const highlightKeyword = (text) => {
             if (!searchValue.value) return text
             const keyword = searchValue.value.trim()
-            return text.replace(new RegExp(`(${keyword})`, 'gi'), '<span style="color: #ee0a24;">$1</span>')
+            const safe = escapeHtml(text)
+            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            return safe.replace(new RegExp(`(${safeKeyword})`, 'gi'), '<span style="color: #ee0a24;">$1</span>')
         }
 
         // 跳转商品详情

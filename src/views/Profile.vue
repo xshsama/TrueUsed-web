@@ -10,69 +10,86 @@
         <div class="page-content">
             <!-- 路由化分区：用户中心 | 卖家中心 -->
             <div class="tu-seg shadow-soft-lg">
-                <button class="tu-seg-btn is-active">用户中心</button>
-                <button class="tu-seg-btn" @click="goSeller">卖家中心</button>
+                <button class="tu-seg-btn" :class="{ 'is-active': activeTab === 'user' }"
+                    @click="activeTab = 'user'">用户中心</button>
+                <button class="tu-seg-btn" :class="{ 'is-active': activeTab === 'seller' }"
+                    @click="goSeller">卖家中心</button>
             </div>
-            <!-- 顶部身份信息区 -->
-            <section class="identity-card shadow-soft-lg glass-card">
-                <div class="identity-main" v-if="!loading">
-                    <div class="identity-text">
-                        <div class="row">
-                            <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '游客' }}</h1>
-                            <van-tag type="primary" size="small" round>{{ creditStatus.level }}</van-tag>
-                        </div>
-                        <p class="signature" v-if="userInfo.bio">{{ userInfo.bio }}</p>
-                        <div class="auth-badges">
-                            <van-tag v-if="userInfo.emailVerified" type="success" size="mini" round>邮箱已验证</van-tag>
-                            <van-tag v-if="userInfo.phoneVerified" type="primary" size="mini" round>已绑定手机</van-tag>
-                            <van-tag plain type="warning" size="mini" round>信用 {{ creditStatus.score }}</van-tag>
-                        </div>
-                    </div>
-                </div>
-                <div v-else class="identity-skeleton">
-                    <van-skeleton avatar title :row="2" avatar-size="70px" />
-                </div>
-                <div class="identity-actions">
-                    <van-button size="small" round type="primary" plain @click="editProfile">编辑资料</van-button>
-                    <van-button size="small" round type="default" plain @click="openSecurity">安全设置</van-button>
-                </div>
-            </section>
 
-            <!-- 用户区：常用入口、订单状态等 -->
-            <section class="user-section">
-                <div class="tu-list-card shadow-soft-lg">
-                    <div class="tu-list-item" @click="viewAllOrders">
-                        <div class="tu-list-icon-bubble" style="background:#3b82f6"><van-icon name="orders-o" /></div>
-                        <div>
-                            <div class="tu-list-title">我的订单</div>
-                            <div class="tu-list-subtitle">查看全部订单记录</div>
-                        </div>
-                        <div class="tu-list-right">
-                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
-                        </div>
-                    </div>
-                    <div class="tu-list-item" @click="goToOrderStatus('favorites')">
-                        <div class="tu-list-icon-bubble" style="background:#ef4444"><van-icon name="like-o" /></div>
-                        <div>
-                            <div class="tu-list-title">我的收藏</div>
-                            <div class="tu-list-subtitle">关注的商品与店铺</div>
-                        </div>
-                        <div class="tu-list-right">
-                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+            <!-- 用户中心内容 -->
+            <div v-if="activeTab === 'user'">
+                <!-- 顶部身份信息区 -->
+                <section class="identity-card shadow-soft-lg glass-card">
+                    <div class="identity-main" v-if="!loading">
+                        <div class="identity-text">
+                            <div class="row">
+                                <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '游客' }}</h1>
+                                <van-tag type="primary" size="small" round>{{ creditStatus.level }}</van-tag>
+                            </div>
+                            <p class="signature" v-if="userInfo.bio">{{ userInfo.bio }}</p>
+                            <div class="auth-badges">
+                                <van-tag v-if="userInfo.emailVerified" type="success" size="mini" round>邮箱已验证</van-tag>
+                                <van-tag v-if="userInfo.phoneVerified" type="primary" size="mini" round>已绑定手机</van-tag>
+                                <van-tag plain type="warning" size="mini" round>信用 {{ creditStatus.score }}</van-tag>
+                            </div>
                         </div>
                     </div>
-                    <div class="tu-list-item" @click="goToAddress">
-                        <div class="tu-list-icon-bubble" style="background:#06b6d4"><van-icon name="location-o" /></div>
-                        <div>
-                            <div class="tu-list-title">地址管理</div>
-                            <div class="tu-list-subtitle">收货地址与常用地址</div>
+                    <div v-else class="identity-skeleton">
+                        <van-skeleton avatar title :row="2" avatar-size="70px" />
+                    </div>
+                    <div class="identity-actions">
+                        <template v-if="isLoggedIn">
+                            <van-button size="small" round type="primary" plain @click="editProfile">编辑资料</van-button>
+                            <van-button size="small" round type="default" plain @click="openSecurity">安全设置</van-button>
+                        </template>
+                        <template v-else>
+                            <van-button size="small" round type="primary" class="btn-primary"
+                                @click="goLogin">立即登录</van-button>
+                        </template>
+                    </div>
+                </section>
+
+                <!-- 用户区：常用入口、订单状态等 -->
+                <section class="user-section">
+                    <div class="tu-list-card shadow-soft-lg">
+                        <div class="tu-list-item" @click="viewAllOrders">
+                            <div class="tu-list-icon-bubble" style="background:#3b82f6"><van-icon name="orders-o" />
+                            </div>
+                            <div>
+                                <div class="tu-list-title">我的订单</div>
+                                <div class="tu-list-subtitle">查看全部订单记录</div>
+                            </div>
+                            <div class="tu-list-right">
+                                <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+                            </div>
                         </div>
-                        <div class="tu-list-right">
-                            <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+                        <div class="tu-list-item" @click="goToOrderStatus('favorites')">
+                            <div class="tu-list-icon-bubble" style="background:#ef4444"><van-icon name="like-o" /></div>
+                            <div>
+                                <div class="tu-list-title">我的收藏</div>
+                                <div class="tu-list-subtitle">关注的商品与店铺</div>
+                            </div>
+                            <div class="tu-list-right">
+                                <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+                            </div>
+                        </div>
+                        <div class="tu-list-item" @click="goToAddress">
+                            <div class="tu-list-icon-bubble" style="background:#06b6d4"><van-icon name="location-o" />
+                            </div>
+                            <div>
+                                <div class="tu-list-title">地址管理</div>
+                                <div class="tu-list-subtitle">收货地址与常用地址</div>
+                            </div>
+                            <div class="tu-list-right">
+                                <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            </div>
+
+            <!-- 卖家中心内容 -->
+            <SellerCenter v-if="activeTab === 'seller'" />
 
             <!-- 编辑资料弹窗 -->
             <van-dialog v-model:show="showEdit" title="编辑资料" show-cancel-button @confirm="submitEdit">
@@ -89,22 +106,32 @@
 </template>
 
 <script>
+import SellerCenter from '@/components/SellerCenter.vue'
 import { useUserStore } from '@/stores/user'
 import { Dialog, Toast } from 'vant'
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'Profile',
+    components: {
+        SellerCenter
+    },
     setup() {
         const router = useRouter()
+        const route = useRoute()
         const userStore = useUserStore()
+        const activeTab = ref('user') // 'user' or 'seller'
         const defaultAvatar = 'https://placehold.co/80x80/4CAF50/ffffff?text=用户'
         const userInfo = computed(() => userStore.user || {})
         const loading = ref(true)
+        const isLoggedIn = computed(() => userStore.isLoggedIn)
 
         // 加载我的资料
         onMounted(async () => {
+            if (route.query.tab === 'seller') {
+                activeTab.value = 'seller'
+            }
             try {
                 if (userStore.isLoggedIn) {
                     await userStore.loadMe()
@@ -163,46 +190,60 @@ export default {
                 Toast.fail('更新失败')
             }
         }
-        const openSecurity = () => Toast('安全设置（占位）')
+        const openSecurity = () => router.push({ name: 'Settings' })
+        const goLogin = () => router.push({ name: 'Login', query: { redirect: '/profile' } })
 
         // 跳转到统计详情
         const goToStatDetail = (type) => {
             Toast(`${type}详情功能开发中`)
         }
 
-        const viewAllOrders = () => Toast('全部订单（占位）')
-        const goToOrderStatus = (key) => Toast(`进入状态：${key}`)
+        const viewAllOrders = () => router.push({ name: 'Orders' })
+        const goToOrderStatus = (key) => {
+            if (key === 'favorites') {
+                router.push({ name: 'Favorites' })
+            } else {
+                router.push({ name: 'Orders', query: { status: key } })
+            }
+        }
 
-        const goSeller = () => router.push('/seller')
+        const goSeller = () => {
+            if (!isLoggedIn.value) {
+                Toast('请先登录')
+                router.push({ name: 'Login', query: { redirect: '/profile?tab=seller' } })
+                return
+            }
+            activeTab.value = 'seller'
+        }
 
-        const withdraw = () => Toast('提现（占位）')
-        const viewWalletDetail = () => Toast('钱包明细（占位）')
+        const withdraw = () => router.push({ name: 'Settlement', query: { action: 'withdraw' } })
+        const viewWalletDetail = () => router.push({ name: 'Settlement', query: { tab: 'details' } })
 
         // 跳转到地址管理
-        const goToAddress = () => Toast('地址管理（占位）')
+        const goToAddress = () => router.push({ name: 'Address' })
 
         // 跳转到实名认证
-        const goToVerification = () => Toast('实名认证（占位）')
+        const goToVerification = () => router.push({ name: 'Verification' })
 
         // 跳转到客服中心
-        const goToService = () => Toast('客服中心（占位）')
+        const goToService = () => router.push({ name: 'ServiceCenter' })
 
         // 跳转到帮助中心
-        const goToHelp = () => Toast('帮助中心（占位）')
+        const goToHelp = () => router.push({ name: 'Help' })
 
         // 跳转到意见反馈
-        const goToFeedback = () => Toast('意见反馈（占位）')
+        const goToFeedback = () => router.push({ name: 'Feedback' })
 
         // 跳转到设置
-        const goToSettings = () => Toast('系统设置（占位）')
+        const goToSettings = () => router.push({ name: 'Settings' })
 
         // 跳转到关于我们
-        const goToAbout = () => Toast('关于我们（占位）')
+        const goToAbout = () => router.push({ name: 'About' })
 
         // 卖家相关入口
-        const createProduct = () => Toast('发布商品（占位）')
-        const goToMyProducts = () => Toast('我的发布（占位）')
-        const goToSoldProducts = () => Toast('已售出（占位）')
+        const createProduct = () => router.push({ name: 'PostCreate' })
+        const goToMyProducts = () => router.push({ name: 'MyProducts' })
+        const goToSoldProducts = () => router.push({ name: 'SoldProducts' })
 
         // 退出登录
         const logout = () => {
@@ -223,6 +264,7 @@ export default {
             defaultAvatar,
             loading,
             goSeller,
+            activeTab,
             creditStatus,
             orderStatus,
             walletBalance,
@@ -246,7 +288,9 @@ export default {
             goToMyProducts,
             goToSoldProducts,
             logout,
-            iconBg
+            iconBg,
+            isLoggedIn,
+            goLogin
         }
     }
 }

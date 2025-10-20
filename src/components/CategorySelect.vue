@@ -6,8 +6,16 @@
             <div class="cascader-wrap">
                 <van-nav-bar title="选择类目" left-text="取消" right-text="确定" @click-left="onCancel"
                     @click-right="onConfirm" />
-                <van-cascader v-model="innerValue" :options="options"
-                    :field-names="{ text: 'text', value: 'value', children: 'children' }" @change="onChange" />
+                <div class="popup-body">
+                    <div v-if="loading" class="loading-wrap">
+                        <van-skeleton animated :row="6" />
+                    </div>
+                    <van-empty v-else-if="!options || options.length === 0" description="暂无分类">
+                        <van-button size="small" type="primary" @click="load">重试</van-button>
+                    </van-empty>
+                    <van-cascader v-else v-model="innerValue" :options="options"
+                        :field-names="{ text: 'text', value: 'value', children: 'children' }" @change="onChange" />
+                </div>
             </div>
         </van-popup>
     </div>
@@ -31,6 +39,7 @@ export default {
         const options = ref([])
         const innerValue = ref(props.modelValue)
         const labelMap = ref(new Map())
+        const loading = ref(false)
 
         watch(
             () => props.modelValue,
@@ -59,8 +68,15 @@ export default {
         }
 
         const load = async () => {
-            const res = await listCategories()
-            options.value = buildTree(res || [])
+            loading.value = true
+            try {
+                const res = await listCategories()
+                options.value = buildTree(res || [])
+            } catch (e) {
+                // 保持 options 为空，由空态渲染重试
+            } finally {
+                loading.value = false
+            }
         }
 
         const onChange = ({ value, selectedOptions }) => {
@@ -72,6 +88,10 @@ export default {
         }
 
         const onConfirm = () => {
+            if (!innerValue.value) {
+                // 延迟注册：避免直接引入 Toast 造成体积膨胀，交给外层校验
+                return
+            }
             emit('update:modelValue', innerValue.value)
             emit('change', innerValue.value)
             show.value = false
@@ -79,7 +99,7 @@ export default {
 
         onMounted(load)
 
-        return { show, options, innerValue, selectedLabel, onChange, onCancel, onConfirm }
+        return { show, options, innerValue, selectedLabel, onChange, onCancel, onConfirm, load, loading }
     },
 }
 </script>
@@ -93,5 +113,14 @@ export default {
 
 :deep(.van-cascader) {
     flex: 1;
+}
+
+.popup-body {
+    flex: 1;
+    overflow: auto;
+}
+
+.loading-wrap {
+    padding: 12px 16px;
 }
 </style>

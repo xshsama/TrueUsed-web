@@ -1,25 +1,35 @@
 <template>
     <div class="post-create-page">
         <!-- 顶部导航 -->
-        <van-nav-bar title="发布商品" left-text="取消" right-text="发布" left-arrow @click-left="onCancel"
-            @click-right="onSubmit" />
+        <van-nav-bar title="发布商品" left-text="取消" left-arrow @click-left="onCancel">
+            <template #right>
+                <van-button size="small" type="primary" class="btn-primary" :loading="isSubmitting"
+                    :disabled="isSubmitting" @click="onSubmit">发布</van-button>
+            </template>
+        </van-nav-bar>
 
         <div class="page-content">
-            <van-form @submit="onSubmit">
+            <van-form ref="formRef" @submit="onSubmit">
                 <!-- 商品图片 -->
                 <div class="form-section">
                     <div class="section-title">商品图片 <span class="required">*</span></div>
-                    <van-uploader v-model="fileList" multiple :max-count="9" :preview-size="80" upload-text="点击上传"
-                        @delete="onImageDelete" />
-                    <div class="form-tip">最多可上传9张图片，第一张为封面图</div>
+                    <van-uploader v-model="fileList" multiple :max-count="9" :preview-size="80" :result-type="'dataUrl'"
+                        :max-size="5 * 1024 * 1024" upload-text="点击上传" :preview-full-image="true"
+                        @delete="onImageDelete" @oversize="onImageOversize" />
+                    <div class="form-tip">最多可上传 9 张图片，单张不超过 5MB，第一张为封面图</div>
                 </div>
 
                 <!-- 商品信息 -->
                 <van-cell-group>
-                    <van-field v-model="form.title" label="商品标题" placeholder="请输入商品标题" required
-                        :rules="[{ required: true, message: '请输入商品标题' }]" />
-                    <van-field v-model="form.price" label="价格" placeholder="请输入价格" type="number" required
-                        :rules="[{ required: true, message: '请输入价格' }]">
+                    <van-field v-model="form.title" label="商品标题" placeholder="请输入商品标题" required maxlength="30"
+                        show-word-limit :rules="[
+                            { required: true, message: '请输入商品标题' },
+                        ]" />
+                    <van-field v-model="form.price" label="价格" placeholder="请输入价格" type="digit" input-align="right"
+                        required :rules="[
+                            { required: true, message: '请输入价格' },
+                            { validator: validators.pricePositive, message: '价格需大于 0' }
+                        ]">
                         <template #left-icon>
                             <span style="color: #ee0a24;">¥</span>
                         </template>
@@ -32,35 +42,31 @@
                 <!-- 商品描述 -->
                 <div class="form-section">
                     <van-field v-model="form.description" label="商品描述" type="textarea"
-                        placeholder="请详细描述商品的状况、购买时间、使用情况等" rows="4" autosize required
+                        placeholder="请详细描述商品的状况、购买时间、使用情况等" rows="4" autosize required maxlength="1000" show-word-limit
                         :rules="[{ required: true, message: '请输入商品描述' }]" />
                     <div class="form-tip">详细的描述能帮助买家更好地了解商品</div>
                 </div>
 
-                <!-- 交易方式 */
-        <van-cell-group>
-          <van-field label="交易方式">
-            <template #input>
-              <van-checkbox-group v-model="form.tradeTypes" direction="horizontal">
-                <van-checkbox name="meetup">面交</van-checkbox>
-                <van-checkbox name="express">快递</van-checkbox>
-              </van-checkbox-group>
-            </template>
-          </van-field>
-          <van-field
-            v-model="form.location"
-            label="所在地区"
-            placeholder="请选择所在地区"
-            readonly
-            is-link
-            @click="showLocationPicker = true"
-          />
-        </van-cell-group>
-        
-        <!-- 联系方式 -->
+                <!-- 交易方式 -->
                 <van-cell-group>
-                    <van-field v-model="form.contact" label="联系方式" placeholder="请输入手机号或微信" required
-                        :rules="[{ required: true, message: '请输入联系方式' }]" />
+                    <van-field label="交易方式">
+                        <template #input>
+                            <van-checkbox-group v-model="form.tradeTypes" direction="horizontal">
+                                <van-checkbox name="meetup">面交</van-checkbox>
+                                <van-checkbox name="express">快递</van-checkbox>
+                            </van-checkbox-group>
+                        </template>
+                    </van-field>
+                    <van-field v-model="form.location" label="所在地区" placeholder="请选择所在地区" readonly is-link
+                        @click="showLocationPicker = true" />
+                </van-cell-group>
+
+                <!-- 联系方式 -->
+                <van-cell-group>
+                    <van-field v-model="form.contact" label="联系方式" placeholder="请输入手机号或微信" required :rules="[
+                        { required: true, message: '请输入联系方式' },
+                        { validator: validators.contact, message: '请输入正确的手机号或微信号' }
+                    ]" />
                 </van-cell-group>
             </van-form>
         </div>
@@ -92,10 +98,12 @@ export default {
     setup() {
         const router = useRouter()
 
+        const formRef = ref(null)
         const fileList = ref([])
         const showCategoryPicker = ref(false)
         const showConditionPicker = ref(false)
         const showLocationPicker = ref(false)
+        const isSubmitting = ref(false)
 
         // 表单数据
         const form = reactive({
@@ -135,6 +143,10 @@ export default {
             console.log('删除图片:', file, detail)
         }
 
+        const onImageOversize = (file) => {
+            Toast.fail('单张图片不能超过 5MB')
+        }
+
         // 分类选择确认由 CategorySelect 直接回填 v-model 实现
 
         // 新旧程度选择确认
@@ -162,30 +174,27 @@ export default {
         }
 
         // 提交表单
-        const onSubmit = async () => {
-            // 表单验证
-            if (!form.title) {
-                Toast('请输入商品标题')
-                return
+        const validators = {
+            pricePositive: (val) => Number(val) > 0,
+            contact: (val) => {
+                if (!val) return false
+                const isPhone = /^1[3-9]\d{9}$/.test(val)
+                const isWeChat = /^[a-zA-Z][-_a-zA-Z0-9]{5,19}$/.test(val)
+                return isPhone || isWeChat
             }
-            if (!form.price) {
-                Toast('请输入价格')
+        }
+
+        const onSubmit = async () => {
+            if (isSubmitting.value) return
+            // 表单验证
+            try {
+                await formRef.value?.validate()
+            } catch (e) {
+                Toast('请完善表单信息')
                 return
             }
             if (!form.categoryId) {
                 Toast('请选择分类')
-                return
-            }
-            if (!form.condition) {
-                Toast('请选择新旧程度')
-                return
-            }
-            if (!form.description) {
-                Toast('请输入商品描述')
-                return
-            }
-            if (!form.contact) {
-                Toast('请输入联系方式')
                 return
             }
             if (fileList.value.length === 0) {
@@ -193,7 +202,8 @@ export default {
                 return
             }
 
-            Toast.loading({ message: '发布中...', duration: 0 })
+            isSubmitting.value = true
+            Toast.loading({ message: '发布中...', duration: 0, forbidClick: true })
             try {
                 const payload = {
                     title: form.title,
@@ -213,6 +223,8 @@ export default {
             } catch (e) {
                 Toast.clear()
                 Toast.fail('发布失败')
+            } finally {
+                isSubmitting.value = false
             }
         }
 
@@ -229,16 +241,20 @@ export default {
         }
 
         return {
+            formRef,
             fileList,
             showCategoryPicker,
             showConditionPicker,
             showLocationPicker,
+            isSubmitting,
             form,
             // categoryColumns,
             conditionColumns,
             locationColumns,
             onImageDelete,
+            onImageOversize,
             // onCategoryConfirm,
+            validators,
             onConditionConfirm,
             onLocationConfirm,
             onCancel,

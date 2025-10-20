@@ -19,6 +19,10 @@ const refreshClient = axios.create({
 // 请求拦截：附加 Authorization 头
 request.interceptors.request.use(
   (config) => {
+    // 不给认证相关接口附带 Authorization，避免旧 token 干扰登录/刷新流程
+    if (typeof config.url === 'string' && config.url.startsWith('/auth/')) {
+      return config
+    }
     const token = localStorage.getItem('token')
     // 可选：基于后端返回的 expiresInMs 做简单过期判断
     const expAt = parseInt(localStorage.getItem('token_expires_at') || '0', 10)
@@ -65,11 +69,18 @@ request.interceptors.response.use(
           return request(original)
         }
       } catch (e) {
-        // ignore -> fallback to logout below
+        // 刷新失败（可能因未携带 refresh_token Cookie 或已过期） -> 进入登出流程
       }
       // 刷新失败：清空并跳转登录
       const store = useUserStore()
       store.logout()
+      try {
+        // 提示可能原因与解决方式（开发环境常见：使用了 127.0.0.1 或局域网 IP 导致 Cookie 不通）
+        const host = window?.location?.host || ''
+        Toast.fail(
+          `会话已过期，请重新登录。建议使用 http://localhost:5173 访问（当前: ${host}）`,
+        )
+      } catch {}
       const redirect = router.currentRoute.value.fullPath
       if (router.currentRoute.value.name !== 'Login') {
         router.replace({ name: 'Login', query: { redirect } })

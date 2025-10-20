@@ -35,7 +35,7 @@
                     </div>
 
                     <div class="submit-wrap">
-                        <van-button class="gradient-btn" block round type="primary" native-type="submit"
+                        <van-button class="btn-primary" block round type="primary" native-type="submit"
                             :loading="submitting" :disabled="!agreed">{{ submitting ? '创建中...' : '立即注册' }}</van-button>
                     </div>
                 </van-form>
@@ -216,8 +216,7 @@ export default {
     margin-top: 4px;
 }
 
-.gradient-btn {
-    background: linear-gradient(135deg, #007AFF, #3296ff);
+.btn-primary {
     border: none;
 }
 

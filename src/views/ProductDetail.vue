@@ -3,17 +3,23 @@
         <van-nav-bar title="商品详情" left-arrow @click-left="$router.go(-1)" />
 
         <div class="product-content">
-            <!-- 商品图片 -->
-            <van-swipe class="product-swipe" indicator-color="white">
-                <van-swipe-item v-for="(image, index) in productImages" :key="index">
-                    <van-image :src="image" fit="cover" @click="previewImages(index)" />
-                </van-swipe-item>
-            </van-swipe>
+            <!-- 商品图片 / 骨架屏 -->
+            <div v-if="loading" class="product-skeleton">
+                <van-skeleton animated :row="5" />
+            </div>
+            <template v-else>
+                <van-swipe v-if="productImages.length" class="product-swipe" indicator-color="white">
+                    <van-swipe-item v-for="(image, index) in productImages" :key="index">
+                        <van-image :src="image" fit="cover" @click="previewImages(index)" />
+                    </van-swipe-item>
+                </van-swipe>
+                <van-empty v-else description="暂无图片" />
+            </template>d w
 
             <!-- 商品信息 -->
             <div class="product-info">
-                <div class="product-price">¥{{ productInfo.price }}</div>
-                <div class="product-title">{{ productInfo.title }}</div>
+                <div class="product-price">¥{{ productInfo.price ?? '-' }}</div>
+                <div class="product-title">{{ productInfo.title || '商品' }}</div>
                 <div class="product-meta">
                     <span class="product-views">{{ productInfo.viewsCount }}人看过</span>
                     <span class="product-time">{{ productInfo.createdAt && (new
@@ -64,6 +70,7 @@ export default {
         const route = useRoute()
 
         const isFavorited = ref(false)
+        const loading = ref(true)
 
         // 商品图片
         const productImages = ref([])
@@ -125,6 +132,8 @@ export default {
                 // isFavorited 后端未直接返回，后续可通过单独接口判断；这里默认 false
             } catch (e) {
                 Toast.fail('加载失败')
+            } finally {
+                loading.value = false
             }
         }
 
@@ -140,7 +149,8 @@ export default {
             previewImages,
             toggleFavorite,
             contactSeller,
-            goToSellerProfile
+            goToSellerProfile,
+            loading
         }
     }
 }
@@ -165,6 +175,12 @@ export default {
 .product-info {
     background: #fff;
     padding: 16px;
+    margin-bottom: 8px;
+}
+
+.product-skeleton {
+    background: #fff;
+    padding: 12px 16px;
     margin-bottom: 8px;
 }
 

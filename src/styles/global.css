@@ -192,6 +192,25 @@ body {
   border: none !important;
 }
 
+/* 统一表单字段高度与圆角（对 Vant 做适配，尽量非侵入） */
+:root {
+  --field-height: 44px;
+  --field-radius: 10px;
+}
+
+:root :is(.van-field, .van-cell) {
+  min-height: var(--field-height);
+}
+
+.van-field, .van-cell {
+  border-radius: var(--field-radius);
+}
+
+/* 次要按钮轻微强化可见性 */
+.van-button--plain {
+  border-color: rgba(0,0,0,0.12);
+}
+
 /* 卖家中心图标泡泡（品牌蓝 + 紫/橙点缀） */
 .tu-bubble-blue { background: var(--accent-blue) !important; }
 .tu-bubble-purple { background: var(--accent-purple) !important; }
@@ -298,4 +317,28 @@ body.hide-tabbar .page {
   .container {
     padding: 12px;
   }
+}
+
+/* 交互增强：提升“可点击感”的指针与悬停/按下反馈 */
+.tu-list-item { cursor: pointer; -webkit-user-select: none; user-select: none; }
+.tu-list-item { min-height: 48px; }
+.tu-list-item:active { transform: translateY(1px); }
+
+.tu-overview-item { cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.tu-overview-item { min-height: 48px; }
+.tu-overview-item:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+.tu-overview-item:active { transform: translateY(0); }
+
+.tu-seg-btn { cursor: pointer; transition: background .2s ease, box-shadow .2s ease, transform .1s ease; min-height: 40px; }
+.tu-seg-btn:hover { background: rgba(0,0,0,0.04); }
+.tu-seg-btn:active { transform: scale(0.98); }
+
+/* 扩大 Vant 小尺寸按钮的触控高度（不大幅改变视觉尺寸） */
+.van-button--small,
+.van-button--mini {
+  height: 40px;
+  min-height: 40px;
+  line-height: 40px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
