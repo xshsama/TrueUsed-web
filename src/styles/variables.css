@@ -1,0 +1,32 @@
+:root {
+  /* Colors */
+  --primary-color: #007AFF;
+  --primary-color-dark: #005bb5;
+  --text-color-primary: #1d1d1f;
+  --text-color-secondary: #8e8e93;
+  --text-color-placeholder: #c7c7cd;
+  --background-color-light: #f5f7fa;
+  --card-background-color: #ffffff;
+  --border-color: #ebedf0;
+
+  /* Typography */
+  --font-size-base: 14px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Borders */
+  --card-radius: 16px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-soft-lg: 0 6px 22px -8px rgba(0, 0, 0, .12);
+}

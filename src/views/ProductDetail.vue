@@ -48,10 +48,13 @@
 
         <!-- 底部操作栏 -->
         <div class="action-bar">
-            <van-button icon="star-o" plain @click="toggleFavorite" :type="isFavorited ? 'primary' : 'default'">
+            <van-button plain @click="toggleFavorite" :class="{ 'favorited': isFavorited }" class="favorite-btn">
+                <van-icon name="star" class="favorite-icon" v-if="isFavorited" />
+                <van-icon name="star-o" class="favorite-icon" v-else />
                 {{ isFavorited ? '已收藏' : '收藏' }}
             </van-button>
             <van-button type="warning" @click="contactSeller">立即沟通</van-button>
+            <van-button type="danger" @click="handlePurchase">立即购买</van-button>
         </div>
     </div>
 </template>
@@ -124,6 +127,19 @@ export default {
             Toast('卖家主页功能开发中')
         }
 
+        // 购买商品
+        const handlePurchase = () => {
+            router.push({
+                name: 'Settlement',
+                query: {
+                    productId: productInfo.value.id,
+                    title: productInfo.value.title,
+                    price: productInfo.value.price,
+                    image: productImages.value
+                }
+            });
+        }
+
         const loadDetail = async () => {
             try {
                 const res = await getProduct(route.params.id)
@@ -150,6 +166,7 @@ export default {
             toggleFavorite,
             contactSeller,
             goToSellerProfile,
+            handlePurchase,
             loading
         }
     }
@@ -268,5 +285,22 @@ export default {
 
 .action-bar .van-button {
     flex: 1;
+}
+
+.favorite-btn {
+    transition: all 0.3s ease;
+}
+
+.favorite-btn.favorited {
+    background-color: var(--van-primary-color);
+    color: white;
+}
+
+.favorite-icon {
+    transition: transform 0.3s ease;
+}
+
+.favorite-btn:active .favorite-icon {
+    transform: scale(1.4);
 }
 </style>

@@ -1,0 +1,35 @@
+.order-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px;
+    margin: 10px 0;
+}
+
+.order-card .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.order-card .body {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.order-card .info {
+    flex: 1;
+    min-width: 0;
+}
+
+.order-card .title {
+    font-weight: 700;
+    color: #111827;
+}
+
+.order-card .meta {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 4px;
+}

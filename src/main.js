@@ -46,6 +46,7 @@ import 'vant/lib/index.css'
 
 // 全局样式
 import './styles/global.css'
+import './styles/variables.css'
 // UnoCSS runtime (virtual CSS)
 import 'virtual:uno.css'
 

@@ -66,7 +66,7 @@ export default {
 .media {
     position: relative;
     aspect-ratio: 4/3;
-    background: #f2f3f5;
+    background: var(--background-color-light);
 }
 
 .media-img {
@@ -111,9 +111,9 @@ export default {
 
 .title {
     font-size: 15px;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin: 0 0 8px;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-color-primary);
+    margin: 0 0 var(--spacing-sm);
     line-height: 1.35;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -144,7 +144,7 @@ export default {
 
 .price {
     font-size: 18px;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--primary-color);
 }
 

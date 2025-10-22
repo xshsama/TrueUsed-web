@@ -5,11 +5,15 @@
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                 <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
                     <template v-if="isInitialLoading">
-                        <van-skeleton v-for="i in 6" :key="i" title :row="3" style="margin:12px 0" />
+                        <ProductCardSkeleton v-for="i in 6" :key="i" />
                     </template>
                     <template v-else>
                         <template v-if="items.length === 0">
-                            <van-empty description="暂无发布" />
+                            <van-empty description="暂无发布">
+                                <van-button round type="primary" class="bottom-button" @click="goToPost">
+                                    去发布闲置
+                                </van-button>
+                            </van-empty>
                         </template>
                         <div v-for="it in items" :key="it.id" class="prod-card shadow-soft-lg">
                             <van-image :src="it.cover" width="88" height="88" fit="cover" radius="8" />
@@ -36,12 +40,18 @@
 </template>
 
 <script>
+import ProductCardSkeleton from '@/components/ProductCardSkeleton.vue';
 import { Dialog, Toast } from 'vant';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
+    components: {
+        ProductCardSkeleton,
+    },
     name: 'MyProducts',
     setup() {
+        const router = useRouter();
         const loading = ref(false)
         const refreshing = ref(false)
         const finished = ref(false)
@@ -49,6 +59,10 @@ export default {
         const page = ref(1)
         const pageSize = 8
         const items = ref([])
+
+        const goToPost = () => {
+            router.push('/post/create');
+        };
 
         const allMock = Array.from({ length: 21 }).map((_, i) => ({
             id: i + 1,
@@ -77,12 +91,17 @@ export default {
         // 初次加载
         onLoad()
 
-        return { loading, refreshing, finished, isInitialLoading, items, onLoad, onRefresh, toggle, edit, remove }
+        return { loading, refreshing, finished, isInitialLoading, items, onLoad, onRefresh, toggle, edit, remove, goToPost }
     }
 }
 </script>
 
 <style scoped>
+.bottom-button {
+    width: 160px;
+    height: 40px;
+}
+
 .prod-card {
     background: #fff;
     border-radius: 16px;
