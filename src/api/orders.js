@@ -44,14 +44,34 @@ export function getOrderById(id) {
 }
 
 /**
- * 更新订单状态
+ * 支付订单
  * @param {number} id 订单ID
- * @param {string} status 新状态
  */
-export function updateOrderStatus(id, status) {
+export function payOrder(id) {
   return request({
-    url: `/api/orders/${id}/status`,
+    url: `/api/orders/${id}/pay`,
     method: 'put',
-    params: { status },
+  })
+}
+
+/**
+ * 卖家发货
+ * @param {number} id 订单ID
+ */
+export function shipOrder(id) {
+  return request({
+    url: `/api/orders/${id}/ship`,
+    method: 'put',
+  })
+}
+
+/**
+ * 买家确认收货
+ * @param {number} id 订单ID
+ */
+export function confirmDelivery(id) {
+  return request({
+    url: `/api/orders/${id}/confirm-delivery`,
+    method: 'put',
   })
 }

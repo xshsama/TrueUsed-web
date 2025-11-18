@@ -95,7 +95,11 @@
             <van-dialog v-model:show="showEdit" title="编辑资料" show-cancel-button @confirm="submitEdit">
                 <div class="form-grid">
                     <van-field v-model="form.nickname" label="昵称" maxlength="50" placeholder="请输入昵称" />
-                    <van-field v-model="form.avatarUrl" label="头像URL" placeholder="https://..." />
+                    <div class="avatar-upload-block">
+                        <div class="avatar-upload-label">头像</div>
+                        <ImageUpload v-model="avatarList" :max-images="1" />
+                        <div class="avatar-upload-hint">仅支持单张，上传后自动替换当前头像。</div>
+                    </div>
                     <van-field v-model="form.phone" label="手机号" maxlength="20" placeholder="请输入手机号" />
                     <van-field v-model="form.bio" type="textarea" rows="3" maxlength="300" show-word-limit label="简介"
                         placeholder="一句话介绍自己" />
@@ -106,16 +110,18 @@
 </template>
 
 <script>
+import ImageUpload from '@/components/ImageUpload.vue'
 import SellerCenter from '@/components/SellerCenter.vue'
 import { useUserStore } from '@/stores/user'
 import { Dialog, Toast } from 'vant'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'Profile',
     components: {
-        SellerCenter
+        SellerCenter,
+        ImageUpload
     },
     setup() {
         const router = useRouter()
@@ -172,6 +178,7 @@ export default {
 
         const showEdit = ref(false)
         const form = ref({ nickname: '', avatarUrl: '', bio: '', phone: '' })
+        const avatarList = ref([])
         const editProfile = () => {
             form.value = {
                 nickname: userInfo.value.nickname || '',
@@ -179,17 +186,38 @@ export default {
                 bio: userInfo.value.bio || '',
                 phone: userInfo.value.phone || ''
             }
+            avatarList.value = form.value.avatarUrl ? [form.value.avatarUrl] : []
             showEdit.value = true
         }
         const submitEdit = async () => {
             try {
                 await userStore.saveMe(form.value)
-                Toast.success('已更新资料')
+                // 成功分支：已有 Toast.success 方法可用
+                if (typeof Toast.success === 'function') {
+                    Toast.success('已更新资料')
+                } else if (typeof Toast.show === 'function') {
+                    Toast.show({ message: '已更新资料', type: 'success' })
+                }
                 showEdit.value = false
             } catch (e) {
-                Toast.fail('更新失败')
+                console.error('保存资料失败:', e)
+                // 失败提示统一使用对象式调用，避免把 Toast 当函数执行
+                if (typeof Toast.fail === 'function') {
+                    Toast.fail('更新失败')
+                } else if (typeof Toast.show === 'function') {
+                    Toast.show({ message: '更新失败', type: 'fail' })
+                } else if (typeof Toast === 'object' && typeof Toast.success === 'function') {
+                    // 退化到 success 方法但仍提示失败（视觉不理想，临时兜底）
+                    Toast.success('更新失败')
+                } else {
+                    // 最终兜底：没有可用 UI 方法
+                    console.warn('Toast API 不可用，无法显示失败提示')
+                }
             }
         }
+        watch(avatarList, (val) => {
+            form.value.avatarUrl = val[0] || ''
+        })
         const openSecurity = () => router.push({ name: 'Settings' })
         const goLogin = () => router.push({ name: 'Login', query: { redirect: '/profile' } })
 
@@ -271,6 +299,7 @@ export default {
             editProfile,
             showEdit,
             form,
+            avatarList,
             submitEdit,
             openSecurity,
             viewAllOrders,
@@ -469,6 +498,25 @@ export default {
 .identity-actions {
     display: flex;
     gap: 10px;
+}
+
+/* 头像上传块 */
+.avatar-upload-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0;
+}
+
+.avatar-upload-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.avatar-upload-hint {
+    font-size: 12px;
+    color: #6b7280;
 }
 
 /* 旧卖家宫格样式已废弃，保留 tu-list-card 体系 */

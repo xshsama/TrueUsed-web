@@ -13,9 +13,7 @@
                 <!-- 商品图片 -->
                 <div class="form-section">
                     <div class="section-title">商品图片 <span class="required">*</span></div>
-                    <van-uploader v-model="fileList" multiple :max-count="9" :preview-size="80" :result-type="'dataUrl'"
-                        :max-size="5 * 1024 * 1024" upload-text="点击上传" :preview-full-image="true"
-                        @delete="onImageDelete" @oversize="onImageOversize" />
+                    <ImageUpload v-model="form.imageUrls" :max-images="9" />
                     <div class="form-tip">最多可上传 9 张图片，单张不超过 5MB，第一张为封面图</div>
                 </div>
 
@@ -89,17 +87,21 @@
 <script>
 import { createProduct } from '@/api/products'
 import CategorySelect from '@/components/CategorySelect.vue'
+import ImageUpload from '@/components/ImageUpload.vue'
 import { Dialog, Toast } from 'vant'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
     name: 'PostCreate',
+    components: {
+        CategorySelect,
+        ImageUpload
+    },
     setup() {
         const router = useRouter()
 
         const formRef = ref(null)
-        const fileList = ref([])
         const showCategoryPicker = ref(false)
         const showConditionPicker = ref(false)
         const showLocationPicker = ref(false)
@@ -114,7 +116,8 @@ export default {
             description: '',
             tradeTypes: ['meetup'],
             location: '',
-            contact: ''
+            contact: '',
+            imageUrls: []
         })
 
         // 分类选项由 CategorySelect 动态加载
@@ -139,13 +142,6 @@ export default {
         ])
 
         // 图片删除
-        const onImageDelete = (file, detail) => {
-            console.log('删除图片:', file, detail)
-        }
-
-        const onImageOversize = (file) => {
-            Toast.fail('单张图片不能超过 5MB')
-        }
 
         // 分类选择确认由 CategorySelect 直接回填 v-model 实现
 
@@ -197,7 +193,7 @@ export default {
                 Toast('请选择分类')
                 return
             }
-            if (fileList.value.length === 0) {
+            if (form.imageUrls.length === 0) {
                 Toast('请上传商品图片')
                 return
             }
@@ -214,7 +210,7 @@ export default {
                     condition: mapCondition(form.condition),
                     categoryId: form.categoryId,
                     locationText: form.location || undefined,
-                    imageUrls: fileList.value.map(f => f.url || f.content || f.thumbUrl).filter(Boolean).slice(0, 9),
+                    imageUrls: form.imageUrls,
                 }
                 await createProduct(payload)
                 Toast.clear()
@@ -242,7 +238,6 @@ export default {
 
         return {
             formRef,
-            fileList,
             showCategoryPicker,
             showConditionPicker,
             showLocationPicker,
@@ -251,8 +246,6 @@ export default {
             // categoryColumns,
             conditionColumns,
             locationColumns,
-            onImageDelete,
-            onImageOversize,
             // onCategoryConfirm,
             validators,
             onConditionConfirm,
