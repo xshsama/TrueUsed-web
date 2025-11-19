@@ -86,3 +86,16 @@ export function cancelOrder(id) {
     method: 'put',
   })
 }
+
+/**
+ * 更新订单状态
+ * @param {number} id 订单ID
+ * @param {string} status 目标状态
+ */
+export function updateOrderStatus(id, status) {
+  return request({
+    url: `/orders/${id}/status`,
+    method: 'put',
+    data: { status },
+  })
+}

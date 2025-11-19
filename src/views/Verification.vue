@@ -38,7 +38,7 @@
 </template>
 
 <script>
-import { Toast } from 'vant';
+import { showFailToast, showSuccessToast, showToast } from 'vant';
 import { onMounted, ref } from 'vue';
 
 const KEY = 'tu.verification'
@@ -54,7 +54,7 @@ export default {
         const saved = ref(null)
 
         const validateId = (val) => /^[0-9]{17}[0-9Xx]$/.test(val)
-        const onOversize = () => Toast.fail('图片不超过 5MB')
+        const onOversize = () => showFailToast('图片不超过 5MB')
         const maskId = (v) => v ? `${v.slice(0, 3)}******${v.slice(-4)}` : ''
 
         const load = () => {
@@ -63,10 +63,10 @@ export default {
         onMounted(load)
 
         const onSubmit = () => {
-            if (frontList.value.length === 0 || backList.value.length === 0) { Toast('请上传身份证正反面'); return }
+            if (frontList.value.length === 0 || backList.value.length === 0) { showToast('请上传身份证正反面'); return }
             localStorage.setItem(KEY, JSON.stringify({ status: 'pending', data: { ...form.value } }))
             status.value = 'pending'
-            Toast.success('已提交审核')
+            showSuccessToast('已提交审核')
         }
 
         return { formRef, form, frontList, backList, onOversize, onSubmit, status, saved, maskId, validateId }

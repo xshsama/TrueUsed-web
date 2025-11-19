@@ -70,9 +70,9 @@
 </template>
 
 <script>
-import { Dialog, ImagePreview, Toast } from 'vant'
-import { nextTick, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant';
+import { nextTick, onMounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 export default {
     name: 'MessageChat',
@@ -229,9 +229,7 @@ export default {
         }
 
         // 显示表情
-        const showEmoji = () => {
-            Toast('表情功能开发中')
-        }
+        const showEmoji = () => showToast('表情功能开发中')
 
         // 显示更多操作
         const showMoreActions = () => {
@@ -242,17 +240,17 @@ export default {
         const onActionSelect = (action) => {
             switch (action.value) {
                 case 'product':
-                    Toast('发送商品功能开发中')
+                    showToast('发送商品功能开发中')
                     break
                 case 'report':
-                    Toast('举报功能开发中')
+                    showToast('举报功能开发中')
                     break
                 case 'delete':
                     Dialog.confirm({
                         title: '确认删除',
                         message: '删除后聊天记录将无法恢复',
                     }).then(() => {
-                        Toast.success('聊天已删除')
+                        showSuccessToast('聊天已删除')
                         router.go(-1)
                     })
                     break

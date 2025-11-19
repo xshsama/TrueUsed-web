@@ -35,12 +35,14 @@
 
 <script>
 import { getSoldOrders } from '@/api/orders';
-import { Toast } from 'vant';
+import { showFailToast } from 'vant';
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
     name: 'SoldProducts',
     setup() {
+        const router = useRouter();
         const loading = ref(true);
         const finished = ref(false);
         const orders = ref([]);
@@ -52,14 +54,14 @@ export default {
                 orders.value = res;
                 finished.value = true; // 假设一次性加载所有订单
             } catch (error) {
-                Toast.fail('加载订单失败');
+                showFailToast('加载订单失败');
             } finally {
                 loading.value = false;
             }
         };
 
         const viewOrderDetail = (order) => {
-            this.$router.push({ name: 'OrderDetail', params: { id: order.id } });
+            router.push({ name: 'OrderDetail', params: { id: order.id } });
         };
 
         onMounted(() => {

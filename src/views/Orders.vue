@@ -52,7 +52,7 @@
 
 <script>
 import { cancelOrder, confirmDelivery, getMyOrders, payOrder } from '@/api/orders';
-import { Dialog, Toast } from 'vant';
+import { Dialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 export default {
@@ -98,7 +98,7 @@ export default {
                 orders.value = res;
                 finished.value = true; // 假设一次性加载
             } catch (error) {
-                Toast.fail('加载订单失败');
+                showFailToast('加载订单失败');
             } finally {
                 loading.value = false;
                 isInitialLoading.value = false;
@@ -113,7 +113,7 @@ export default {
             refreshing.value = true;
             await loadOrders();
             refreshing.value = false;
-            Toast.success('已刷新');
+            showSuccessToast('已刷新');
         };
 
         const onTabChange = (name) => {
@@ -129,10 +129,12 @@ export default {
         const pay = async (order) => {
             try {
                 await payOrder(order.id);
-                Toast.success('支付成功');
+                showSuccessToast('支付成功');
                 order.status = 'PAID';
+                // 支付成功后跳转到订单详情，保持与结算页一致的行为
+                router.replace({ name: 'OrderDetail', params: { id: order.id } });
             } catch (error) {
-                Toast.fail('支付失败');
+                showFailToast('支付失败');
             }
         };
 
@@ -140,7 +142,7 @@ export default {
             Dialog.confirm({ title: '取消订单', message: '确定取消这个订单吗？' })
                 .then(async () => {
                     await cancelOrder(order.id);
-                    Toast.success('已取消');
+                    showSuccessToast('已取消');
                     order.status = 'CANCELLED';
                 })
                 .catch(() => { });
@@ -150,7 +152,7 @@ export default {
             Dialog.confirm({ title: '确认收货', message: '确认收到货物？' })
                 .then(async () => {
                     await confirmDelivery(order.id);
-                    Toast.success('已确认收货');
+                    showSuccessToast('已确认收货');
                     order.status = 'COMPLETED';
                 })
                 .catch(() => { });

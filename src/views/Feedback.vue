@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { Toast } from 'vant';
+import { showFailToast, showSuccessToast } from 'vant';
 import { ref } from 'vue';
 
 export default {
@@ -40,9 +40,9 @@ export default {
             { name: '其他' },
         ])
         const images = ref([])
-        const onOversize = () => Toast.fail('图片不超过 5MB')
+        const onOversize = () => showFailToast('图片不超过 5MB')
         const onSelectType = (a) => { form.value.type = a.name; showType.value = false }
-        const onSubmit = () => { Toast.success('已提交，感谢反馈！'); history.back() }
+        const onSubmit = () => { showSuccessToast('已提交，感谢反馈！'); history.back() }
         return { formRef, form, showType, typeActions, onSelectType, images, onOversize, onSubmit }
     }
 }

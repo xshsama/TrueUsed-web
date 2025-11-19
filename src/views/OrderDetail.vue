@@ -43,12 +43,12 @@
 
                 <!-- 操作按钮 -->
                 <div class="actions" v-if="order">
-                    <van-button v-if="isCurrentUserSeller && order.status === 'PENDING'" type="primary" block
-                        @click="handleUpdateStatus('SHIPPED')">
+                    <van-button v-if="isCurrentUserSeller && order.status === 'PAID'" type="primary" block
+                        @click="handleUpdateStatus('ship')">
                         发货
                     </van-button>
                     <van-button v-if="isCurrentUserBuyer && order.status === 'SHIPPED'" type="success" block
-                        @click="handleUpdateStatus('DELIVERED')">
+                        @click="handleUpdateStatus('confirm')">
                         确认收货
                     </van-button>
                 </div>
@@ -63,7 +63,7 @@
 <script>
 import { getOrderById, updateOrderStatus } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
-import { Dialog, Toast } from 'vant';
+import { Dialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -75,8 +75,8 @@ export default {
         const loading = ref(true);
         const order = ref(null);
 
-        const isCurrentUserBuyer = computed(() => order.value?.buyer.id === userStore.userInfo.id);
-        const isCurrentUserSeller = computed(() => order.value?.seller.id === userStore.userInfo.id);
+        const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
+        const isCurrentUserSeller = computed(() => userStore.userInfo && order.value?.seller.id === userStore.userInfo.id);
 
         const loadOrder = async () => {
             try {
@@ -84,29 +84,39 @@ export default {
                 const orderId = route.params.id;
                 order.value = await getOrderById(orderId);
             } catch (error) {
-                Toast.fail('加载订单详情失败');
+                showFailToast('加载订单详情失败');
             } finally {
                 loading.value = false;
             }
         };
 
-        const handleUpdateStatus = (newStatus) => {
-            Dialog.confirm({
-                title: '确认操作',
-                message: `您确定要将订单状态更新为 "${newStatus}" 吗？`,
-            })
+        const handleUpdateStatus = (action) => {
+            const actions = {
+                ship: {
+                    api: () => updateOrderStatus(order.value.id, 'SHIPPED'),
+                    title: '确认发货',
+                    message: '您确定要将此订单标记为已发货吗？',
+                },
+                confirm: {
+                    api: () => updateOrderStatus(order.value.id, 'DELIVERED'),
+                    title: '确认收货',
+                    message: '您确定已收到此订单的商品吗？',
+                },
+            };
+
+            const { api, title, message } = actions[action];
+
+            Dialog.confirm({ title, message })
                 .then(async () => {
                     try {
-                        const updatedOrder = await updateOrderStatus(order.value.id, newStatus);
+                        const updatedOrder = await api(order.value.id);
                         order.value = updatedOrder;
-                        Toast.success('操作成功');
+                        showSuccessToast('操作成功');
                     } catch (error) {
-                        Toast.fail('操作失败');
+                        showFailToast('操作失败');
                     }
                 })
-                .catch(() => {
-                    // on cancel
-                });
+                .catch(() => { });
         };
 
         onMounted(() => {

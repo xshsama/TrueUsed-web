@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import { Toast } from 'vant';
+import { showToast } from 'vant';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -35,8 +35,8 @@ export default {
         const router = useRouter()
         const active = ref(['a'])
         const goServiceMessages = () => router.push({ name: 'ServiceMessages' })
-        const call = () => Toast('请拨打 400-000-0000')
-        const online = () => Toast('马上为您接入在线客服（占位）')
+        const call = () => showToast('请拨打 400-000-0000')
+        const online = () => showToast('马上为您接入在线客服（占位）')
         return { active, goServiceMessages, call, online }
     }
 }

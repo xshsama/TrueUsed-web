@@ -41,7 +41,7 @@
 
 <script>
 import ProductCardSkeleton from '@/components/ProductCardSkeleton.vue';
-import { Dialog, Toast } from 'vant';
+import { Dialog, showSuccessToast, showToast } from 'vant';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -82,11 +82,11 @@ export default {
             page.value += 1
         }
         const onLoad = () => { loading.value = true; setTimeout(() => { loadPage(); loading.value = false; isInitialLoading.value = false }, 400) }
-        const onRefresh = () => { refreshing.value = true; setTimeout(() => { loadPage(true); refreshing.value = false; Toast.success('已刷新') }, 500) }
+        const onRefresh = () => { refreshing.value = true; setTimeout(() => { loadPage(true); refreshing.value = false; showSuccessToast('已刷新') }, 500) }
 
-        const toggle = (it) => { it.status = it.status === 'on' ? 'off' : 'on'; Toast.success(it.status === 'on' ? '已上架' : '已下架') }
-        const edit = (it) => Toast(`编辑：${it.title}`)
-        const remove = (it) => { Dialog.confirm({ title: '删除商品', message: '确定删除该商品吗？' }).then(() => { items.value = items.value.filter(x => x.id !== it.id); Toast.success('已删除') }).catch(() => { }) }
+        const toggle = (it) => { it.status = it.status === 'on' ? 'off' : 'on'; showSuccessToast(it.status === 'on' ? '已上架' : '已下架') }
+        const edit = (it) => showToast(`编辑：${it.title}`)
+        const remove = (it) => { Dialog.confirm({ title: '删除商品', message: '确定删除该商品吗？' }).then(() => { items.value = items.value.filter(x => x.id !== it.id); showSuccessToast('已删除') }).catch(() => { }) }
 
         // 初次加载
         onLoad()

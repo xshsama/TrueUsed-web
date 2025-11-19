@@ -39,7 +39,7 @@
 
 <script>
 import { getSoldOrders, shipOrder } from '@/api/orders';
-import { Toast } from 'vant';
+import { showFailToast, showSuccessToast } from 'vant';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -58,7 +58,7 @@ export default {
                 orders.value = res;
                 finished.value = true; // 假设一次性加载所有订单
             } catch (error) {
-                Toast.fail('加载订单失败');
+                showFailToast('加载订单失败');
             } finally {
                 loading.value = false;
             }
@@ -71,14 +71,14 @@ export default {
         const handleShipOrder = async (order) => {
             try {
                 await shipOrder(order.id);
-                Toast.success('发货成功');
+                showSuccessToast('发货成功');
                 // 更新订单状态
                 const index = orders.value.findIndex(o => o.id === order.id);
                 if (index !== -1) {
                     orders.value[index].status = 'SHIPPED';
                 }
             } catch (error) {
-                Toast.fail('发货失败');
+                showFailToast('发货失败');
             }
         };
 

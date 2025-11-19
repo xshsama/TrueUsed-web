@@ -1,7 +1,7 @@
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
 import axios from 'axios'
-import { Toast } from 'vant'
+import { showToast } from 'vant'
 
 // 创建 axios 实例，统一走 /api，交由 Vite 代理到后端
 const request = axios.create({
@@ -94,7 +94,7 @@ request.interceptors.response.use(
           error?.response?.data?.error ||
           error?.message ||
           '请求失败，请稍后重试'
-        Toast(String(msg))
+        showToast(String(msg))
       }
     } catch {}
     return Promise.reject(error)

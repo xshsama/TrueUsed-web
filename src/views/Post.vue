@@ -62,8 +62,8 @@
 </template>
 
 <script>
-import { Toast } from 'vant'
-import { ref } from 'vue'
+import { showToast } from 'vant';
+import { ref } from 'vue';
 
 export default {
     name: 'Post',
@@ -108,19 +108,19 @@ export default {
         ])
 
         const handleDraftClick = () => {
-            Toast('草稿箱功能开发中')
+            showToast('草稿箱功能开发中')
         }
 
         const handleRecordClick = () => {
-            Toast('发布记录功能开发中')
+            showToast('发布记录功能开发中')
         }
 
         const handleRuleClick = () => {
-            Toast('发布规则功能开发中')
+            showToast('发布规则功能开发中')
         }
 
         const handleTipClick = (tip) => {
-            Toast(`${tip.title}：${tip.desc}`)
+            showToast(`${tip.title}：${tip.desc}`)
         }
 
         return {

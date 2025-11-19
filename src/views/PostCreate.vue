@@ -88,7 +88,7 @@
 import { createProduct } from '@/api/products'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
-import { Dialog, Toast } from 'vant'
+import { closeToast, Dialog, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -186,20 +186,20 @@ export default {
             try {
                 await formRef.value?.validate()
             } catch (e) {
-                Toast('请完善表单信息')
+                showToast('请完善表单信息')
                 return
             }
             if (!form.categoryId) {
-                Toast('请选择分类')
+                showToast('请选择分类')
                 return
             }
             if (form.imageUrls.length === 0) {
-                Toast('请上传商品图片')
+                showToast('请上传商品图片')
                 return
             }
 
             isSubmitting.value = true
-            Toast.loading({ message: '发布中...', duration: 0, forbidClick: true })
+            showLoadingToast({ message: '发布中...', duration: 0, forbidClick: true })
             try {
                 const payload = {
                     title: form.title,
@@ -213,12 +213,12 @@ export default {
                     imageUrls: form.imageUrls,
                 }
                 await createProduct(payload)
-                Toast.clear()
-                Toast.success('发布成功')
+                closeToast()
+                showSuccessToast('发布成功')
                 router.replace('/post')
             } catch (e) {
-                Toast.clear()
-                Toast.fail('发布失败')
+                closeToast()
+                showFailToast('发布失败')
             } finally {
                 isSubmitting.value = false
             }

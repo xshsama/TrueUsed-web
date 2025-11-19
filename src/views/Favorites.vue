@@ -52,7 +52,7 @@
 import { removeFavorite as apiRemoveFavorite, listMyFavorites } from '@/api/favorites'
 import { getProduct } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
-import { Dialog, Toast } from 'vant'
+import { Dialog, showFailToast, showSuccessToast } from 'vant'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -114,7 +114,7 @@ export default {
                 finished.value = res?.last || content.length < size.value
                 page.value += 1
             } catch (e) {
-                Toast.fail('加载失败')
+                showFailToast('加载失败')
                 finished.value = true
             } finally {
                 loading.value = false
@@ -188,9 +188,9 @@ export default {
                     // 后端以 productId 为路径参数
                     await apiRemoveFavorite(id)
                     favoriteList.value = favoriteList.value.filter(item => item.id !== id)
-                    Toast.success('已取消收藏')
+                    showSuccessToast('已取消收藏')
                 } catch (e) {
-                    Toast.fail('操作失败')
+                    showFailToast('操作失败')
                 }
             })
         }

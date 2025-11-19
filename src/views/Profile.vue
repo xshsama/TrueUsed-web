@@ -142,7 +142,7 @@ import defaultAvatarUrl from '@/assets/icons/user.svg'
 import ImageUpload from '@/components/ImageUpload.vue'
 import SellerCenter from '@/components/SellerCenter.vue'
 import { useUserStore } from '@/stores/user'
-import { Toast } from 'vant'
+import { showFailToast, showSuccessToast, showToast } from 'vant'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -238,8 +238,7 @@ const handleBeforeClose = async (action) => {
         return true
     }
     if (!validateAll()) {
-        if (typeof Toast?.show === 'function') Toast.show({ message: '请修正表单错误', type: 'fail' })
-        else if (typeof Toast?.fail === 'function') Toast.fail('请修正表单错误')
+        showFailToast('请修正表单错误')
         return false
     }
     if (!isDirty.value) {
@@ -248,16 +247,14 @@ const handleBeforeClose = async (action) => {
     try {
         saving.value = true
         await userStore.saveMe(form.value)
-        if (typeof Toast?.success === 'function') Toast.success('已更新资料')
-        else if (typeof Toast?.show === 'function') Toast.show({ message: '已更新资料', type: 'success' })
+        showSuccessToast('已更新资料')
         initialForm.value = { ...form.value }
         saving.value = false
         return true
     } catch (e) {
         console.error('保存资料失败:', e)
         saving.value = false
-        if (typeof Toast?.fail === 'function') Toast.fail('更新失败')
-        else if (typeof Toast?.show === 'function') Toast.show({ message: '更新失败', type: 'fail' })
+        showFailToast('更新失败')
         return false
     }
 }
@@ -275,8 +272,7 @@ const goToOrderStatus = (key) => {
 }
 const goSeller = () => {
     if (!isLoggedIn.value) {
-        if (typeof Toast === 'function') Toast('请先登录')
-        else if (typeof Toast?.show === 'function') Toast.show({ message: '请先登录' })
+        showToast('请先登录')
         router.push({ name: 'Login', query: { redirect: '/profile?tab=seller' } })
         return
     }

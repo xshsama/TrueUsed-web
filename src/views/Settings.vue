@@ -33,8 +33,8 @@
 
 <script>
 import { useUserStore } from '@/stores/user'
-import { Dialog, Toast } from 'vant'
-import { onMounted, ref } from 'vue'
+import { Dialog, showSuccessToast, showToast } from 'vant'
+import { onMounted, ref, watchEffect } from 'vue'
 
 const KEY = 'tu.settings'
 
@@ -59,11 +59,11 @@ export default {
         }
         onMounted(load)
 
-        const toggleTheme = () => Toast('深色模式后续接入')
+        const toggleTheme = () => showToast('深色模式后续接入')
 
         const logout = () => {
             Dialog.confirm({ title: '确认退出', message: '确定要退出登录吗？' })
-                .then(() => { userStore.logout(); Toast.success('已退出'); history.back() })
+                .then(() => { userStore.logout(); showSuccessToast('已退出'); history.back() })
                 .catch(() => { })
         }
 

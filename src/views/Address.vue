@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { Dialog, Toast } from 'vant';
+import { Dialog, showSuccessToast } from 'vant';
 import { onMounted, ref } from 'vue';
 
 const KEY = 'tu.address.list'
@@ -82,13 +82,13 @@ export default {
                 .then(() => {
                     list.value = list.value.filter(i => i.id !== addr.id)
                     if (list.value.length && !list.value.some(i => i.isDefault)) list.value[0].isDefault = true
-                    save(); Toast.success('已删除')
+                    save(); showSuccessToast('已删除')
                 })
                 .catch(() => { })
         }
         const setDefault = (addr) => {
             list.value.forEach(i => { i.isDefault = i.id === addr.id })
-            save(); Toast.success('已设为默认')
+            save(); showSuccessToast('已设为默认')
         }
         const onSubmit = () => {
             if (!form.value.id) {
@@ -99,7 +99,7 @@ export default {
                 if (idx > -1) list.value[idx] = { ...form.value }
             }
             if (form.value.isDefault) list.value.forEach(i => { if (i.id !== form.value.id) i.isDefault = false })
-            save(); Toast.success('保存成功'); show.value = false
+            save(); showSuccessToast('保存成功'); show.value = false
         }
 
         onMounted(() => load())

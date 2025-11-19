@@ -132,7 +132,7 @@
 
 <script>
 import { useMessageStore } from '@/stores/message'
-import { Dialog, ImagePreview, Toast } from 'vant'
+import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -230,13 +230,13 @@ export default {
             setTimeout(() => {
                 conversationList.value = [...mockConversations]
                 refreshing.value = false
-                Toast.success('刷新成功')
+                showSuccessToast('刷新成功')
                 updateUnreadCount()
             }, 800)
         }
 
         const goToSystemNotice = () => {
-            Toast('系统通知功能开发中')
+            showToast('系统通知功能开发中')
             systemNoticeCount.value = 0
         }
 
@@ -249,7 +249,7 @@ export default {
 
         // 发送消息
         const sendMessage = () => {
-            if (!selectedId.value) return Toast('请选择会话')
+            if (!selectedId.value) return showToast('请选择会话')
             const text = inputMessage.value.trim()
             if (!text) return
             const newMsg = { id: Date.now(), type: 'text', content: text, isSelf: true, timestamp: Date.now() }
@@ -273,16 +273,16 @@ export default {
             scrollToBottom()
         }
         const previewImage = (url) => ImagePreview([url])
-        const showEmoji = () => Toast('表情功能开发中')
+        const showEmoji = () => showToast('表情功能开发中')
         const showMoreActions = () => showActions.value = true
         const onActionSelect = (action) => {
             switch (action.value) {
-                case 'product': Toast('发送商品功能开发中'); break
-                case 'report': Toast('举报功能开发中'); break
+                case 'product': showToast('发送商品功能开发中'); break
+                case 'report': showToast('举报功能开发中'); break
                 case 'delete':
                     Dialog.confirm({ title: '确认删除', message: '删除后聊天记录将无法恢复' }).then(() => {
                         messageList.value = []
-                        Toast.success('已删除')
+                        showSuccessToast('已删除')
                     })
                     break
             }
@@ -298,7 +298,7 @@ export default {
                     selectedId.value = null
                     messageList.value = []
                     messageStore.clearUnreadCount()
-                    Toast.success('已清空所有消息')
+                    showSuccessToast('已清空所有消息')
                 })
         }
 

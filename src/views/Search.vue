@@ -72,7 +72,7 @@
 
 <script>
 import { listProducts } from '@/api/products'
-import { Toast } from 'vant'
+import { showFailToast, showSuccessToast } from 'vant'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -142,7 +142,7 @@ export default {
                 finished.value = res?.last || content.length < size.value
                 page.value += 1
             } catch (e) {
-                Toast.fail('加载失败')
+                showFailToast('加载失败')
                 finished.value = true
             } finally {
                 loading.value = false
@@ -180,7 +180,7 @@ export default {
         // 清空历史
         const clearHistory = () => {
             searchHistory.value = []
-            Toast.success('已清空搜索历史')
+            showSuccessToast('已清空搜索历史')
         }
 
         // 下拉刷新
@@ -205,7 +205,7 @@ export default {
 
         const applyFilters = () => {
             if (priceMin.value && priceMax.value && Number(priceMin.value) > Number(priceMax.value)) {
-                Toast.fail('最小价格不能大于最大价格')
+                showFailToast('最小价格不能大于最大价格')
                 return
             }
             page.value = 0

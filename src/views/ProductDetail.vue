@@ -61,7 +61,7 @@
 <script>
 import { addFavorite, removeFavorite } from '@/api/favorites'
 import { getProduct } from '@/api/products'
-import { ImagePreview, Toast } from 'vant'
+import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -103,10 +103,10 @@ export default {
             try {
                 if (prev) {
                     await removeFavorite(route.params.id)
-                    Toast.success('已取消收藏')
+                    showSuccessToast('已取消收藏')
                 } else {
                     await addFavorite(route.params.id)
-                    Toast.success('已添加到收藏')
+                    showSuccessToast('已添加到收藏')
                 }
             } catch (e) {
                 // 回滚
@@ -122,7 +122,7 @@ export default {
 
         // 查看卖家主页
         const goToSellerProfile = () => {
-            Toast('卖家主页功能开发中')
+            showToast('卖家主页功能开发中')
         }
 
         // 购买商品
@@ -145,7 +145,7 @@ export default {
                 productImages.value = (res.images || []).map((img) => img.url)
                 // isFavorited 后端未直接返回，后续可通过单独接口判断；这里默认 false
             } catch (e) {
-                Toast.fail('加载失败')
+                showFailToast('加载失败')
             } finally {
                 loading.value = false
             }

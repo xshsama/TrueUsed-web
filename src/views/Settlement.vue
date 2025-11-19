@@ -30,7 +30,8 @@
 
 <script>
 import { createOrder, payOrder } from '@/api/orders';
-import { Toast } from 'vant';
+import { showSuccessToast, showToast } from 'vant';
+import 'vant/es/toast/style';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -64,12 +65,12 @@ export default {
                 // 2. 模拟支付
                 await payOrder(createdOrder.id);
 
-                Toast.success('支付成功！');
+                showSuccessToast('支付成功！');
 
                 // 3. 跳转到订单详情
                 router.replace({ name: 'OrderDetail', params: { id: createdOrder.id } });
             } catch (error) {
-                Toast('下单失败');
+                showToast('下单失败');
             } finally {
                 isSubmitting.value = false;
             }

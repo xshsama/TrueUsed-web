@@ -63,7 +63,7 @@
 
 <script>
 import { deleteProduct, updateProduct } from '@/api/products'
-import { Dialog, Toast } from 'vant'
+import { Dialog, showSuccessToast, showToast } from 'vant'
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -109,7 +109,7 @@ export default {
                 refreshing.value = false
                 loading.value = false
                 finished.value = true
-                Toast.success('刷新成功')
+                showSuccessToast('刷新成功')
             }, 600)
         }
 
@@ -155,7 +155,7 @@ export default {
         // 编辑商品
         const editProduct = (product) => {
             // 未来可跳转到编辑页并回填表单，这里先做占位
-            Toast(`编辑商品：${product.title}`)
+            showToast(`编辑商品：${product.title}`)
         }
 
         // 标记售出
@@ -167,7 +167,7 @@ export default {
                 const product = productList.value.find(item => item.id === id)
                 if (product) {
                     product.status = 'sold'
-                    Toast.success('已标记为售出')
+                    showSuccessToast('已标记为售出')
                 }
             }).catch(() => {
                 console.log('取消操作')
@@ -187,13 +187,13 @@ export default {
 
             switch (action.value) {
                 case 'edit':
-                    Toast(`编辑商品：${product.title}`)
+                    showToast(`编辑商品：${product.title}`)
                     break
                 case 'pin':
-                    Toast('置顶功能开发中')
+                    showToast('置顶功能开发中')
                     break
                 case 'copy':
-                    Toast('复制功能开发中')
+                    showToast('复制功能开发中')
                     break
                 case 'offline':
                     Dialog.confirm({
@@ -205,7 +205,7 @@ export default {
                                 // 约定：将状态更新为 HIDDEN 对应“下架”。后端 ProductStatus.HIDDEN
                                 await updateProduct(product.id, { status: 'HIDDEN' })
                                 product.status = 'offline'
-                                Toast.success('商品已下架')
+                                showSuccessToast('商品已下架')
                             } catch (e) {
                                 // 错误提示已由拦截器处理
                             }
@@ -223,7 +223,7 @@ export default {
                                 if (index > -1) {
                                     productList.value.splice(index, 1)
                                 }
-                                Toast.success('商品已删除')
+                                showSuccessToast('商品已删除')
                             } catch (e) {
                                 // 错误提示已由拦截器处理
                             }
