@@ -1,35 +1,78 @@
+/* --- 订单卡片 V2 (美化版) --- */
 .order-card {
     background: #fff;
-    border-radius: 16px;
-    padding: 12px;
-    margin: 10px 0;
+    border-radius: var(--radius-lg, 16px);
+    border: 1px solid rgba(0,0,0,0.05);
+    margin: 14px 0;
+    padding: 16px;
+    box-shadow: var(--shadow-soft, 0 2px 6px -1px rgba(20,25,30,0.08));
+    transition: box-shadow .2s ease, transform .2s ease;
 }
 
-.order-card .head {
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium, 0 4px 14px -4px rgba(20,25,30,0.14));
+}
+
+/* 卡片头部 */
+.order-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
 }
+.order-no { color: #6b7280; font-size: 13px; }
 
-.order-card .body {
+/* 订单状态标签 */
+.order-status {
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+}
+.order-status[data-status="PENDING"]  { background-color: #fffbeb; color: #b45309; }
+.order-status[data-status="PAID"]     { background-color: #eff6ff; color: #2563eb; }
+.order-status[data-status="SHIPPED"]  { background-color: #ecfdf5; color: #16a34a; }
+.order-status[data-status="COMPLETED"]{ background-color: #f7f7f7; color: #6b7280; }
+.order-status[data-status="CANCELLED"]{ background-color: #fef2f2; color: #dc2626; }
+
+/* 卡片主体（商品信息） */
+.order-body {
     display: flex;
-    gap: 12px;
-    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    cursor: pointer;
 }
-
-.order-card .info {
+.order-body .info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
-
-.order-card .title {
+.order-body .title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 15px;
+    line-height: 1.4;
+}
+.order-body .meta {
+    font-size: 13px;
+    color: #4b5563;
+    margin-top: 6px;
+}
+.order-body .amount {
     font-weight: 700;
+    font-size: 16px;
     color: #111827;
+    align-self: flex-end;
 }
 
-.order-card .meta {
-    color: #6b7280;
-    font-size: 12px;
-    margin-top: 4px;
+/* 卡片底部（操作区） */
+.order-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
 }

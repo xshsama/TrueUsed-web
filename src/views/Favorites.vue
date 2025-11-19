@@ -40,7 +40,7 @@
                         <van-empty v-else image="search" description="还没有收藏任何商品">
                             <van-button type="primary" size="small" @click="$router.push('/home')">去看看</van-button>
                         </van-empty>
-                        <div v-if="filteredList.length && finished" class="finished-text">没有更多了</div>
+
                     </van-list>
                 </van-pull-refresh>
             </div>

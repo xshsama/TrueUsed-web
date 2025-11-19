@@ -19,27 +19,28 @@
                         <template v-if="filteredOrders.length === 0">
                             <van-empty description="暂无相关订单" />
                         </template>
-                        <div v-for="o in filteredOrders" :key="o.id" class="order-card shadow-soft-lg">
+                        <div v-for="o in filteredOrders" :key="o.id" class="order-card">
                             <div class="order-head">
-                                <div class="order-no">订单号：{{ o.no }}</div>
-                                <van-tag type="primary" plain size="small">{{ o.status }}</van-tag>
+                                <span class="order-no">订单号：{{ o.id }}</span>
+                                <span class="order-status" :data-status="o.status">{{ statusText(o.status) }}</span>
                             </div>
                             <div class="order-body" @click="view(o)">
-                                <van-image :src="o.product.images?.url" width="72" height="72" fit="cover" radius="8" />
+                                <van-image :src="o.product.images?.url" width="80" height="80" fit="cover"
+                                    radius="12" />
                                 <div class="info">
                                     <div class="title">{{ o.product.title }}</div>
-                                    <div class="meta">￥{{ o.price }}</div>
+                                    <div class="meta">共1件</div>
                                 </div>
                                 <div class="amount">￥{{ o.price }}</div>
                             </div>
                             <div class="order-actions">
-                                <van-button v-if="o.status === 'PENDING'" type="primary" size="small" round
-                                    @click="pay(o)">去支付</van-button>
-                                <van-button v-if="o.status === 'PENDING'" type="default" size="small" round plain
-                                    @click="cancel(o)">取消</van-button>
-                                <van-button v-if="o.status === 'SHIPPED'" type="primary" size="small" round
+                                <van-button v-if="o.status === 'PENDING'" type="danger" size="small" round
+                                    @click="pay(o)">立即支付</van-button>
+                                <van-button v-if="o.status === 'PENDING'" size="small" round plain
+                                    @click="cancel(o)">取消订单</van-button>
+                                <van-button v-if="o.status === 'SHIPPED'" type="success" size="small" round
                                     @click="confirm(o)">确认收货</van-button>
-                                <van-button type="default" size="small" round plain @click="view(o)">查看详情</van-button>
+                                <van-button size="small" round plain @click="view(o)">查看详情</van-button>
                             </div>
                         </div>
                     </template>
@@ -52,6 +53,7 @@
 
 <script>
 import { cancelOrder, confirmDelivery, getMyOrders, payOrder } from '@/api/orders';
+import '@/styles/order-card.css';
 import { Dialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -177,57 +179,5 @@ export default {
 </script>
 
 <style scoped>
-.order-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 12px;
-    margin: 12px 0;
-}
-
-.order-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.order-no {
-    color: #64748b;
-    font-size: 12px;
-}
-
-.order-body {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.order-body .info {
-    flex: 1;
-    min-width: 0;
-}
-
-.order-body .title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-}
-
-.order-body .meta {
-    font-size: 12px;
-    color: #6b7280;
-    margin-top: 6px;
-}
-
-.order-body .amount {
-    font-weight: 700;
-    color: #111827;
-}
-
-.order-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    margin-top: 10px;
-}
+/* 样式已迁移至 order-card.css */
 </style>

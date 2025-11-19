@@ -55,13 +55,13 @@ const routes = [
     path: '/post/create',
     name: 'PostCreate',
     component: PostCreate,
-    meta: { requiresAuth: true, hideTabbar: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/post/manage',
     name: 'PostManage',
     component: PostManage,
-    meta: { requiresAuth: true, hideTabbar: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/messages',
@@ -73,7 +73,7 @@ const routes = [
     path: '/messages/chat/:id',
     name: 'MessageChat',
     component: MessageChat,
-    meta: { requiresAuth: true, hideTabbar: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/profile',
@@ -85,49 +85,49 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login,
-    meta: { hideTabbar: true },
+    meta: { hideNavbar: true },
   },
   {
     path: '/register',
     name: 'Register',
     component: Register,
-    meta: { hideTabbar: true },
+    meta: { hideNavbar: true },
   },
   {
     path: '/product/:id',
     name: 'ProductDetail',
     component: ProductDetail,
-    meta: { hideTabbar: true },
+    meta: { hideNavbar: true },
   },
   {
     path: '/search',
     name: 'Search',
     component: Search,
-    meta: { hideTabbar: true },
+    meta: { hideNavbar: true },
   },
   {
     path: '/orders',
     name: 'Orders',
     component: Orders,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/address',
     name: 'Address',
     component: Address,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/verification',
     name: 'Verification',
     component: Verification,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/service',
     name: 'ServiceCenter',
     component: ServiceCenter,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   { path: '/help', name: 'Help', component: Help },
   { path: '/feedback', name: 'Feedback', component: Feedback },
@@ -135,50 +135,50 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   { path: '/about', name: 'About', component: About },
   {
     path: '/my-products',
     name: 'MyProducts',
     component: MyProducts,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/sold-products',
     name: 'SoldProducts',
     component: SoldProducts,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/order/:id',
     name: 'OrderDetail',
     component: () => import('@/views/OrderDetail.vue'),
-    meta: { requiresAuth: true, hideTabbar: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/product-manage',
     name: 'ProductManageCenter',
     component: ProductManageCenter,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/order-manage',
     name: 'OrderManage',
     component: OrderManage,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/settlement',
     name: 'Settlement',
     component: Settlement,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/service-messages',
     name: 'ServiceMessages',
     component: ServiceMessages,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, hideNavbar: true },
   },
 ]
 
@@ -190,10 +190,10 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 根据路由meta设置body class
-  if (to.meta.hideTabbar) {
-    document.body.classList.add('hide-tabbar')
+  if (to.meta.hideNavbar) {
+    document.body.classList.add('hide-navbar')
   } else {
-    document.body.classList.remove('hide-tabbar')
+    document.body.classList.remove('hide-navbar')
   }
 
   // 检查是否需要登录

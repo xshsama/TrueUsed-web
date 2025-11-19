@@ -5,49 +5,46 @@
             <div v-if="loading" class="loading-container">
                 <van-loading size="24px">加载中...</van-loading>
             </div>
-            <div v-else-if="order" class="order-detail-card shadow-soft-lg">
-                <div class="section">
-                    <div class="section-title">订单状态</div>
-                    <div class="section-content">
-                        <van-tag type="primary" size="medium">{{ order.status }}</van-tag>
+            <div v-else-if="order" class="order-detail-container">
+                <!-- 订单状态与商品信息卡片 -->
+                <div class="order-card">
+                    <div class="order-head">
+                        <span class="order-status-title">订单状态</span>
+                        <span class="order-status" :data-status="order.status">{{ statusText(order.status) }}</span>
                     </div>
-                </div>
-                <div class="section">
-                    <div class="section-title">商品信息</div>
-                    <div class="section-content product-info">
-                        <van-image :src="order.product.images?.url" width="80" height="80" radius="8" fit="cover" />
+                    <div class="order-body">
+                        <van-image :src="order.product.images?.url" width="80" height="80" radius="12" fit="cover" />
                         <div class="info">
                             <div class="title">{{ order.product.title }}</div>
-                            <div class="price">￥{{ order.price }}</div>
+                            <div class="meta">总价</div>
                         </div>
+                        <div class="amount">￥{{ order.price }}</div>
                     </div>
                 </div>
-                <div class="section">
-                    <div class="section-title">卖家信息</div>
-                    <div class="section-content">
-                        <p>用户名: {{ order.seller.username }}</p>
+
+                <!-- 订单详细信息 -->
+                <div class="detail-list">
+                    <div class="detail-item">
+                        <span class="label">卖家</span>
+                        <span class="value">{{ order.seller.username }}</span>
                     </div>
-                </div>
-                <div class="section">
-                    <div class="section-title">买家信息</div>
-                    <div class="section-content">
-                        <p>用户名: {{ order.buyer.username }}</p>
+                    <div class="detail-item">
+                        <span class="label">买家</span>
+                        <span class="value">{{ order.buyer.username }}</span>
                     </div>
-                </div>
-                <div class="section">
-                    <div class="section-title">订单号</div>
-                    <div class="section-content">
-                        <p>{{ order.id }}</p>
+                    <div class="detail-item">
+                        <span class="label">订单号</span>
+                        <span class="value">{{ order.id }}</span>
                     </div>
                 </div>
 
                 <!-- 操作按钮 -->
-                <div class="actions" v-if="order">
-                    <van-button v-if="isCurrentUserSeller && order.status === 'PAID'" type="primary" block
+                <div class="actions-footer" v-if="order">
+                    <van-button v-if="isCurrentUserSeller && order.status === 'PAID'" type="primary" block round
                         @click="handleUpdateStatus('ship')">
-                        发货
+                        确认发货
                     </van-button>
-                    <van-button v-if="isCurrentUserBuyer && order.status === 'SHIPPED'" type="success" block
+                    <van-button v-if="isCurrentUserBuyer && order.status === 'SHIPPED'" type="success" block round
                         @click="handleUpdateStatus('confirm')">
                         确认收货
                     </van-button>
@@ -63,6 +60,7 @@
 <script>
 import { getOrderById, updateOrderStatus } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
+import '@/styles/order-card.css';
 import { Dialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
@@ -77,6 +75,17 @@ export default {
 
         const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
         const isCurrentUserSeller = computed(() => userStore.userInfo && order.value?.seller.id === userStore.userInfo.id);
+
+        const statusMap = {
+            PENDING: '待付款',
+            PAID: '待发货',
+            SHIPPED: '待收货',
+            COMPLETED: '已完成',
+            CANCELLED: '已取消',
+            DELIVERED: '已送达',
+        };
+
+        const statusText = (status) => statusMap[status] || status;
 
         const loadOrder = async () => {
             try {
@@ -129,55 +138,64 @@ export default {
             isCurrentUserBuyer,
             isCurrentUserSeller,
             handleUpdateStatus,
+            statusText,
         };
     },
 };
 </script>
 
 <style scoped>
-.order-detail-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    margin: 10px 0;
+.order-detail-container {
+    padding: 10px 0;
 }
 
-.section {
-    margin-bottom: 16px;
-}
-
-.section-title {
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 8px;
-}
-
-.product-info {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.product-info .info {
-    flex: 1;
-}
-
-.product-info .title {
+/* 状态标题 */
+.order-status-title {
+    font-size: 14px;
     font-weight: 600;
+    color: #1f2937;
 }
 
-.product-info .price {
-    color: #ef4444;
-    margin-top: 4px;
+/* 详细信息列表 */
+.detail-list {
+    background: #fff;
+    border-radius: var(--radius-lg, 16px);
+    padding: 8px 16px;
+    margin-top: 14px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-item .label {
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.detail-item .value {
+    color: #1f2937;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* 底部操作区 */
+.actions-footer {
+    margin-top: 24px;
+    padding: 0 16px;
 }
 
 .loading-container {
     display: flex;
     justify-content: center;
     padding: 20px;
-}
-
-.actions {
-    margin-top: 20px;
 }
 </style>

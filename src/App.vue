@@ -1,7 +1,7 @@
 <template>
     <div id="app">
         <!-- 全局顶部导航（大气分散布局） -->
-        <header class="global-top-navbar elevated" v-if="!route.meta.hideTabbar">
+        <header class="global-top-navbar elevated" v-if="!route.meta.hideNavbar">
             <div class="navbar-inner">
                 <!-- 品牌 / Logo -->
                 <div class="brand" @click="goTop('home')">
@@ -32,10 +32,12 @@
             </div>
         </header>
 
-        <router-view />
+        <main class="container">
+            <router-view />
+        </main>
 
         <!-- 浮动卖出按钮（隐藏 tabbar 的页面不显示） -->
-        <button v-if="!route.meta.hideTabbar" class="global-floating-sell-btn" @click="router.push('/post')">卖出</button>
+        <button v-if="!route.meta.hideNavbar" class="global-floating-sell-btn" @click="router.push('/post')">卖出</button>
     </div>
 </template>
 
@@ -55,7 +57,6 @@ export default {
         const unreadCount = computed(() => messageStore.unreadCount)
         // 顶部导航当前激活
         const topActive = ref('home')
-        const showTabbar = computed(() => !route.meta.hideTabbar) // 与原逻辑保持一致
 
         // 根据当前路由设置active值
         const updateActiveTab = () => {
@@ -116,7 +117,6 @@ export default {
             goTop,
             route,
             router,
-            showTabbar,
             showWide,
             goSearch
         }
