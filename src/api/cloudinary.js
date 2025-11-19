@@ -5,8 +5,6 @@ import request from '@/utils/request'
  * @returns {Promise<object>}
  */
 export function getCloudinarySignature() {
-  return request({
-    url: '/api/cloudinary/signature',
-    method: 'get',
-  })
+  // request 已设置 baseURL='/api'，此处不要再加 '/api' 前缀，避免变成 /api/api/...
+  return request.get('/cloudinary/signature')
 }

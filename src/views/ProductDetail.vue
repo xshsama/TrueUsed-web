@@ -32,7 +32,6 @@
                 <van-image :src="sellerInfo.avatar" class="seller-avatar" round fit="cover" />
                 <div class="seller-content">
                     <div class="seller-name">{{ sellerInfo.name }}</div>
-                    <div class="seller-desc">信用: {{ sellerInfo.credit }}分</div>
                 </div>
                 <van-button size="small" type="primary" plain>查看主页</van-button>
             </div>
@@ -86,7 +85,6 @@ export default {
             id: 0,
             name: '卖家',
             avatar: 'https://placehold.co/40x40/4CAF50/ffffff?text=U',
-            credit: 95
         })
 
         // 预览图片

@@ -6,19 +6,17 @@
             <section class="identity-card shadow-soft-lg glass-card hero-card">
                 <div class="identity-main" v-if="!loading">
                     <div class="hero-avatar" @click="onClickAvatar">
-                        <van-image :src="userInfo.avatarUrl || defaultAvatar" class="avatar-lg" round fit="cover" />
+                        <van-image :src="avatarSrc" class="avatar-lg" round fit="cover" @error="onAvatarError" />
                         <div class="avatar-edit" v-if="isLoggedIn"><van-icon name="photo-o" /> 更换</div>
                     </div>
                     <div class="identity-text center">
                         <div class="row center">
                             <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '游客' }}</h1>
-                            <van-tag type="primary" size="small" round>{{ creditStatus.level }}</van-tag>
                         </div>
                         <p class="signature" v-if="userInfo.bio">{{ userInfo.bio }}</p>
                         <div class="auth-badges">
                             <van-tag v-if="userInfo.emailVerified" type="success" size="mini" round>邮箱已验证</van-tag>
                             <van-tag v-if="userInfo.phoneVerified" type="primary" size="mini" round>已绑定手机</van-tag>
-                            <van-tag plain type="warning" size="mini" round>信用 {{ creditStatus.score }}</van-tag>
                         </div>
                         <div class="identity-actions center">
                             <template v-if="isLoggedIn">
@@ -140,6 +138,7 @@
 </template>
 
 <script setup>
+import defaultAvatarUrl from '@/assets/icons/user.svg'
 import ImageUpload from '@/components/ImageUpload.vue'
 import SellerCenter from '@/components/SellerCenter.vue'
 import { useUserStore } from '@/stores/user'
@@ -156,7 +155,8 @@ const activeTab = ref('user')
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.user || {})
-const defaultAvatar = 'https://cdn.jsdelivr.net/gh/edent/SuperTinyIcons/images/svg/user.svg'
+const defaultAvatar = defaultAvatarUrl
+const avatarSrc = ref('')
 
 onMounted(async () => {
     if (route.query.tab === 'seller') {
@@ -169,9 +169,19 @@ onMounted(async () => {
     } finally {
         loading.value = false
     }
+    avatarSrc.value = (userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar)) || defaultAvatar
 })
 
-const creditStatus = ref({ level: 'LV.3', score: 95 })
+watch(() => userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar), (v) => {
+    avatarSrc.value = v || defaultAvatar
+})
+
+const onAvatarError = () => {
+    if (avatarSrc.value !== defaultAvatar) {
+        avatarSrc.value = defaultAvatar
+    }
+}
+
 const orderStatus = ref([
     { key: 'unpaid', label: '待付款', icon: 'pending-payment', count: 1 },
     { key: 'toship', label: '待发货', icon: 'logistics', count: 0 },
@@ -220,14 +230,21 @@ const editProfile = () => {
     showEdit.value = true
 }
 
-const handleBeforeClose = async (action, done) => {
-    if (action !== 'confirm') { done(); return }
+const handleBeforeClose = async (action) => {
+    // Vant 3/4: 返回 boolean 或 Promise<boolean>
+    if (action !== 'confirm') {
+        // 取消/关闭时确保遮罩复位
+        saving.value = false
+        return true
+    }
     if (!validateAll()) {
         if (typeof Toast?.show === 'function') Toast.show({ message: '请修正表单错误', type: 'fail' })
         else if (typeof Toast?.fail === 'function') Toast.fail('请修正表单错误')
-        return done(false)
+        return false
     }
-    if (!isDirty.value) return done()
+    if (!isDirty.value) {
+        return true
+    }
     try {
         saving.value = true
         await userStore.saveMe(form.value)
@@ -235,13 +252,13 @@ const handleBeforeClose = async (action, done) => {
         else if (typeof Toast?.show === 'function') Toast.show({ message: '已更新资料', type: 'success' })
         initialForm.value = { ...form.value }
         saving.value = false
-        done()
+        return true
     } catch (e) {
         console.error('保存资料失败:', e)
         saving.value = false
         if (typeof Toast?.fail === 'function') Toast.fail('更新失败')
         else if (typeof Toast?.show === 'function') Toast.show({ message: '更新失败', type: 'fail' })
-        done(false)
+        return false
     }
 }
 

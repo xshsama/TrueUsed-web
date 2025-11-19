@@ -41,45 +41,44 @@ request.interceptors.request.use(
 
 // 响应拦截：统一处理 401
 request.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const body = response.data
+    // 统一解包后端标准响应 { code, message, data, timestamp }
+    if (body && typeof body === 'object' && 'code' in body && 'data' in body) {
+      if (body.code === 0) return body.data
+      // 非 0 但返回 2xx，按错误处理
+      const err = new Error(body.message || '请求失败')
+      err.response = { data: body, status: 200 }
+      throw err
+    }
+    return body
+  },
   async (error) => {
     const original = error?.config
     const status = error?.response?.status
     if (status === 401 && !original?._retry) {
-      // 尝试静默刷新一次
       original._retry = true
       try {
         const res = await refreshClient.post('/auth/refresh')
-        // 返回结构沿用 LoginResponse：{ token, expiresInMs, username ... }
-        if (res?.data?.token) {
+        // 解包可能已由拦截器完成；若没解包，兼容两种结构
+        const payload = res?.data?.token ? res.data : res?.data?.data
+        if (payload?.token) {
           const store = useUserStore()
-          store.setToken(res.data.token)
+          store.setToken(payload.token)
           if (
-            typeof res.data.expiresInMs === 'number' &&
-            res.data.expiresInMs > 0
+            typeof payload.expiresInMs === 'number' &&
+            payload.expiresInMs > 0
           ) {
             localStorage.setItem(
               'token_expires_at',
-              String(Date.now() + res.data.expiresInMs),
+              String(Date.now() + payload.expiresInMs),
             )
           }
           // 重新设置头并重试原请求
           original.headers = original.headers || {}
-          original.headers.Authorization = `Bearer ${res.data.token}`
+          original.headers.Authorization = `Bearer ${payload.token}`
           return request(original)
         }
-      } catch (e) {
-        // 刷新失败（可能因未携带 refresh_token Cookie 或已过期） -> 进入登出流程
-      }
-      // 刷新失败：清空并跳转登录
-      const store = useUserStore()
-      store.logout()
-      try {
-        // 提示可能原因与解决方式（开发环境常见：使用了 127.0.0.1 或局域网 IP 导致 Cookie 不通）
-        const host = window?.location?.host || ''
-        Toast.fail(
-          `会话已过期，请重新登录。建议使用 http://localhost:5173 访问（当前: ${host}）`,
-        )
       } catch {}
       const redirect = router.currentRoute.value.fullPath
       if (router.currentRoute.value.name !== 'Login') {
@@ -89,12 +88,13 @@ request.interceptors.response.use(
     // 非 401 的错误，统一弹出提示（可通过 config.silent 抑制）
     try {
       if (!original?.silent) {
+        const respData = error?.response?.data
         const msg =
-          error?.response?.data?.message ||
+          (respData && typeof respData === 'object' && respData.message) ||
           error?.response?.data?.error ||
           error?.message ||
           '请求失败，请稍后重试'
-        Toast.fail(String(msg))
+        Toast(String(msg))
       }
     } catch {}
     return Promise.reject(error)

@@ -22,22 +22,22 @@
                         <div v-for="o in filteredOrders" :key="o.id" class="order-card shadow-soft-lg">
                             <div class="order-head">
                                 <div class="order-no">订单号：{{ o.no }}</div>
-                                <van-tag type="primary" plain size="small">{{ statusText(o.status) }}</van-tag>
+                                <van-tag type="primary" plain size="small">{{ o.status }}</van-tag>
                             </div>
-                            <div class="order-body">
-                                <van-image :src="o.cover" width="72" height="72" fit="cover" radius="8" />
+                            <div class="order-body" @click="view(o)">
+                                <van-image :src="o.product.images?.url" width="72" height="72" fit="cover" radius="8" />
                                 <div class="info">
-                                    <div class="title">{{ o.title }}</div>
-                                    <div class="meta">数量 x{{ o.quantity }} · ￥{{ o.price }}</div>
+                                    <div class="title">{{ o.product.title }}</div>
+                                    <div class="meta">￥{{ o.price }}</div>
                                 </div>
-                                <div class="amount">￥{{ (o.price * o.quantity).toFixed(2) }}</div>
+                                <div class="amount">￥{{ o.price }}</div>
                             </div>
                             <div class="order-actions">
-                                <van-button v-if="o.status === 'unpaid'" type="primary" size="small" round
+                                <van-button v-if="o.status === 'PENDING'" type="primary" size="small" round
                                     @click="pay(o)">去支付</van-button>
-                                <van-button v-if="o.status === 'unpaid'" type="default" size="small" round plain
+                                <van-button v-if="o.status === 'PENDING'" type="default" size="small" round plain
                                     @click="cancel(o)">取消</van-button>
-                                <van-button v-if="o.status === 'toreceive'" type="primary" size="small" round
+                                <van-button v-if="o.status === 'SHIPPED'" type="primary" size="small" round
                                     @click="confirm(o)">确认收货</van-button>
                                 <van-button type="default" size="small" round plain @click="view(o)">查看详情</van-button>
                             </div>
@@ -51,10 +51,10 @@
 </template>
 
 <script>
+import { cancelOrder, confirmDelivery, getMyOrders, payOrder } from '@/api/orders';
 import { Dialog, Toast } from 'vant';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-
 export default {
     name: 'Orders',
     setup() {
@@ -69,60 +69,52 @@ export default {
         const pageSize = 10
         const orders = ref([])
 
-        const allMock = Array.from({ length: 23 }).map((_, i) => ({
-            id: i + 1,
-            no: 'TU' + String(202501010000 + i),
-            title: '二手良品 · ' + (i + 1),
-            quantity: (i % 3) + 1,
-            price: Number((99 + (i % 5) * 20).toFixed(2)),
-            status: ['unpaid', 'toship', 'toreceive', 'afterSale'][i % 4],
-            cover: `https://placehold.co/160x160/EEF2FF/334155?text=Item+${i + 1}`,
-        }))
-
-        const statusText = (s) => ({
+        const statusMap = {
             all: '全部',
-            unpaid: '待付款',
-            toship: '待发货',
-            toreceive: '待收货',
-            afterSale: '售后',
-        }[s] || s)
+            PENDING: '待付款',
+            PAID: '待发货',
+            SHIPPED: '待收货',
+            COMPLETED: '已完成',
+            CANCELLED: '已取消',
+        };
 
         const filteredOrders = computed(() => {
-            if (active.value === 'all') return orders.value
-            return orders.value.filter(o => o.status === active.value)
-        })
+            if (active.value === 'all') return orders.value;
+            const statusMapping = {
+                unpaid: 'PENDING',
+                toship: 'PAID',
+                toreceive: 'SHIPPED',
+            };
+            const targetStatus = statusMapping[active.value];
+            if (!targetStatus) return [];
+            return orders.value.filter(o => o.status === targetStatus);
+        });
 
-        const loadPage = (reset = false) => {
-            if (reset) {
-                page.value = 1
-                finished.value = false
-                orders.value = []
+        const loadOrders = async () => {
+            loading.value = true;
+            isInitialLoading.value = true;
+            try {
+                const res = await getMyOrders();
+                orders.value = res;
+                finished.value = true; // 假设一次性加载
+            } catch (error) {
+                Toast.fail('加载订单失败');
+            } finally {
+                loading.value = false;
+                isInitialLoading.value = false;
             }
-            const start = (page.value - 1) * pageSize
-            const end = start + pageSize
-            const slice = allMock.slice(start, end)
-            orders.value = orders.value.concat(slice)
-            if (end >= allMock.length) finished.value = true
-            page.value += 1
-        }
+        };
 
         const onLoad = () => {
-            loading.value = true
-            setTimeout(() => {
-                loadPage()
-                loading.value = false
-                isInitialLoading.value = false
-            }, 400)
-        }
+            // 初始加载由 onMounted 调用
+        };
 
-        const onRefresh = () => {
-            refreshing.value = true
-            setTimeout(() => {
-                loadPage(true)
-                refreshing.value = false
-                Toast.success('已刷新')
-            }, 500)
-        }
+        const onRefresh = async () => {
+            refreshing.value = true;
+            await loadOrders();
+            refreshing.value = false;
+            Toast.success('已刷新');
+        };
 
         const onTabChange = (name) => {
             router.replace({ name: 'Orders', query: { status: name === 'all' ? undefined : name } })
@@ -134,30 +126,50 @@ export default {
             active.value = allowed.includes(s) ? s : (s ? 'all' : 'all')
         }
 
-        const pay = (o) => Toast(`去支付：${o.no}`)
-        const cancel = (o) => {
+        const pay = async (order) => {
+            try {
+                await payOrder(order.id);
+                Toast.success('支付成功');
+                order.status = 'PAID';
+            } catch (error) {
+                Toast.fail('支付失败');
+            }
+        };
+
+        const cancel = (order) => {
             Dialog.confirm({ title: '取消订单', message: '确定取消这个订单吗？' })
-                .then(() => Toast.success('已取消'))
-                .catch(() => { })
-        }
-        const confirm = (o) => {
+                .then(async () => {
+                    await cancelOrder(order.id);
+                    Toast.success('已取消');
+                    order.status = 'CANCELLED';
+                })
+                .catch(() => { });
+        };
+
+        const confirm = (order) => {
             Dialog.confirm({ title: '确认收货', message: '确认收到货物？' })
-                .then(() => Toast.success('已确认收货'))
-                .catch(() => { })
-        }
-        const view = (o) => Toast(`查看订单：${o.no}`)
+                .then(async () => {
+                    await confirmDelivery(order.id);
+                    Toast.success('已确认收货');
+                    order.status = 'COMPLETED';
+                })
+                .catch(() => { });
+        };
+
+        const view = (order) => {
+            router.push({ name: 'OrderDetail', params: { id: order.id } });
+        };
 
         onMounted(() => {
-            applyStatusFromQuery()
-            // 首次触发加载
-            onLoad()
-        })
+            applyStatusFromQuery();
+            loadOrders();
+        });
 
         watch(() => route.query.status, () => {
             applyStatusFromQuery()
         })
 
-        return { active, loading, refreshing, finished, isInitialLoading, filteredOrders, statusText, onLoad, onRefresh, onTabChange, pay, cancel, confirm, view }
+        return { active, loading, refreshing, finished, isInitialLoading, filteredOrders, statusText: (s) => statusMap[s] || s, onLoad, onRefresh, onTabChange, pay, cancel, confirm, view };
     }
 }
 </script>

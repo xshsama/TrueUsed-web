@@ -6,7 +6,7 @@ import request from '@/utils/request'
  */
 export function createOrder(productId) {
   return request({
-    url: '/api/orders',
+    url: '/orders',
     method: 'post',
     data: { productId },
   })
@@ -17,7 +17,7 @@ export function createOrder(productId) {
  */
 export function getMyOrders() {
   return request({
-    url: '/api/orders/my-orders',
+    url: '/orders/my-orders',
     method: 'get',
   })
 }
@@ -27,7 +27,7 @@ export function getMyOrders() {
  */
 export function getSoldOrders() {
   return request({
-    url: '/api/orders/sold-orders',
+    url: '/orders/sold-orders',
     method: 'get',
   })
 }
@@ -38,7 +38,7 @@ export function getSoldOrders() {
  */
 export function getOrderById(id) {
   return request({
-    url: `/api/orders/${id}`,
+    url: `/orders/${id}`,
     method: 'get',
   })
 }
@@ -49,7 +49,7 @@ export function getOrderById(id) {
  */
 export function payOrder(id) {
   return request({
-    url: `/api/orders/${id}/pay`,
+    url: `/orders/${id}/pay`,
     method: 'put',
   })
 }
@@ -60,7 +60,7 @@ export function payOrder(id) {
  */
 export function shipOrder(id) {
   return request({
-    url: `/api/orders/${id}/ship`,
+    url: `/orders/${id}/ship`,
     method: 'put',
   })
 }
@@ -71,7 +71,18 @@ export function shipOrder(id) {
  */
 export function confirmDelivery(id) {
   return request({
-    url: `/api/orders/${id}/confirm-delivery`,
+    url: `/orders/${id}/confirm-delivery`,
+    method: 'put',
+  })
+}
+
+/**
+ * 取消订单
+ * @param {number} id 订单ID
+ */
+export function cancelOrder(id) {
+  return request({
+    url: `/orders/${id}/cancel`,
     method: 'put',
   })
 }

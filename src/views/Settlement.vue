@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { createOrder } from '@/api/orders';
+import { createOrder, payOrder } from '@/api/orders';
 import { Toast } from 'vant';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -58,11 +58,18 @@ export default {
         const handleConfirm = async () => {
             isSubmitting.value = true;
             try {
-                const order = await createOrder(product.value.id);
-                Toast.success('下单成功！');
-                router.replace({ name: 'OrderDetail', params: { id: order.id } });
+                // 1. 创建订单
+                const createdOrder = await createOrder(product.value.id);
+
+                // 2. 模拟支付
+                await payOrder(createdOrder.id);
+
+                Toast.success('支付成功！');
+
+                // 3. 跳转到订单详情
+                router.replace({ name: 'OrderDetail', params: { id: createdOrder.id } });
             } catch (error) {
-                Toast.fail('下单失败');
+                Toast('下单失败');
             } finally {
                 isSubmitting.value = false;
             }

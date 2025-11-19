@@ -1,6 +1,6 @@
 <template>
     <div class="page">
-        <van-nav-bar title="我买到的" left-arrow @click-left="$router.back()" fixed />
+        <van-nav-bar title="我卖出的" left-arrow @click-left="$router.back()" fixed />
         <div class="container" style="padding-top: 56px;">
             <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了">
                 <template v-if="loading">
@@ -12,7 +12,7 @@
                 <template v-else>
                     <div v-for="order in orders" :key="order.id" class="order-card shadow-soft-lg">
                         <div class="head">
-                            <div class="user">卖家：{{ order.seller.username }}</div>
+                            <div class="user">买家：{{ order.buyer.username }}</div>
                             <van-tag plain type="primary" size="small">{{ order.status }}</van-tag>
                         </div>
                         <div class="body">
@@ -24,6 +24,10 @@
                             <div class="actions">
                                 <van-button size="small" type="primary" round @click="viewOrderDetail(order)">查看详情
                                 </van-button>
+                                <van-button v-if="order.status === 'PAID'" size="small" type="info" round
+                                    @click="handleShipOrder(order)">
+                                    发货
+                                </van-button>
                             </div>
                         </div>
                     </div>
@@ -34,13 +38,15 @@
 </template>
 
 <script>
-import { getMyOrders } from '@/api/orders';
+import { getSoldOrders, shipOrder } from '@/api/orders';
 import { Toast } from 'vant';
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
     name: 'OrderManage',
     setup() {
+        const router = useRouter();
         const loading = ref(true);
         const finished = ref(false);
         const orders = ref([]);
@@ -48,7 +54,7 @@ export default {
         const loadOrders = async () => {
             try {
                 loading.value = true;
-                const res = await getMyOrders();
+                const res = await getSoldOrders();
                 orders.value = res;
                 finished.value = true; // 假设一次性加载所有订单
             } catch (error) {
@@ -59,7 +65,21 @@ export default {
         };
 
         const viewOrderDetail = (order) => {
-            this.$router.push({ name: 'OrderDetail', params: { id: order.id } });
+            router.push({ name: 'OrderDetail', params: { id: order.id } });
+        };
+
+        const handleShipOrder = async (order) => {
+            try {
+                await shipOrder(order.id);
+                Toast.success('发货成功');
+                // 更新订单状态
+                const index = orders.value.findIndex(o => o.id === order.id);
+                if (index !== -1) {
+                    orders.value[index].status = 'SHIPPED';
+                }
+            } catch (error) {
+                Toast.fail('发货失败');
+            }
         };
 
         onMounted(() => {
@@ -71,6 +91,7 @@ export default {
             finished,
             orders,
             viewOrderDetail,
+            handleShipOrder,
         };
     },
 };

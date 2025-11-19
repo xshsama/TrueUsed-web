@@ -2,11 +2,18 @@ import { fetchMe, logoutApi, updateMe } from '@/api/auth'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+// 规范化用户对象，统一头像字段为 avatarUrl
+function normalizeUser(u) {
+  if (!u || typeof u !== 'object') return u
+  const avatarUrl = u.avatarUrl || u.avatar || u.avatar_url || null
+  return { ...u, avatarUrl }
+}
+
 export const useUserStore = defineStore('user', () => {
   const persistedUser = (() => {
     try {
       const raw = localStorage.getItem('user')
-      return raw ? JSON.parse(raw) : null
+      return raw ? normalizeUser(JSON.parse(raw)) : null
     } catch {
       return null
     }
@@ -18,10 +25,11 @@ export const useUserStore = defineStore('user', () => {
   let refreshTimer = null
 
   const setUser = (userData) => {
-    user.value = userData
+    const normalized = normalizeUser(userData)
+    user.value = normalized
     // 持久化用户基本信息，便于刷新后仍可展示
     try {
-      localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('user', JSON.stringify(normalized))
     } catch {
       // 忽略存储异常
     }
@@ -29,15 +37,16 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const loadMe = async () => {
-    const res = await fetchMe()
-    setUser(res.data)
-    return res.data
+    // request 返回已是 response.data，这里直接作为用户对象
+    const data = await fetchMe()
+    setUser(data)
+    return data
   }
 
   const saveMe = async (payload) => {
-    const res = await updateMe(payload)
-    setUser(res.data)
-    return res.data
+    const data = await updateMe(payload)
+    setUser(data)
+    return data
   }
 
   const setToken = (tokenValue) => {

@@ -161,11 +161,17 @@ export default {
                 } else {
                     localStorage.removeItem('token_expires_at')
                 }
+                // 保留现有用户对象中的 avatarUrl / nickname 等，避免登录过程覆盖为空
+                const prev = userStore.user || {}
                 userStore.setUser({
                     id: res.userId,
-                    name: res.username,
-                    phone: form.phone,
-                    roles: res.roles || [],
+                    username: res.username || prev.username,
+                    nickname: prev.nickname,
+                    avatarUrl: prev.avatarUrl, // 登录响应无头像时保留旧值
+                    phone: form.phone || prev.phone,
+                    roles: res.roles || prev.roles || [],
+                    email: prev.email,
+                    status: prev.status,
                 })
 
                 showSuccessToast('登录成功')
