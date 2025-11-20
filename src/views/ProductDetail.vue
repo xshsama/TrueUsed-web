@@ -59,8 +59,8 @@
 </template>
 
 <script>
-import { addFavorite, removeFavorite } from '@/api/favorites'
 import { getProduct } from '@/api/products'
+import { useFavoritesStore } from '@/stores/favorites'
 import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -70,6 +70,7 @@ export default {
     setup() {
         const router = useRouter()
         const route = useRoute()
+        const favoritesStore = useFavoritesStore()
 
         const isFavorited = ref(false)
         const loading = ref(true)
@@ -97,15 +98,16 @@ export default {
 
         // 切换收藏状态
         const toggleFavorite = async () => {
+            const productId = Number(route.params.id)
             const prev = isFavorited.value
             // 乐观更新
             isFavorited.value = !prev
             try {
                 if (prev) {
-                    await removeFavorite(route.params.id)
+                    await favoritesStore.remove(productId)
                     showSuccessToast('已取消收藏')
                 } else {
-                    await addFavorite(route.params.id)
+                    await favoritesStore.add(productId)
                     showSuccessToast('已添加到收藏')
                 }
             } catch (e) {
@@ -140,10 +142,12 @@ export default {
 
         const loadDetail = async () => {
             try {
-                const res = await getProduct(route.params.id)
+                const productId = Number(route.params.id)
+                await favoritesStore.fetchFavorites()
+                const res = await getProduct(productId)
                 productInfo.value = res
                 productImages.value = (res.images || []).map((img) => img.url)
-                // isFavorited 后端未直接返回，后续可通过单独接口判断；这里默认 false
+                isFavorited.value = favoritesStore.isFavorited(productId)
             } catch (e) {
                 showFailToast('加载失败')
             } finally {

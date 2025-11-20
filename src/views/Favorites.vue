@@ -40,7 +40,6 @@
                         <van-empty v-else image="search" description="还没有收藏任何商品">
                             <van-button type="primary" size="small" @click="$router.push('/home')">去看看</van-button>
                         </van-empty>
-
                     </van-list>
                 </van-pull-refresh>
             </div>
@@ -49,10 +48,11 @@
 </template>
 
 <script>
-import { removeFavorite as apiRemoveFavorite, listMyFavorites } from '@/api/favorites'
+import { listMyFavorites } from '@/api/favorites'
 import { getProduct } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
-import { Dialog, showFailToast, showSuccessToast } from 'vant'
+import { useFavoritesStore } from '@/stores/favorites'
+import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -61,6 +61,7 @@ export default {
     components: { ProductCard },
     setup() {
         const router = useRouter()
+        const favoritesStore = useFavoritesStore()
 
         const activeTab = ref('all')
         const refreshing = ref(false)
@@ -180,13 +181,12 @@ export default {
 
         // 取消收藏
         const removeFavorite = (id) => {
-            Dialog.confirm({
+            showConfirmDialog({
                 title: '确认取消收藏',
                 message: '取消收藏后，该商品将从收藏列表中移除',
             }).then(async () => {
                 try {
-                    // 后端以 productId 为路径参数
-                    await apiRemoveFavorite(id)
+                    await favoritesStore.remove(id)
                     favoriteList.value = favoriteList.value.filter(item => item.id !== id)
                     showSuccessToast('已取消收藏')
                 } catch (e) {

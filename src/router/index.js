@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 导入页面组件
 import About from '@/views/About.vue'
 import Address from '@/views/Address.vue'
+import AddressEdit from '@/views/AddressEdit.vue'
 import Favorites from '@/views/Favorites.vue'
 import Feedback from '@/views/Feedback.vue'
 import Help from '@/views/Help.vue'
@@ -121,6 +122,12 @@ const routes = [
     path: '/verification',
     name: 'Verification',
     component: Verification,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/address-edit/:id?',
+    name: 'AddressEdit',
+    component: AddressEdit,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

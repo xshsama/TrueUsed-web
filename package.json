@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vant/area-data": "^2.1.0",
     "axios": "^1.7.2",
     "pinia": "^2.1.7",
     "vant": "^4.9.0",
@@ -16,8 +17,8 @@
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "unocss": "^0.60.4",
-    "vite": "^5.4.20"
+    "@vitejs/plugin-vue": "^6.0.2",
+    "unocss": "^66.5.9",
+    "vite": "^7.2.4"
   }
 }

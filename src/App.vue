@@ -42,8 +42,9 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useFavoritesStore } from './stores/favorites';
 import { useMessageStore } from './stores/message';
 
 export default {
@@ -52,6 +53,7 @@ export default {
         const router = useRouter()
         const route = useRoute()
         const messageStore = useMessageStore()
+        const favoritesStore = useFavoritesStore()
 
         const active = ref(0)
         const unreadCount = computed(() => messageStore.unreadCount)
@@ -108,6 +110,10 @@ export default {
             if (!kw) return
             router.push({ path: '/search', query: { q: kw } })
         }
+
+        onMounted(() => {
+            favoritesStore.fetchFavorites()
+        })
 
         return {
             active,

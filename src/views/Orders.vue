@@ -40,6 +40,8 @@
                                     @click="cancel(o)">取消订单</van-button>
                                 <van-button v-if="o.status === 'SHIPPED'" type="success" size="small" round
                                     @click="confirm(o)">确认收货</van-button>
+                                <van-button v-if="o.status === 'PAID'" size="small" round plain
+                                    @click="cancel(o)">取消订单</van-button>
                                 <van-button size="small" round plain @click="view(o)">查看详情</van-button>
                             </div>
                         </div>
@@ -54,7 +56,7 @@
 <script>
 import { cancelOrder, confirmDelivery, getMyOrders, payOrder } from '@/api/orders';
 import '@/styles/order-card.css';
-import { Dialog, showFailToast, showSuccessToast } from 'vant';
+import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 export default {
@@ -141,23 +143,22 @@ export default {
         };
 
         const cancel = (order) => {
-            Dialog.confirm({ title: '取消订单', message: '确定取消这个订单吗？' })
+            showConfirmDialog({ title: '取消订单', message: '确定取消这个订单吗？' })
                 .then(async () => {
                     await cancelOrder(order.id);
                     showSuccessToast('已取消');
                     order.status = 'CANCELLED';
                 })
-                .catch(() => { });
         };
 
         const confirm = (order) => {
-            Dialog.confirm({ title: '确认收货', message: '确认收到货物？' })
+            showConfirmDialog({ title: '确认收货', message: '确认收到货物？' })
                 .then(async () => {
                     await confirmDelivery(order.id);
+
                     showSuccessToast('已确认收货');
                     order.status = 'COMPLETED';
                 })
-                .catch(() => { });
         };
 
         const view = (order) => {

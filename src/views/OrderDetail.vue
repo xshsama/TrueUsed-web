@@ -6,6 +6,13 @@
                 <van-loading size="24px">加载中...</van-loading>
             </div>
             <div v-else-if="order" class="order-detail-container">
+                <!-- 支付倒计时 -->
+                <div v-if="order.status === 'PENDING' && isCurrentUserBuyer" class="countdown-card">
+                    <div class="countdown-title">请在10分钟内完成支付</div>
+                    <van-count-down :time="remainingTime" @finish="handleTimeout" format="mm:ss" />
+                    <div class="countdown-tip">超时订单将自动取消</div>
+                </div>
+
                 <!-- 订单状态与商品信息卡片 -->
                 <div class="order-card">
                     <div class="order-head">
@@ -40,6 +47,10 @@
 
                 <!-- 操作按钮 -->
                 <div class="actions-footer" v-if="order">
+                    <div v-if="isCurrentUserBuyer && order.status === 'PENDING'" class="pending-actions">
+                        <van-button type="default" block round @click="handleUpdateStatus('cancel')">取消订单</van-button>
+                        <van-button type="primary" block round @click="handleUpdateStatus('pay')">立即支付</van-button>
+                    </div>
                     <van-button v-if="isCurrentUserSeller && order.status === 'PAID'" type="primary" block round
                         @click="handleUpdateStatus('ship')">
                         确认发货
@@ -47,6 +58,10 @@
                     <van-button v-if="isCurrentUserBuyer && order.status === 'SHIPPED'" type="success" block round
                         @click="handleUpdateStatus('confirm')">
                         确认收货
+                    </van-button>
+                    <van-button v-if="isCurrentUserBuyer && order.status === 'PAID'" type="default" block round
+                        @click="handleUpdateStatus('cancel')">
+                        取消订单
                     </van-button>
                 </div>
             </div>
@@ -58,10 +73,10 @@
 </template>
 
 <script>
-import { getOrderById, updateOrderStatus } from '@/api/orders';
+import { cancelOrder, confirmDelivery, getOrderById, payOrder, shipOrder } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
 import '@/styles/order-card.css';
-import { Dialog, showFailToast, showSuccessToast } from 'vant';
+import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -72,6 +87,7 @@ export default {
         const userStore = useUserStore();
         const loading = ref(true);
         const order = ref(null);
+        const remainingTime = ref(0);
 
         const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
         const isCurrentUserSeller = computed(() => userStore.userInfo && order.value?.seller.id === userStore.userInfo.id);
@@ -92,6 +108,14 @@ export default {
                 loading.value = true;
                 const orderId = route.params.id;
                 order.value = await getOrderById(orderId);
+                if (order.value.status === 'PENDING') {
+                    const createdAt = new Date(order.value.createdAt).getTime();
+                    const now = Date.now();
+                    const diff = now - createdAt;
+                    if (diff < 10 * 60 * 1000) {
+                        remainingTime.value = 10 * 60 * 1000 - diff;
+                    }
+                }
             } catch (error) {
                 showFailToast('加载订单详情失败');
             } finally {
@@ -101,31 +125,36 @@ export default {
 
         const handleUpdateStatus = (action) => {
             const actions = {
-                ship: {
-                    api: () => updateOrderStatus(order.value.id, 'SHIPPED'),
-                    title: '确认发货',
-                    message: '您确定要将此订单标记为已发货吗？',
-                },
-                confirm: {
-                    api: () => updateOrderStatus(order.value.id, 'DELIVERED'),
-                    title: '确认收货',
-                    message: '您确定已收到此订单的商品吗？',
-                },
+                pay: { api: payOrder, success: '支付成功', confirm: { title: '确认支付', message: '您将要完成支付' } },
+                cancel: { api: cancelOrder, success: '订单已取消', confirm: { title: '确认取消订单', message: '您确定要取消此订单吗？' } },
+                ship: { api: shipOrder, success: '发货成功', confirm: { title: '确认发货', message: '您确定要将此订单标记为已发货吗？' } },
+                confirm: { api: confirmDelivery, success: '收货成功', confirm: { title: '确认收货', message: '您确定已收到此订单的商品吗？' } },
             };
 
-            const { api, title, message } = actions[action];
+            const { api, success, confirm } = actions[action];
 
-            Dialog.confirm({ title, message })
+            showConfirmDialog(confirm)
                 .then(async () => {
                     try {
                         const updatedOrder = await api(order.value.id);
                         order.value = updatedOrder;
-                        showSuccessToast('操作成功');
+                        showSuccessToast(success);
                     } catch (error) {
                         showFailToast('操作失败');
                     }
                 })
-                .catch(() => { });
+        };
+
+        const handleTimeout = async () => {
+            if (order.value.status === 'PENDING') {
+                try {
+                    await cancelOrder(order.value.id);
+                    order.value.status = 'CANCELLED';
+                    showFailToast('支付超时，订单已自动取消');
+                } catch (error) {
+                    console.error('Failed to cancel order on timeout:', error);
+                }
+            }
         };
 
         onMounted(() => {
@@ -139,12 +168,46 @@ export default {
             isCurrentUserSeller,
             handleUpdateStatus,
             statusText,
+            remainingTime,
+            handleTimeout
         };
     },
 };
 </script>
 
 <style scoped>
+.countdown-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 10px 0;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.countdown-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+:deep(.van-count-down) {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ee0a24;
+}
+
+.countdown-tip {
+    font-size: 12px;
+    color: #969799;
+    margin-top: 8px;
+}
+
+.pending-actions {
+    display: flex;
+    gap: 10px;
+}
+
 .order-detail-container {
     padding: 10px 0;
 }

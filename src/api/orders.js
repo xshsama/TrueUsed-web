@@ -4,11 +4,11 @@ import request from '@/utils/request'
  * 创建订单
  * @param {number} productId 商品ID
  */
-export function createOrder(productId) {
+export function createOrder(orderRequest) {
   return request({
     url: '/orders',
     method: 'post',
-    data: { productId },
+    data: orderRequest,
   })
 }
 
