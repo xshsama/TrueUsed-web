@@ -29,6 +29,21 @@
                     </div>
                 </div>
 
+                <!-- 收货地址 -->
+                <div class="address-card" v-if="order.address">
+                    <div class="address-card-title">收货地址</div>
+                    <div class="address-info">
+                        <div class="recipient-info">
+                            <span class="recipient-name">{{ order.address.recipientName }}</span>
+                            <span class="recipient-phone">{{ order.address.phone }}</span>
+                        </div>
+                        <div class="address-detail">
+                            {{ order.address.province }} {{ order.address.city }} {{ order.address.district }}
+                            {{ order.address.detailedAddress }}
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 订单详细信息 -->
                 <div class="detail-list">
                     <div class="detail-item">
@@ -76,12 +91,15 @@
 import { cancelOrder, confirmDelivery, getOrderById, payOrder, shipOrder } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
 import '@/styles/order-card.css';
-import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
+import { showConfirmDialog, showFailToast, showSuccessToast, CountDown as VanCountDown } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 export default {
     name: 'OrderDetail',
+    components: {
+        VanCountDown,
+    },
     setup() {
         const route = useRoute();
         const userStore = useUserStore();
@@ -108,6 +126,7 @@ export default {
                 loading.value = true;
                 const orderId = route.params.id;
                 order.value = await getOrderById(orderId);
+                console.log('Order data:', order.value);
                 if (order.value.status === 'PENDING') {
                     const createdAt = new Date(order.value.createdAt).getTime();
                     const now = Date.now();
@@ -260,5 +279,38 @@ export default {
     display: flex;
     justify-content: center;
     padding: 20px;
+}
+
+.address-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 14px;
+}
+
+.address-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.address-info {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.recipient-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.recipient-name {
+    font-weight: 500;
+    margin-right: 10px;
+}
+
+.address-detail {
+    color: #6b7280;
 }
 </style>

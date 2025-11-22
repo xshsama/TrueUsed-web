@@ -36,6 +36,7 @@ export default {
                     district: content.county,
                     detailedAddress: content.addressDetail,
                     isDefault: content.isDefault,
+                    areaCode: content.areaCode,
                 };
                 if (isEdit.value) {
                     await updateAddress(route.params.id, addressData);
@@ -79,11 +80,20 @@ export default {
                     county: address.district,
                     addressDetail: address.detailedAddress,
                     isDefault: address.isDefault,
-                    areaCode: '', // This will be resolved by the component
+                    areaCode: address.areaCode || '', // This will be resolved by the component
                 };
             } else {
                 // For 'add' mode, provide a minimal object to avoid issues
-                addressInfo.value = { areaCode: '' };
+                addressInfo.value = {
+                    name: '',
+                    tel: '',
+                    province: '',
+                    city: '',
+                    county: '',
+                    addressDetail: '',
+                    isDefault: false,
+                    areaCode: '',
+                };
             }
         });
 

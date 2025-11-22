@@ -5,6 +5,8 @@ import router from './router'
 
 // Vant UI
 import {
+  AddressEdit,
+  AddressList,
   Badge,
   Button,
   Card,
@@ -90,6 +92,8 @@ app.use(Switch)
 app.use(SwipeCell)
 app.use(Collapse)
 app.use(CollapseItem)
+app.use(AddressEdit)
+app.use(AddressList)
 
 app.use(pinia)
 app.use(router)

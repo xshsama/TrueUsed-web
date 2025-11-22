@@ -7,9 +7,7 @@
             <div v-if="list.length === 0" class="empty-state">
                 <van-empty description="暂无地址" />
             </div>
-            <div class="add-address-button-container">
-                <van-button type="primary" round block @click="onAdd">新增地址</van-button>
-            </div>
+
         </div>
     </div>
 </template>
@@ -27,17 +25,25 @@ export default {
         const list = ref([]);
 
         const loadAddresses = async () => {
-            const addresses = await getAddresses();
-            list.value = addresses.map(addr => ({
-                id: addr.id,
-                name: addr.recipientName,
-                tel: addr.phone,
-                address: `${addr.province} ${addr.city} ${addr.district} ${addr.detailedAddress}`,
-                isDefault: addr.isDefault,
-            }));
-            const defaultAddress = list.value.find(item => item.isDefault);
-            if (defaultAddress) {
-                chosenAddressId.value = defaultAddress.id;
+            try {
+                const addresses = await getAddresses();
+                console.log('Fetched addresses:', addresses);
+                list.value = addresses.map(addr => ({
+                    id: addr.id,
+                    name: addr.recipientName,
+                    tel: addr.phone,
+                    address: `${addr.province} ${addr.city} ${addr.district} ${addr.detailedAddress}`,
+                    isDefault: addr.isDefault,
+                }));
+                console.log('Mapped list:', list.value);
+                const defaultAddress = list.value.find(item => item.isDefault);
+                if (defaultAddress) {
+                    chosenAddressId.value = defaultAddress.id;
+                } else if (list.value.length > 0) {
+                    chosenAddressId.value = list.value.id;
+                }
+            } catch (error) {
+                console.error('Failed to load addresses:', error);
             }
         };
 
@@ -52,8 +58,13 @@ export default {
         const onSelect = async (item) => {
             const address = list.value.find(i => i.id === item.id);
             if (address && !address.isDefault) {
-                await updateAddress(item.id, { ...address, isDefault: true });
-                list.value.forEach(i => i.isDefault = i.id === item.id);
+                try {
+                    console.log('Updating address with:', { ...address, isDefault: true });
+                    await updateAddress(item.id, { ...address, isDefault: true });
+                    list.value.forEach(i => i.isDefault = i.id === item.id);
+                } catch (error) {
+                    console.error('Failed to update address:', error);
+                }
             }
         };
 
