@@ -23,3 +23,7 @@ export function fetchMe() {
 export function updateMe(data) {
   return request.put('/users/me', data)
 }
+
+export function fetchMyStats() {
+  return request.get('/users/me/stats')
+}

@@ -15,7 +15,7 @@ import Messages from '@/views/Messages.vue'
 import MyProducts from '@/views/MyProducts.vue'
 import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
-import Post from '@/views/Post.vue'
+// import Post from '@/views/Post.vue' // Deprecated
 import PostCreate from '@/views/PostCreate.vue'
 import PostManage from '@/views/PostManage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
@@ -48,9 +48,9 @@ const routes = [
   },
   {
     path: '/post',
-    name: 'Post',
-    component: Post,
-    meta: { requiresAuth: true },
+    name: 'Post', // Replaced Post with ProductManageCenter
+    component: ProductManageCenter,
+    meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/post/create',

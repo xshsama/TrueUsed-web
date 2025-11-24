@@ -3,6 +3,13 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 
+// 自定义全局组件
+import CategorySelect from './components/CategorySelect.vue'
+import ImageUpload from './components/ImageUpload.vue'
+import ProductCard from './components/ProductCard.vue'
+import ProductCardSkeleton from './components/ProductCardSkeleton.vue'
+import SellerCenter from './components/SellerCenter.vue'
+
 // Vant UI
 import {
   AddressEdit,
@@ -10,8 +17,11 @@ import {
   Badge,
   Button,
   Card,
+  Cascader,
   Cell,
   CellGroup,
+  Checkbox,
+  CheckboxGroup,
   Collapse,
   CollapseItem,
   Dialog,
@@ -65,6 +75,9 @@ app.use(SwipeItem)
 app.use(Grid)
 app.use(GridItem)
 app.use(Card)
+app.use(Cascader)
+app.use(Checkbox)
+app.use(CheckboxGroup)
 app.use(Button)
 app.use(Icon)
 app.use(Badge)
@@ -94,6 +107,13 @@ app.use(Collapse)
 app.use(CollapseItem)
 app.use(AddressEdit)
 app.use(AddressList)
+
+// 注册自定义全局组件
+app.component('CategorySelect', CategorySelect)
+app.component('ImageUpload', ImageUpload)
+app.component('ProductCard', ProductCard)
+app.component('ProductCardSkeleton', ProductCardSkeleton)
+app.component('SellerCenter', SellerCenter)
 
 app.use(pinia)
 app.use(router)

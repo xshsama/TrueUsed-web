@@ -28,3 +28,22 @@ export function updateProduct(id, payload) {
 export function deleteProduct(id) {
   return request({ url: `/products/${id}`, method: 'delete' })
 }
+
+// 获取我的商品
+export function getMyProducts(params = {}) {
+  return request({
+    url: '/products/my',
+    method: 'get',
+    params,
+  })
+}
+
+// 上架商品
+export function publishProduct(id) {
+  return request({ url: `/products/${id}/publish`, method: 'put' })
+}
+
+// 下架商品
+export function hideProduct(id) {
+  return request({ url: `/products/${id}/hide`, method: 'put' })
+}

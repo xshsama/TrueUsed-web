@@ -36,8 +36,6 @@
             <router-view />
         </main>
 
-        <!-- 浮动卖出按钮（隐藏 tabbar 的页面不显示） -->
-        <button v-if="!route.meta.hideNavbar" class="global-floating-sell-btn" @click="router.push('/post')">卖出</button>
     </div>
 </template>
 

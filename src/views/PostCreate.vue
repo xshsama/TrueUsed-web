@@ -11,61 +11,90 @@
         <div class="page-content">
             <van-form ref="formRef" @submit="onSubmit">
                 <!-- 商品图片 -->
-                <div class="form-section">
-                    <div class="section-title">商品图片 <span class="required">*</span></div>
+                <div class="form-group">
+                    <div class="group-header">
+                        <span class="title">商品图片</span>
+                        <span class="required">*</span>
+                    </div>
                     <ImageUpload v-model="form.imageUrls" :max-images="9" />
-                    <div class="form-tip">最多可上传 9 张图片，单张不超过 5MB，第一张为封面图</div>
+                    <div class="form-tip">首张图将作为封面，支持 JPG/PNG，单张 ≤ 5MB</div>
                 </div>
 
-                <!-- 商品信息 -->
-                <van-cell-group>
-                    <van-field v-model="form.title" label="商品标题" placeholder="请输入商品标题" required maxlength="30"
-                        show-word-limit :rules="[
-                            { required: true, message: '请输入商品标题' },
-                        ]" />
-                    <van-field v-model="form.price" label="价格" placeholder="请输入价格" type="digit" input-align="right"
-                        required :rules="[
-                            { required: true, message: '请输入价格' },
-                            { validator: validators.pricePositive, message: '价格需大于 0' }
-                        ]">
-                        <template #left-icon>
-                            <span style="color: #ee0a24;">¥</span>
-                        </template>
-                    </van-field>
-                    <CategorySelect v-model="form.categoryId" label="分类" />
-                    <van-field v-model="form.condition" label="新旧程度" placeholder="请选择新旧程度" readonly required is-link
-                        @click="showConditionPicker = true" />
-                </van-cell-group>
+                <!-- 基本信息 -->
+                <div class="form-group">
+                    <div class="group-header">
+                        <span class="title">基本信息</span>
+                    </div>
+                    <van-cell-group :border="false">
+                        <van-field v-model="form.title" label="标题" placeholder="品牌型号，宝贝特点" required maxlength="30"
+                            show-word-limit :rules="[{ required: true, message: '请输入标题' }]" />
 
-                <!-- 商品描述 -->
-                <div class="form-section">
-                    <van-field v-model="form.description" label="商品描述" type="textarea"
-                        placeholder="请详细描述商品的状况、购买时间、使用情况等" rows="4" autosize required maxlength="1000" show-word-limit
-                        :rules="[{ required: true, message: '请输入商品描述' }]" />
-                    <div class="form-tip">详细的描述能帮助买家更好地了解商品</div>
+                        <van-field v-model="form.description" label="描述" type="textarea"
+                            placeholder="描述一下宝贝的转手原因、入手渠道和使用感受吧~" rows="4" autosize required maxlength="1000"
+                            show-word-limit :rules="[{ required: true, message: '请输入描述' }]" />
+                    </van-cell-group>
                 </div>
 
-                <!-- 交易方式 -->
-                <van-cell-group>
-                    <van-field label="交易方式">
-                        <template #input>
-                            <van-checkbox-group v-model="form.tradeTypes" direction="horizontal">
-                                <van-checkbox name="meetup">面交</van-checkbox>
-                                <van-checkbox name="express">快递</van-checkbox>
-                            </van-checkbox-group>
-                        </template>
-                    </van-field>
-                    <van-field v-model="form.location" label="所在地区" placeholder="请选择所在地区" readonly is-link
-                        @click="showLocationPicker = true" />
-                </van-cell-group>
+                <!-- 价格与分类 -->
+                <div class="form-group">
+                    <div class="group-header">
+                        <span class="title">价格与属性</span>
+                    </div>
+                    <van-cell-group :border="false">
+                        <van-field v-model="form.price" label="价格" placeholder="￥0.00" type="number" input-align="right"
+                            required
+                            :rules="[{ required: true, message: '请输入价格' }, { validator: validators.pricePositive, message: '价格需大于 0' }]">
+                            <template #left-icon>
+                                <van-icon name="gold-coin-o" color="#ff9f0a" size="18" />
+                            </template>
+                        </van-field>
 
-                <!-- 联系方式 -->
-                <van-cell-group>
-                    <van-field v-model="form.contact" label="联系方式" placeholder="请输入手机号或微信" required :rules="[
-                        { required: true, message: '请输入联系方式' },
-                        { validator: validators.contact, message: '请输入正确的手机号或微信号' }
-                    ]" />
-                </van-cell-group>
+                        <CategorySelect v-model="form.categoryId" label="分类" />
+
+                        <van-field v-model="form.condition" label="成色" placeholder="请选择" readonly required is-link
+                            @click="showConditionPicker = true">
+                            <template #left-icon>
+                                <van-icon name="gem-o" color="#7232dd" size="18" />
+                            </template>
+                        </van-field>
+                    </van-cell-group>
+                </div>
+
+                <!-- 交易信息 -->
+                <div class="form-group">
+                    <div class="group-header">
+                        <span class="title">交易信息</span>
+                    </div>
+                    <van-cell-group :border="false">
+                        <van-field label="交易方式">
+                            <template #left-icon>
+                                <van-icon name="logistics" color="#1989fa" size="18" />
+                            </template>
+                            <template #input>
+                                <van-checkbox-group v-model="form.tradeTypes" direction="horizontal">
+                                    <van-checkbox name="meetup" shape="square">面交</van-checkbox>
+                                    <van-checkbox name="express" shape="square">快递</van-checkbox>
+                                </van-checkbox-group>
+                            </template>
+                        </van-field>
+
+                        <van-field v-model="form.location" label="所在地区" placeholder="选择地区" readonly is-link
+                            @click="showLocationPicker = true">
+                            <template #left-icon>
+                                <van-icon name="location-o" color="#07c160" size="18" />
+                            </template>
+                        </van-field>
+
+                        <van-field v-model="form.contact" label="联系方式" placeholder="手机号 / 微信号" required
+                            :rules="[{ required: true, message: '请输入联系方式' }]">
+                            <template #left-icon>
+                                <van-icon name="phone-o" color="#ee0a24" size="18" />
+                            </template>
+                        </van-field>
+                    </van-cell-group>
+                </div>
+
+                <div style="height: 40px;"></div>
             </van-form>
         </div>
 
@@ -88,7 +117,7 @@
 import { createProduct } from '@/api/products'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
-import { closeToast, Dialog, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant'
+import { closeToast, showConfirmDialog, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -159,7 +188,7 @@ export default {
 
         // 取消发布
         const onCancel = () => {
-            Dialog.confirm({
+            showConfirmDialog({
                 title: '确认取消',
                 message: '取消后已填写的内容将不会保存',
             }).then(() => {
@@ -264,43 +293,68 @@ export default {
 }
 
 .page-content {
-    padding-top: 46px;
-    /* 为固定导航栏留出空间 */
+    padding: 60px 16px 20px;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.form-section {
+.form-group {
     background: #fff;
+    border-radius: 12px;
     padding: 16px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.section-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #323233;
+.group-header {
+    display: flex;
+    align-items: center;
     margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.group-header .title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #323233;
+    margin-right: 4px;
 }
 
 .required {
     color: #ee0a24;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 .form-tip {
     font-size: 12px;
     color: #969799;
     margin-top: 8px;
-    line-height: 1.4;
+    padding-left: 4px;
 }
 
+/* 覆盖 Vant 默认样式以适应卡片风格 */
 :deep(.van-cell-group) {
-    margin-bottom: 8px;
+    margin: 0;
 }
 
-:deep(.van-uploader__wrapper) {
-    margin-bottom: 8px;
+:deep(.van-cell) {
+    padding-left: 0;
+    padding-right: 0;
 }
 
+:deep(.van-cell::after) {
+    left: 0;
+    right: 0;
+}
+
+:deep(.van-field__label) {
+    width: 5em;
+    color: #646566;
+}
+
+/* 调整复选框 */
 :deep(.van-checkbox-group--horizontal .van-checkbox) {
-    margin-right: 12px;
+    margin-right: 16px;
 }
 </style>

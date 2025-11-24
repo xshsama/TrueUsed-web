@@ -2,12 +2,9 @@
     <div class="page">
         <van-nav-bar title="我卖出的" left-arrow @click-left="$router.back()" fixed />
         <div class="container" style="padding-top: 56px;">
-            <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了">
-                <template v-if="loading">
-                    <van-skeleton v-for="i in 3" :key="i" title :row="3" style="margin: 12px 0;" />
-                </template>
-                <template v-else-if="orders.length === 0">
-                    <van-empty description="您还没有购买任何商品" />
+            <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadOrders">
+                <template v-if="orders.length === 0 && !loading">
+                    <van-empty description="暂无卖出订单" />
                 </template>
                 <template v-else>
                     <div v-for="order in orders" :key="order.id" class="order-card shadow-soft-lg">
@@ -40,29 +37,51 @@
 <script>
 import { getSoldOrders, shipOrder } from '@/api/orders';
 import { showFailToast, showSuccessToast } from 'vant';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 export default {
     name: 'OrderManage',
     setup() {
         const router = useRouter();
-        const loading = ref(true);
+        const loading = ref(false); // Start false, let List trigger load
         const finished = ref(false);
         const orders = ref([]);
+        const page = ref(0);
+        const pageSize = 10;
 
         const loadOrders = async () => {
             try {
-                loading.value = true;
-                const res = await getSoldOrders();
-                orders.value = res;
-                finished.value = true; // 假设一次性加载所有订单
+                const res = await getSoldOrders({
+                    page: page.value,
+                    size: pageSize,
+                    sort: 'created_desc'
+                });
+
+                if (page.value === 0) {
+                    orders.value = res.content;
+                } else {
+                    orders.value = orders.value.concat(res.content);
+                }
+
+                loading.value = false;
+
+                if (res.last) {
+                    finished.value = true;
+                } else {
+                    page.value++;
+                }
             } catch (error) {
                 showFailToast('加载订单失败');
-            } finally {
                 loading.value = false;
+                finished.value = true;
             }
         };
+
+        // Remove explicit onMounted call, let van-list @load trigger it
+        // onMounted(() => {
+        //     loadOrders();
+        // });
 
         const viewOrderDetail = (order) => {
             router.push({ name: 'OrderDetail', params: { id: order.id } });
@@ -82,14 +101,11 @@ export default {
             }
         };
 
-        onMounted(() => {
-            loadOrders();
-        });
-
         return {
             loading,
             finished,
             orders,
+            loadOrders,
             viewOrderDetail,
             handleShipOrder,
         };

@@ -4,15 +4,15 @@
         <div class="container" style="padding-top:56px;">
             <section class="kpi shadow-soft-lg">
                 <div class="kpi-item">
-                    <div class="num">126</div>
+                    <div class="num">{{ stats.onShelfProducts }}</div>
                     <div class="label">在架商品</div>
                 </div>
                 <div class="kpi-item">
-                    <div class="num">18</div>
+                    <div class="num">{{ stats.pendingOrders }}</div>
                     <div class="label">待处理</div>
                 </div>
                 <div class="kpi-item">
-                    <div class="num">3</div>
+                    <div class="num">{{ stats.violationProducts }}</div>
                     <div class="label">违规下架</div>
                 </div>
             </section>
@@ -27,7 +27,34 @@
 </template>
 
 <script>
-export default { name: 'ProductManageCenter' }
+import { fetchMyStats } from '@/api/auth';
+import { onMounted, ref } from 'vue';
+
+export default {
+    name: 'ProductManageCenter',
+    setup() {
+        const stats = ref({
+            onShelfProducts: 0,
+            pendingOrders: 0,
+            violationProducts: 0
+        });
+
+        const loadStats = async () => {
+            try {
+                const res = await fetchMyStats();
+                stats.value = res;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        };
+
+        onMounted(() => {
+            loadStats();
+        });
+
+        return { stats };
+    }
+}
 </script>
 
 <style scoped>

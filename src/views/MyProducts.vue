@@ -40,8 +40,9 @@
 </template>
 
 <script>
+import { deleteProduct, getMyProducts, hideProduct, publishProduct } from '@/api/products';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton.vue';
-import { Dialog, showSuccessToast, showToast } from 'vant';
+import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -56,40 +57,112 @@ export default {
         const refreshing = ref(false)
         const finished = ref(false)
         const isInitialLoading = ref(true)
-        const page = ref(1)
-        const pageSize = 8
+        const page = ref(0) // Spring Page starts at 0
+        const pageSize = 10
         const items = ref([])
 
         const goToPost = () => {
             router.push('/post/create');
         };
 
-        const allMock = Array.from({ length: 21 }).map((_, i) => ({
-            id: i + 1,
-            title: `发布商品 ${i + 1}`,
-            price: (99 + (i % 7) * 15).toFixed(0),
-            category: ['手机', '数码', '家电'][i % 3],
-            status: i % 3 === 0 ? 'off' : 'on',
-            cover: `https://placehold.co/176x176/F1F5F9/334155?text=P${i + 1}`
-        }))
+        const loadPage = async (reset = false) => {
+            if (reset) {
+                page.value = 0;
+                finished.value = false;
+                items.value = [];
+                isInitialLoading.value = true; // Ensure loading state on reset
+            }
 
-        const loadPage = (reset = false) => {
-            if (reset) { page.value = 1; finished.value = false; items.value = [] }
-            const start = (page.value - 1) * pageSize
-            const end = start + pageSize
-            items.value = items.value.concat(allMock.slice(start, end))
-            if (end >= allMock.length) finished.value = true
-            page.value += 1
+            try {
+                const res = await getMyProducts({
+                    page: page.value,
+                    size: pageSize,
+                    sort: 'created_desc'
+                });
+
+                const newItems = res.content.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    price: p.price,
+                    category: p.categoryName,
+                    status: p.status === 'AVAILABLE' ? 'on' : 'off',
+                    cover: p.images && p.images.length > 0 ? p.images[0].url : 'https://placehold.co/176x176/F1F5F9/334155?text=NoImage'
+                }));
+
+                if (reset) {
+                    items.value = newItems;
+                } else {
+                    items.value = items.value.concat(newItems);
+                }
+
+                if (res.last) {
+                    finished.value = true;
+                } else {
+                    page.value += 1;
+                }
+            } catch (error) {
+                console.error(error);
+                showFailToast('加载失败');
+                finished.value = true;
+            } finally {
+                loading.value = false;
+                isInitialLoading.value = false;
+            }
         }
-        const onLoad = () => { loading.value = true; setTimeout(() => { loadPage(); loading.value = false; isInitialLoading.value = false }, 400) }
-        const onRefresh = () => { refreshing.value = true; setTimeout(() => { loadPage(true); refreshing.value = false; showSuccessToast('已刷新') }, 500) }
 
-        const toggle = (it) => { it.status = it.status === 'on' ? 'off' : 'on'; showSuccessToast(it.status === 'on' ? '已上架' : '已下架') }
-        const edit = (it) => showToast(`编辑：${it.title}`)
-        const remove = (it) => { Dialog.confirm({ title: '删除商品', message: '确定删除该商品吗？' }).then(() => { items.value = items.value.filter(x => x.id !== it.id); showSuccessToast('已删除') }).catch(() => { }) }
+        const onLoad = () => {
+            if (refreshing.value) return; // Prevent double loading during refresh
+            loading.value = true;
+            loadPage();
+        }
 
-        // 初次加载
-        onLoad()
+        const onRefresh = () => {
+            refreshing.value = true;
+            loadPage(true).then(() => {
+                refreshing.value = false;
+                showSuccessToast('已刷新');
+            });
+        }
+
+        const toggle = async (it) => {
+            const action = it.status === 'on' ? '下架' : '上架';
+            try {
+                if (it.status === 'on') {
+                    await hideProduct(it.id);
+                    it.status = 'off';
+                } else {
+                    await publishProduct(it.id);
+                    it.status = 'on';
+                }
+                showSuccessToast(`已${action}`);
+            } catch (error) {
+                showFailToast(`${action}失败`);
+            }
+        }
+
+        const edit = (it) => {
+            // Assuming we have an edit page, let's mock for now as per instructions or check if edit page exists
+            // The file list showed 'PostCreate.vue' which likely handles create.
+            // We might need 'PostEdit.vue' or pass ID to 'PostCreate'.
+            // For now, let's just show toast or navigate if route exists.
+            // I'll assume /post/edit/:id or reuse /post/create with query.
+            // showToast(`编辑功能开发中: ${it.title}`);
+            router.push({ name: 'PostCreate', query: { id: it.id } }); // Reusing PostCreate for edit is common
+        }
+
+        const remove = (it) => {
+            showConfirmDialog({ title: '删除商品', message: '确定删除该商品吗？' })
+                .then(async () => {
+                    try {
+                        await deleteProduct(it.id);
+                        items.value = items.value.filter(x => x.id !== it.id);
+                        showSuccessToast('已删除');
+                    } catch (error) {
+                        showFailToast('删除失败');
+                    }
+                })
+                .catch(() => { });
+        }
 
         return { loading, refreshing, finished, isInitialLoading, items, onLoad, onRefresh, toggle, edit, remove, goToPost }
     }

@@ -52,10 +52,14 @@ export default {
 
         const buildTree = (flat) => {
             const nodes = new Map()
+            // First pass: create nodes
             flat.forEach((c) => {
-                nodes.set(c.id, { text: c.name, value: c.id, parentId: c.parentId, children: [] })
+                const id = String(c.id)
+                const parentId = c.parentId ? String(c.parentId) : null
+                nodes.set(id, { text: c.name, value: c.id, parentId, children: [] })
                 labelMap.value.set(c.id, c.name)
             })
+
             const roots = []
             nodes.forEach((node) => {
                 if (node.parentId && nodes.has(node.parentId)) {
@@ -64,6 +68,12 @@ export default {
                     roots.push(node)
                 }
             })
+
+            // Optional: Clean up empty children arrays if needed, but Vant handles empty array as leaf.
+            // However, to be safe against "blank tab" issues, we ensure leaf nodes have undefined children if that helps Vant?
+            // Actually Vant Cascader: "If children is empty array, it is a leaf node." 
+            // But if we moved to next tab, it implies children was NOT empty.
+
             return roots
         }
 
@@ -71,9 +81,10 @@ export default {
             loading.value = true
             try {
                 const res = await listCategories()
-                options.value = buildTree(res || [])
+                options.value = buildTree(res)
             } catch (e) {
-                // 保持 options 为空，由空态渲染重试
+                console.error(e);
+                options.value = [];
             } finally {
                 loading.value = false
             }

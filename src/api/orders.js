@@ -25,10 +25,11 @@ export function getMyOrders() {
 /**
  * 获取我卖出的订单列表
  */
-export function getSoldOrders() {
+export function getSoldOrders(params = {}) {
   return request({
     url: '/orders/sold-orders',
     method: 'get',
+    params,
   })
 }
 
