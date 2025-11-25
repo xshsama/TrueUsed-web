@@ -1,5 +1,5 @@
 <template>
-    <div class="product-card-wrapper tu-card">
+    <div :class="['product-card-wrapper', 'tu-card', type]">
         <div class="media">
             <van-skeleton-image />
         </div>
@@ -16,6 +16,12 @@
 <script>
 export default {
     name: 'ProductCardSkeleton',
+    props: {
+        type: {
+            type: String,
+            default: 'vertical', // 'vertical' | 'horizontal'
+        },
+    },
 };
 </script>
 
@@ -23,16 +29,37 @@ export default {
 .product-card-wrapper {
     border-radius: var(--card-radius);
     display: flex;
+    /* 默认竖向 */
     flex-direction: column;
 }
 
-.media {
+.product-card-wrapper.horizontal {
+    flex-direction: row;
+    padding: 12px;
+    background: #fff;
+    margin: 10px 0;
+    border-radius: 16px;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 竖向模式图片 */
+.product-card-wrapper:not(.horizontal) .media {
     aspect-ratio: 4/3;
+}
+
+/* 横向模式图片 */
+.product-card-wrapper.horizontal .media {
+    width: 88px;
+    height: 88px;
+    flex-shrink: 0;
+    aspect-ratio: auto;
 }
 
 .media .van-skeleton-image {
     width: 100%;
     height: 100%;
+    border-radius: 8px;
 }
 
 .info {
@@ -40,6 +67,11 @@ export default {
     display: flex;
     flex-direction: column;
     flex: 1;
+}
+
+.product-card-wrapper.horizontal .info {
+    padding: 0;
+    justify-content: space-between;
 }
 
 .meta-row-skeleton {
@@ -50,7 +82,7 @@ export default {
 }
 
 @media (max-width: 720px) {
-    .info {
+    .product-card-wrapper:not(.horizontal) .info {
         padding: 12px 12px 14px;
     }
 }

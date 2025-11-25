@@ -42,12 +42,45 @@
             <van-address-list v-model="chosenAddressId" :list="addressList" @select="onAddressSelect"
                 @add="onAddAddress" />
         </van-popup>
+
+        <!-- 收银台弹窗 -->
+        <van-action-sheet v-model:show="showPayment" title="确认付款" @closed="onPaymentClose"
+            :close-on-click-overlay="false">
+            <div class="payment-content">
+                <div class="payment-amount">￥{{ product.price }}</div>
+                <div class="payment-methods">
+                    <van-radio-group v-model="paymentMethod">
+                        <van-cell-group inset>
+                            <van-cell title="微信支付" clickable @click="paymentMethod = 'wechat'">
+                                <template #icon>
+                                    <span style="margin-right:8px;font-size:20px;">💚</span>
+                                </template>
+                                <template #right-icon>
+                                    <van-radio name="wechat" />
+                                </template>
+                            </van-cell>
+                            <van-cell title="支付宝" clickable @click="paymentMethod = 'alipay'">
+                                <template #icon>
+                                    <span style="margin-right:8px;font-size:20px;">💙</span>
+                                </template>
+                                <template #right-icon>
+                                    <van-radio name="alipay" />
+                                </template>
+                            </van-cell>
+                        </van-cell-group>
+                    </van-radio-group>
+                </div>
+                <div class="payment-actions">
+                    <van-button type="primary" block round @click="handlePayment">立即支付</van-button>
+                </div>
+            </div>
+        </van-action-sheet>
     </div>
 </template>
 
 <script>
 import { getAddresses } from '@/api/address';
-import { createOrder } from '@/api/orders';
+import { createOrder, payOrder } from '@/api/orders';
 import { showFailToast, showSuccessToast, showToast } from 'vant';
 import 'vant/es/toast/style';
 import { computed, onMounted, ref } from 'vue';
@@ -63,6 +96,11 @@ export default {
         const selectedAddress = ref(null);
         const showAddressPicker = ref(false);
         const chosenAddressId = ref(null);
+
+        // 收银台控制
+        const showPayment = ref(false);
+        const createdOrderId = ref(null);
+        const paymentMethod = ref('wechat');
 
         const product = ref({
             id: null,
@@ -112,12 +150,33 @@ export default {
                     addressId: selectedAddress.value.id,
                 };
                 const createdOrder = await createOrder(orderRequest);
-                showSuccessToast('订单已提交，请在10分钟内完成支付');
-                router.replace({ name: 'OrderDetail', params: { id: createdOrder.id } });
+                createdOrderId.value = createdOrder.id;
+                showSuccessToast('订单已提交');
+                // 不跳转，而是打开收银台
+                showPayment.value = true;
             } catch (error) {
                 showToast('下单失败');
             } finally {
                 isSubmitting.value = false;
+            }
+        };
+
+        const handlePayment = async () => {
+            if (!createdOrderId.value) return;
+            try {
+                await payOrder(createdOrderId.value);
+                showSuccessToast('支付成功');
+                // 支付成功，跳转到详情页（状态已变为已支付）
+                router.replace({ name: 'OrderDetail', params: { id: createdOrderId.value } });
+            } catch (error) {
+                showFailToast('支付失败');
+            }
+        };
+
+        const onPaymentClose = () => {
+            // 用户关闭收银台，跳转到详情页（状态为待支付）
+            if (createdOrderId.value) {
+                router.replace({ name: 'OrderDetail', params: { id: createdOrderId.value } });
             }
         };
 
@@ -150,6 +209,10 @@ export default {
             onAddressSelect,
             onAddAddress,
             handleAddressClick,
+            showPayment,
+            paymentMethod,
+            handlePayment,
+            onPaymentClose
         };
     },
 };
@@ -226,5 +289,26 @@ export default {
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
+}
+
+.payment-content {
+    padding: 24px 16px;
+    padding-bottom: 40px;
+}
+
+.payment-amount {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 24px;
+}
+
+.payment-methods {
+    margin-bottom: 32px;
+}
+
+.payment-actions {
+    padding: 0 16px;
 }
 </style>

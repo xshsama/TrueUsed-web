@@ -15,7 +15,7 @@
                         @click="goTop('home')">首页</button>
                     <button :class="['g-nav-item line', { active: topActive === 'messages' }]"
                         @click="goTop('messages')">
-                        消息 <span v-if="unreadCount" class="g-badge dot">{{ unreadCount }}</span>
+                        消息 <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
                     </button>
                     <button :class="['g-nav-item line', { active: topActive === 'favorites' }]"
                         @click="goTop('favorites')">收藏</button>
@@ -33,7 +33,11 @@
         </header>
 
         <main class="container">
-            <router-view />
+            <router-view v-slot="{ Component }">
+                <transition name="page-fade" mode="out-in">
+                    <component :is="Component" />
+                </transition>
+            </router-view>
         </main>
 
     </div>
@@ -134,6 +138,18 @@ export default {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: #f7f8fa;
+}
+
+/* 页面切换动画 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
 }
 
 /* 顶部导航（重构版） */
@@ -300,16 +316,36 @@ export default {
     width: 100%;
 }
 
-.g-badge.dot {
+/* 全局通用小红点（带数字 + 绝对定位不占位） */
+.g-badge {
+    position: absolute;
+    top: 6px;
+    right: -10px;
+    /* 悬浮在文字右上角 */
     background: #ff3b30;
     color: #fff;
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
     line-height: 1;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 6px;
-    box-shadow: 0 2px 6px rgba(255, 59, 48, .45);
+    padding: 3px 5px;
+    border-radius: 12px;
+    min-width: 16px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
+    border: 1.5px solid #fff;
+    /* 增加白边提升精致感 */
+    z-index: 10;
+    transform: scale(0.9);
+    /* 稍微缩小一点，显得更精致 */
+    transform-origin: center;
 }
+
+/* 但如果激活时也想提示？通常激活了就意味着正在看消息，所以不需要提示。
+   逻辑上：如果 topActive === 'messages'，unreadCount 应该会清零（如果在页面内处理了）。
+   如果没有清零，保持 Active 样式可能更好，或者在 Active 下划线上做文章。
+   这里简单处理：非激活时变色。
+*/
 
 /* 响应式 */
 @media (max-width: 1180px) {

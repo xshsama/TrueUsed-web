@@ -19,32 +19,43 @@
                         <template v-if="filteredOrders.length === 0">
                             <van-empty description="暂无相关订单" />
                         </template>
-                        <div v-for="o in filteredOrders" :key="o.id" class="order-card">
-                            <div class="order-head">
-                                <span class="order-no">订单号：{{ o.id }}</span>
-                                <span class="order-status" :data-status="o.status">{{ statusText(o.status) }}</span>
-                            </div>
-                            <div class="order-body" @click="view(o)">
-                                <van-image :src="o.product.images?.url" width="80" height="80" fit="cover"
-                                    radius="12" />
-                                <div class="info">
-                                    <div class="title">{{ o.product.title }}</div>
-                                    <div class="meta">共1件</div>
+                        <transition-group name="order-list" tag="div" class="order-list-container">
+                            <div v-for="o in filteredOrders" :key="o.id" class="order-card">
+                                <div class="order-head">
+                                    <span class="order-no">订单号：{{ o.id }}</span>
+                                    <div class="status-col">
+                                        <span class="order-status" :data-status="o.status">{{ statusText(o.status)
+                                        }}</span>
+                                        <!-- 待付款倒计时 -->
+                                        <div v-if="o.status === 'PENDING'" class="mini-countdown">
+                                            <van-icon name="clock-o" />
+                                            <van-count-down :time="getRemainingTime(o.createdAt)" format="mm:ss"
+                                                @finish="onRefresh" />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="amount">￥{{ o.price }}</div>
+                                <div class="order-body" @click="view(o)">
+                                    <van-image :src="o.product.images?.url" width="80" height="80" fit="cover"
+                                        radius="12" />
+                                    <div class="info">
+                                        <div class="title">{{ o.product.title }}</div>
+                                        <div class="meta">共1件</div>
+                                    </div>
+                                    <div class="amount">￥{{ o.price }}</div>
+                                </div>
+                                <div class="order-actions">
+                                    <van-button v-if="o.status === 'PENDING'" type="danger" size="small" round
+                                        @click="pay(o)">立即支付</van-button>
+                                    <van-button v-if="o.status === 'PENDING'" size="small" round plain
+                                        @click="cancel(o)">取消订单</van-button>
+                                    <van-button v-if="o.status === 'SHIPPED'" type="success" size="small" round
+                                        @click="confirm(o)">确认收货</van-button>
+                                    <van-button v-if="o.status === 'PAID'" size="small" round plain
+                                        @click="cancel(o)">取消订单</van-button>
+                                    <van-button size="small" round plain @click="view(o)">查看详情</van-button>
+                                </div>
                             </div>
-                            <div class="order-actions">
-                                <van-button v-if="o.status === 'PENDING'" type="danger" size="small" round
-                                    @click="pay(o)">立即支付</van-button>
-                                <van-button v-if="o.status === 'PENDING'" size="small" round plain
-                                    @click="cancel(o)">取消订单</van-button>
-                                <van-button v-if="o.status === 'SHIPPED'" type="success" size="small" round
-                                    @click="confirm(o)">确认收货</van-button>
-                                <van-button v-if="o.status === 'PAID'" size="small" round plain
-                                    @click="cancel(o)">取消订单</van-button>
-                                <van-button size="small" round plain @click="view(o)">查看详情</van-button>
-                            </div>
-                        </div>
+                        </transition-group>
                     </template>
                 </van-list>
             </van-pull-refresh>
@@ -165,6 +176,18 @@ export default {
             router.push({ name: 'OrderDetail', params: { id: order.id } });
         };
 
+        const getRemainingTime = (createdAt) => {
+            let timeVal = createdAt
+            // 兼容 Instant 序列化为秒级时间戳的情况
+            if (typeof timeVal === 'number' && timeVal < 100000000000) {
+                timeVal = timeVal * 1000
+            }
+            const createTime = new Date(timeVal).getTime()
+            const now = Date.now()
+            const diff = 15 * 60 * 1000 - (now - createTime)
+            return diff > 0 ? diff : 0
+        }
+
         onMounted(() => {
             applyStatusFromQuery();
             loadOrders();
@@ -174,11 +197,65 @@ export default {
             applyStatusFromQuery()
         })
 
-        return { active, loading, refreshing, finished, isInitialLoading, filteredOrders, statusText: (s) => statusMap[s] || s, onLoad, onRefresh, onTabChange, pay, cancel, confirm, view };
+        return {
+            active, loading, refreshing, finished, isInitialLoading, filteredOrders,
+            statusText: (s) => statusMap[s] || s,
+            onLoad, onRefresh, onTabChange, pay, cancel, confirm, view,
+            getRemainingTime
+        };
     }
 }
 </script>
 
 <style scoped>
 /* 样式已迁移至 order-card.css */
+
+/* 列表过渡动画 */
+.order-list-container {
+    position: relative;
+    width: 100%;
+}
+
+.order-list-enter-active,
+.order-list-leave-active {
+    transition: all 0.4s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+/* 关键：让离开的元素脱离文档流，从而让剩余元素能平滑移动占位 */
+.order-list-leave-active {
+    position: absolute;
+    width: 100%;
+    z-index: 0;
+}
+
+.order-list-enter-from,
+.order-list-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.order-list-move {
+    transition: transform 0.4s ease;
+}
+
+.status-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.mini-countdown {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: #ff9f0a;
+    margin-top: 2px;
+}
+
+.mini-countdown .van-count-down {
+    font-size: 11px;
+    color: #ff9f0a;
+    margin-left: 2px;
+    line-height: 1;
+}
 </style>

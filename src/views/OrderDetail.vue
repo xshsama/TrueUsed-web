@@ -8,7 +8,7 @@
             <div v-else-if="order" class="order-detail-container">
                 <!-- 支付倒计时 -->
                 <div v-if="order.status === 'PENDING' && isCurrentUserBuyer" class="countdown-card">
-                    <div class="countdown-title">请在10分钟内完成支付</div>
+                    <div class="countdown-title">请在15分钟内完成支付</div>
                     <van-count-down :time="remainingTime" @finish="handleTimeout" format="mm:ss" />
                     <div class="countdown-tip">超时订单将自动取消</div>
                 </div>
@@ -131,8 +131,8 @@ export default {
                     const createdAt = new Date(order.value.createdAt).getTime();
                     const now = Date.now();
                     const diff = now - createdAt;
-                    if (diff < 10 * 60 * 1000) {
-                        remainingTime.value = 10 * 60 * 1000 - diff;
+                    if (diff < 15 * 60 * 1000) {
+                        remainingTime.value = 15 * 60 * 1000 - diff;
                     }
                 }
             } catch (error) {

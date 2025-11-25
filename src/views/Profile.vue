@@ -63,13 +63,16 @@
                     <div class="tu-list-card shadow-soft-lg">
                         <div class="tu-list-item" v-for="st in orderStatus" :key="st.key"
                             @click="goToOrderStatus(st.key)">
-                            <div class="tu-list-icon-bubble" :style="iconBg(st.key)"><van-icon :name="st.icon" /></div>
+                            <div class="tu-list-icon-bubble" :style="iconBg(st.key)">
+                                <van-icon :name="st.icon" />
+                                <span v-if="st.count > 0" class="g-badge" style="top:-4px; right:-4px;">{{ st.count > 99
+                                    ? '99+' : st.count }}</span>
+                            </div>
                             <div>
                                 <div class="tu-list-title">{{ st.label }}</div>
                                 <div class="tu-list-subtitle">订单流程状态</div>
                             </div>
                             <div class="tu-list-right">
-                                <van-badge v-if="st.count > 0" :content="st.count" />
                                 <div class="tu-list-right-bubble"><van-icon name="arrow" /></div>
                             </div>
                         </div>
@@ -338,6 +341,11 @@ const onClickAvatar = () => editProfile()
     color: #ffffff;
     background-image: linear-gradient(90deg, var(--primary-color), var(--primary-color-2));
     box-shadow: 0 6px 20px -8px rgba(59, 130, 246, .6);
+}
+
+.tu-list-icon-bubble {
+    position: relative;
+    /* 确保 Badge 可以绝对定位 */
 }
 
 .card-block,
