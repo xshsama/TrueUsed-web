@@ -26,10 +26,8 @@ export default {
     name: 'ServiceMessages',
     setup() {
         const router = useRouter()
-        const chats = ref([
-            { id: 1, title: '在线客服-小真', last: '您好，有什么可以帮您？', unread: 2, avatar: 'https://placehold.co/80x80/4F46E5/fff?text=K' },
-            { id: 2, title: '商家客服-二手优品店', last: '售后申请已收到，我们会尽快处理。', unread: 0, avatar: 'https://placehold.co/80x80/0EA5E9/fff?text=S' },
-        ])
+        // 客服列表（后续从后端获取）
+        const chats = ref([])
         const open = (c) => router.push({ name: 'Messages' })
         return { chats, open }
     }

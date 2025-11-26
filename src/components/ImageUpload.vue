@@ -169,8 +169,8 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
     border-radius: var(--tile-radius, 12px);
     position: relative;
     overflow: hidden;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
+    background: var(--bg-input, #f8fafc);
+    border: 1px dashed var(--border-color, #cbd5e1);
     transition: border-color .2s ease, box-shadow .2s ease, transform .1s ease;
 }
 
@@ -190,13 +190,13 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--text-secondary, #64748b);
     cursor: pointer;
 }
 
 .upload-placeholder:hover {
-    border-color: #93c5fd;
-    color: #3b82f6;
+    border-color: var(--primary-light, #93c5fd);
+    color: var(--primary-color, #4CAF50);
     box-shadow: 0 6px 18px -10px rgba(59, 130, 246, .45);
 }
 
@@ -219,8 +219,8 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
     right: 8px;
     top: 8px;
     font-size: 11px;
-    color: #475569;
-    background: #e2e8f0;
+    color: var(--text-secondary, #475569);
+    background: var(--bg-page, #e2e8f0);
     border-radius: 9999px;
     padding: 2px 6px;
 }
@@ -244,7 +244,7 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
 }
 
 .image-preview:hover .remove-btn {
-    background: rgba(239, 68, 68, .9);
+    background: var(--danger-color, #ef4444);
 }
 
 .upload-overlay {
@@ -254,7 +254,7 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, .7);
-    color: #334155;
+    color: var(--text-primary, #334155);
     font-size: 12px;
     gap: 8px;
 }
@@ -263,8 +263,8 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
     width: 16px;
     height: 16px;
     border-radius: 9999px;
-    border: 2px solid #93c5fd;
-    border-top-color: #3b82f6;
+    border: 2px solid var(--primary-light, #93c5fd);
+    border-top-color: var(--primary-color, #4CAF50);
     animation: spin 1s linear infinite;
 }
 
@@ -277,6 +277,6 @@ watch(() => props.modelValue, (val) => syncFromModel(val));
 .upload-error {
     margin-top: 10px;
     font-size: 13px;
-    color: #ef4444;
+    color: var(--danger-color, #ef4444);
 }
 </style>

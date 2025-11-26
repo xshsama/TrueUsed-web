@@ -90,7 +90,7 @@ export default {
                     id: f.productId,
                     title: `商品 #${f.productId}`,
                     price: '-',
-                    image: 'https://via.placeholder.com/160x120/eeeeee/999999?text=No+Image',
+                    image: '',
                     location: '',
                     favoriteTime: new Date(f.createdAt).toLocaleString(),
                     status: 'selling',

@@ -10,35 +10,76 @@
                 </div>
 
                 <!-- 中部导航 -->
-                <nav class="global-nav-links underline-style large-spread">
-                    <button :class="['g-nav-item line', { active: topActive === 'home' }]"
-                        @click="goTop('home')">首页</button>
-                    <button :class="['g-nav-item line', { active: topActive === 'messages' }]"
+                <nav class="global-nav-links capsule-style">
+                    <div :class="['g-nav-item capsule', { active: topActive === 'home' }]" @click="goTop('home')">
+                        <van-icon :name="topActive === 'home' ? 'wap-home' : 'wap-home-o'" class="nav-icon" />
+                        <span>首页</span>
+                    </div>
+                    <div :class="['g-nav-item capsule', { active: topActive === 'messages' }]"
                         @click="goTop('messages')">
-                        消息 <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-                    </button>
-                    <button :class="['g-nav-item line', { active: topActive === 'favorites' }]"
-                        @click="goTop('favorites')">收藏</button>
-                    <button :class="['g-nav-item line', { active: topActive === 'profile' }]"
-                        @click="goTop('profile')">我的</button>
+                        <van-icon :name="topActive === 'messages' ? 'chat' : 'chat-o'" class="nav-icon" />
+                        <span>消息</span>
+                        <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                    </div>
+                    <div :class="['g-nav-item capsule', { active: topActive === 'favorites' }]"
+                        @click="goTop('favorites')">
+                        <van-icon :name="topActive === 'favorites' ? 'like' : 'like-o'" class="nav-icon" />
+                        <span>收藏</span>
+                    </div>
+                    <div :class="['g-nav-item capsule', { active: topActive === 'profile' }]" @click="goTop('profile')">
+                        <van-icon :name="topActive === 'profile' ? 'user' : 'user-o'" class="nav-icon" />
+                        <span>我的</span>
+                    </div>
                 </nav>
 
                 <!-- 右侧操作区（可放搜索 / 登录 / 主题切换）-->
                 <div class="nav-actions">
                     <div class="search-box" v-show="showWide">
-                        <input type="text" placeholder="搜索商品 / 关键词..." @keyup.enter="goSearch($event.target.value)" />
+                        <van-icon name="search" class="search-icon" />
+                        <input type="text" placeholder="搜索好物..." @keyup.enter="goSearch($event.target.value)" />
                     </div>
+                    <button class="post-btn" @click="router.push('/post/create')">
+                        <van-icon name="plus" /> 发布
+                    </button>
                 </div>
             </div>
         </header>
 
-        <main class="container">
+        <main class="app-main">
             <router-view v-slot="{ Component }">
                 <transition name="page-fade" mode="out-in">
                     <component :is="Component" />
                 </transition>
             </router-view>
         </main>
+
+        <!-- 底部导航栏 (移动端) -->
+        <van-tabbar route class="mobile-tabbar" v-if="!route.meta.hideNavbar" active-color="#4CAF50">
+            <van-tabbar-item replace to="/home">
+                <span>首页</span>
+                <template #icon="{ active }">
+                    <van-icon :name="active ? 'wap-home' : 'wap-home-o'" />
+                </template>
+            </van-tabbar-item>
+            <van-tabbar-item replace to="/messages" :badge="unreadCount || null">
+                <span>消息</span>
+                <template #icon="{ active }">
+                    <van-icon :name="active ? 'chat' : 'chat-o'" />
+                </template>
+            </van-tabbar-item>
+            <van-tabbar-item replace to="/favorites">
+                <span>收藏</span>
+                <template #icon="{ active }">
+                    <van-icon :name="active ? 'like' : 'like-o'" />
+                </template>
+            </van-tabbar-item>
+            <van-tabbar-item replace to="/profile">
+                <span>我的</span>
+                <template #icon="{ active }">
+                    <van-icon :name="active ? 'user' : 'user-o'" />
+                </template>
+            </van-tabbar-item>
+        </van-tabbar>
 
     </div>
 </template>
@@ -134,22 +175,23 @@ export default {
 
 <style>
 #app {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #f7f8fa;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
 }
 
 /* 页面切换动画 */
 .page-fade-enter-active,
 .page-fade-leave-active {
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .page-fade-enter-from,
 .page-fade-leave-to {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(5px);
 }
 
 /* 顶部导航（重构版） */
@@ -157,324 +199,335 @@ export default {
     position: sticky;
     top: 0;
     z-index: 200;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: saturate(180%) blur(14px);
-    -webkit-backdrop-filter: saturate(180%) blur(14px);
-    border-bottom: 1px solid rgba(230, 233, 238, 0.75);
-    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.06);
+    background: var(--primary-color);
+    /* 改为主题蓝 */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: none;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+    height: 72px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+/* 主内容区域圆角处理 */
+.app-main {
+    background: var(--bg-page);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    margin-top: -1px;
+    /* 消除缝隙 */
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    /* 确保圆角生效 */
+    width: 100%;
+    min-height: calc(100vh - 72px);
 }
 
 .global-top-navbar .navbar-inner {
-    max-width: 1380px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 10px 48px 6px;
+    padding: 0 24px;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 42px;
+    flex-wrap: nowrap;
+    gap: 16px;
 }
 
 .brand {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    font-weight: 700;
-    font-size: 20px;
-    letter-spacing: .5px;
-    color: #1a1a1a;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    color: #fff;
+    /* 白色文字 */
     cursor: pointer;
     user-select: none;
-    transition: transform .25s ease;
+    text-decoration: none;
+    transition: transform 0.2s ease;
 }
 
-.brand:hover {
-    transform: translateY(-2px);
+.brand:active {
+    transform: scale(0.95);
 }
 
 .brand-icon {
-    font-size: 22px;
-    margin-right: 6px;
+    font-size: 26px;
+    margin-right: 10px;
+    filter: brightness(0) invert(1);
+    /* 图标变白 */
 }
 
 .brand-text {
-    background: linear-gradient(90deg, #0d47a1, #1976d2 55%, #42a5f5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    /* 标准属性 */
-    color: transparent;
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #fff;
 }
 
-.brand-text {
-    background: linear-gradient(90deg, #0d47a1, #1976d2 55%, #42a5f5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.global-nav-links.underline-style.large-spread {
+/* 胶囊式导航 */
+.global-nav-links.capsule-style {
     flex: 1;
     display: flex;
+    flex-direction: row;
+    align-items: center;
     justify-content: center;
-    gap: clamp(42px, 5.5vw, 88px);
-    padding: 0;
+    gap: 8px;
+    padding: 0 16px;
+    height: 100%;
+    margin: 0;
+    list-style: none;
+    overflow: hidden;
 }
 
-.nav-actions {
+.g-nav-item.capsule {
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px 18px;
+    border-radius: 99px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    /* 浅白色 */
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.5;
+    outline: none;
+    box-sizing: border-box;
+    margin: 0;
+    font-family: inherit;
+}
+
+.g-nav-item.capsule:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff;
+}
+
+.g-nav-item.capsule:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.g-nav-item.capsule.active {
+    background: #fff !important;
+    color: var(--primary-color) !important;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.nav-icon {
+    font-size: 18px;
     display: flex;
     align-items: center;
-    gap: 18px;
-    min-width: 180px;
+    margin: 0;
+}
+
+/* 右侧操作区 */
+.nav-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 240px;
     justify-content: flex-end;
 }
 
 .search-box {
     position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--primary-color);
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .search-box input {
-    background: rgba(255, 255, 255, .6);
-    border: 1px solid #d9dde3;
-    border-radius: 24px;
-    padding: 6px 14px 6px 14px;
-    font-size: 13px;
+    background: #fff;
+    border: 1px solid transparent;
+    border-radius: 99px;
+    padding: 10px 16px 10px 36px;
+    font-size: 14px;
     width: 200px;
     outline: none;
-    transition: border-color .25s, background .25s, box-shadow .25s;
+    color: #333;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .search-box input:focus {
-    border-color: #2f81f7;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(47, 129, 247, .15);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+    width: 240px;
 }
 
-.minimal-action {
-    background: linear-gradient(135deg, #2f81f7, #155ed5);
-    color: #fff;
+.search-box input:focus::placeholder {
+    color: #999;
+}
+
+.search-box input::placeholder {
+    color: #999;
+}
+
+/* 发布按钮 */
+.post-btn {
+    background: #fff;
+    color: var(--primary-color);
     border: none;
-    padding: 8px 18px;
-    border-radius: 22px;
-    font-size: 13px;
+    padding: 10px 24px;
+    border-radius: 99px;
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
-    box-shadow: 0 4px 14px -4px rgba(47, 129, 247, .55);
-    transition: transform .25s ease, box-shadow .25s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
-.minimal-action:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 24px -4px rgba(47, 129, 247, .6);
+.post-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    background: #f8fafc;
 }
 
-.minimal-action:active {
-    transform: scale(.92);
+.post-btn:active {
+    transform: translateY(1px);
 }
 
-/* 导航按钮 */
-.g-nav-item.line {
-    background: none;
-    border: none;
-    padding: 14px 4px 18px;
-    font-size: 16px;
-    font-weight: 500;
-    color: #3d4652;
-    cursor: pointer;
-    position: relative;
-    letter-spacing: .5px;
-    transition: color .35s, opacity .35s;
-}
-
-.g-nav-item.line:hover {
-    color: #111;
-}
-
-.g-nav-item.line:focus {
-    outline: none;
-}
-
-/* 下划线动画更平滑更宽阔 */
-.g-nav-item.line::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 6px;
-    height: 3px;
-    width: 0;
-    transform: translateX(-50%);
-    background: linear-gradient(90deg, #2f81f7, #155ed5 55%, #2f81f7);
-    border-radius: 3px;
-    box-shadow: 0 2px 6px -2px rgba(21, 94, 213, .55);
-    transition: width .45s cubic-bezier(.55, .1, .25, 1);
-}
-
-.g-nav-item.line.active {
-    color: #0f1f33;
-    font-weight: 600;
-}
-
-.g-nav-item.line.active::after {
-    width: 100%;
-}
-
-/* 全局通用小红点（带数字 + 绝对定位不占位） */
+/* 全局通用小红点 */
 .g-badge {
     position: absolute;
-    top: 6px;
-    right: -10px;
-    /* 悬浮在文字右上角 */
-    background: #ff3b30;
+    top: 4px;
+    right: 4px;
+    background: var(--danger-color);
     color: #fff;
     font-size: 10px;
-    font-weight: 500;
-    font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    font-weight: 700;
     line-height: 1;
     padding: 3px 5px;
-    border-radius: 12px;
-    min-width: 16px;
+    border-radius: 10px;
+    min-width: 18px;
     text-align: center;
-    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
-    border: 1.5px solid #fff;
-    /* 增加白边提升精致感 */
+    border: 2px solid #fff;
     z-index: 10;
-    transform: scale(0.9);
-    /* 稍微缩小一点，显得更精致 */
-    transform-origin: center;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 }
-
-/* 但如果激活时也想提示？通常激活了就意味着正在看消息，所以不需要提示。
-   逻辑上：如果 topActive === 'messages'，unreadCount 应该会清零（如果在页面内处理了）。
-   如果没有清零，保持 Active 样式可能更好，或者在 Active 下划线上做文章。
-   这里简单处理：非激活时变色。
-*/
 
 /* 响应式 */
-@media (max-width: 1180px) {
+@media (max-width: 1024px) {
     .global-top-navbar .navbar-inner {
-        padding: 10px 36px 6px;
-        gap: 34px;
+        padding: 0 20px;
     }
 
-    .global-nav-links.underline-style.large-spread {
-        gap: clamp(34px, 5vw, 70px);
+    .global-nav-links.capsule-style {
+        gap: 4px;
+    }
+
+    .g-nav-item.capsule {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .g-nav-item.capsule span {
+        display: none;
+        /* 平板模式下只显示图标 */
+    }
+
+    .g-nav-item.capsule .nav-icon {
+        font-size: 20px;
+        margin: 0;
     }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 768px) {
     .search-box {
         display: none;
     }
 
-    .global-top-navbar .navbar-inner {
-        padding: 10px 28px 4px;
-    }
-
-    .g-nav-item.line {
-        font-size: 15px;
-        padding: 12px 4px 16px;
-    }
-}
-
-@media (max-width: 780px) {
-    .global-top-navbar .navbar-inner {
-        gap: 24px;
-    }
-
-    .global-nav-links.underline-style.large-spread {
-        gap: clamp(26px, 5vw, 54px);
-    }
-
-    .brand-text {
-        font-size: 18px;
-    }
-}
-
-@media (max-width: 660px) {
-    .brand-icon {
-        margin-right: 4px;
-    }
-
-    .brand-text {
+    .global-nav-links.capsule-style {
         display: none;
+        /* 移动端隐藏顶部导航，使用底部 Tabbar */
     }
 
-    .global-top-navbar .navbar-inner {
-        padding: 8px 18px 2px;
+    .brand-text {
+        display: block;
+        /* 移动端显示文字 */
     }
 
-    .g-nav-item.line {
-        font-size: 14px;
-        padding: 10px 2px 14px;
-    }
-}
-
-@media (max-width: 520px) {
-    .global-nav-links.underline-style.large-spread {
-        gap: 20px;
-    }
-
-    .g-nav-item.line {
-        font-size: 13px;
-    }
-
-    .minimal-action {
-        padding: 6px 14px;
-        font-size: 12px;
-    }
-
-    .nav-actions {
-        gap: 12px;
-        min-width: auto;
+    .post-btn {
+        padding: 8px 16px;
     }
 }
 
 /* 浮动卖出按钮（全局） */
 .global-floating-sell-btn {
     position: fixed;
-    right: 26px;
-    bottom: 96px;
-    /* 与底部 tabbar 保持间距 */
-    width: 64px;
-    height: 64px;
+    right: 24px;
+    bottom: 80px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ff9f0a, #ff3b30);
-    box-shadow: 0 8px 24px rgba(255, 59, 48, 0.45);
+    background: var(--primary-color);
+    box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     z-index: 250;
     border: none;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .global-floating-sell-btn:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 10px 32px rgba(255, 59, 48, 0.55);
+    transform: translateY(-2px);
+    background: var(--primary-dark);
 }
 
 .global-floating-sell-btn:active {
     transform: scale(0.95);
 }
 
-@media (max-width: 768px) {
-    .global-floating-sell-btn {
-        right: 18px;
-        bottom: 88px;
-        width: 56px;
-        height: 56px;
-        font-size: 14px;
-    }
+/* 底部导航栏 */
+.mobile-tabbar {
+    display: none !important;
 }
 
-@media (max-width: 480px) {
-    .global-floating-sell-btn {
-        right: 14px;
-        bottom: 82px;
-        width: 54px;
-        height: 54px;
+@media (max-width: 768px) {
+    .mobile-tabbar {
+        display: flex !important;
+        border-top: 1px solid #eee;
+        z-index: 1000;
+    }
+
+    /* 调整容器底部间距，防止被导航栏遮挡 */
+    .app-main {
+        padding-bottom: 80px;
     }
 }
 </style>

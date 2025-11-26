@@ -58,11 +58,34 @@ export function payOrder(id) {
 /**
  * 卖家发货
  * @param {number} id 订单ID
+ * @param {object} shipData 发货信息 { expressCompany: string, trackingNumber?: string }
  */
-export function shipOrder(id) {
+export function shipOrder(id, shipData = {}) {
   return request({
     url: `/orders/${id}/ship`,
     method: 'put',
+    data: shipData,
+  })
+}
+
+/**
+ * 获取订单物流追踪信息
+ * @param {number} id 订单ID
+ */
+export function getOrderShipping(id) {
+  return request({
+    url: `/orders/${id}/shipping`,
+    method: 'get',
+  })
+}
+
+/**
+ * 获取支持的快递公司列表
+ */
+export function getExpressCompanies() {
+  return request({
+    url: '/orders/express-companies',
+    method: 'get',
   })
 }
 

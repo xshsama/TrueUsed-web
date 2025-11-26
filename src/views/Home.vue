@@ -1,65 +1,85 @@
 <template>
     <div class="home-page">
-
-        <!-- 轮播图 -->
-        <div class="banner-section">
-            <van-swipe class="banner-swipe" :autoplay="4000" indicator-color="#d0d0d0">
-                <van-swipe-item v-for="(banner, index) in banners" :key="index">
-                    <div class="banner-item" @click="handleBannerClick(banner)">
-                        <img :src="banner.image" :alt="banner.title" class="banner-image" />
-                    </div>
-                </van-swipe-item>
-            </van-swipe>
+        <!-- 顶部头部区域 (已移除，使用全局导航) -->
+        <!-- 欢迎 Banner -->
+        <div class="welcome-banner">
+            <div class="banner-content">
+                <h1 class="banner-title">发现好物，真实交易</h1>
+                <p class="banner-subtitle">TrueUsed 为您提供安全可靠的二手交易平台</p>
+            </div>
+            <div class="banner-illustration">
+                <!-- 3D Illustration Placeholder -->
+                <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="Illustration" class="illustration-img" />
+            </div>
+            <div class="banner-decoration-circle"></div>
+            <div class="banner-decoration-dots"></div>
         </div>
 
-        <!-- 主内容区 -->
-        <div class="main-content">
-            <!-- 左侧分类导航 -->
-            <div class="sidebar">
-                <div class="category-list">
-                    <div v-for="category in categories" :key="category.id"
-                        :class="['category-item', { active: activeCategory === category.id }]"
-                        @click="selectCategory(category.id)">
-                        <van-icon :name="category.icon" size="20" />
-                        <span class="category-name">{{ category.name }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右侧内容区 -->
-            <div class="content-area">
-                <!-- 推荐列表 / 类目筛选结果 -->
-                <div class="product-section">
-                    <div class="section-header">
-                        <h2 class="section-title">{{ activeCategory === 0 ? '今日精选' : currentCategoryName + '商品' }}</h2>
-                        <span class="section-subtitle">{{ subtitleText }}</span>
-                    </div>
-
-                    <!-- 骨架屏：首屏加载 -->
-                    <div v-if="isInitialLoading" class="product-pair-grid">
-                        <van-skeleton v-for="i in 4" :key="i" animated :row="3" />
-                    </div>
-
-                    <!-- 空状态 -->
-                    <van-empty v-else-if="productList.length === 0" description="暂无商品" />
-
-                    <!-- 列表 -->
-                    <div v-else class="product-pair-grid">
-                        <ProductCard v-for="product in productList" :key="product.id" :product="toCard(product)"
-                            :show-desc="true" @click="() => goToProductDetail(product.id)" />
-                    </div>
-
-                    <!-- 加载更多/完成 -->
-                    <div v-if="productList.length" class="load-more-area">
-                        <van-loading v-if="loading" class="loading-more">加载中...</van-loading>
-                        <div v-else-if="!hasMore" class="finished-text">没有更多了</div>
-                        <van-button v-else size="small" type="primary" class="btn-primary" block
-                            @click="fetchProducts">加载更多</van-button>
-                    </div>
+        <!-- 分类标签 -->
+        <div class="category-section">
+            <div class="category-scroll">
+                <div v-for="category in categories" :key="category.id"
+                    :class="['category-tag', { active: activeCategory === category.id }]"
+                    @click="selectCategory(category.id)">
+                    <van-icon :name="category.icon" size="20" />
+                    <span>{{ category.name }}</span>
                 </div>
             </div>
         </div>
-        <!-- 全局卖出按钮已移动到 App.vue -->
+
+        <!-- 统计卡片 -->
+        <div class="stats-card">
+            <div class="stat-item">
+                <van-icon name="bag-o" size="24" color="#388E3C" />
+                <div class="stat-value">1000+</div>
+                <div class="stat-label">在售商品</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <van-icon name="shield-o" size="24" color="#388E3C" />
+                <div class="stat-value">100%</div>
+                <div class="stat-label">真实可靠</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <van-icon name="clock-o" size="24" color="#388E3C" />
+                <div class="stat-value">24h</div>
+                <div class="stat-label">快速响应</div>
+            </div>
+        </div>
+
+        <!-- 商品列表 -->
+        <div class="product-section">
+            <div class="section-header">
+                <h2 class="section-title">{{ activeCategory === 0 ? '今日精选' : currentCategoryName }}</h2>
+                <span class="section-subtitle">{{ subtitleText }}</span>
+            </div>
+
+            <!-- 骨架屏 -->
+            <div v-if="isInitialLoading" class="product-grid">
+                <div v-for="i in 4" :key="i" class="product-skeleton">
+                    <van-skeleton animated :row="3" />
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <van-empty v-else-if="productList.length === 0" description="暂无商品" />
+
+            <!-- 商品列表 -->
+            <div v-else class="product-grid">
+                <ProductCard v-for="product in productList" :key="product.id" :product="toCard(product)"
+                    :show-desc="true" @click="() => goToProductDetail(product.id)" />
+            </div>
+
+            <!-- 加载更多 -->
+            <div v-if="productList.length" class="load-more-area">
+                <van-loading v-if="loading" class="loading-more">加载中...</van-loading>
+                <div v-else-if="!hasMore" class="finished-text">没有更多了</div>
+                <van-button v-else size="small" round class="load-more-btn" @click="fetchProducts">
+                    加载更多
+                </van-button>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -75,26 +95,9 @@ export default {
     setup() {
         const router = useRouter()
 
-        const searchValue = ref('')
         const activeCategory = ref(0)
         const loading = ref(false)
         const hasMore = ref(true)
-
-        // 轮播图数据
-        const banners = ref([
-            {
-                title: '精选二手数码',
-                image: 'https://placehold.co/375x160/6c7b7f/ffffff?text=精选数码产品'
-            },
-            {
-                title: '时尚服饰专区',
-                image: 'https://placehold.co/375x160/8d9098/ffffff?text=时尚服饰专区'
-            },
-            {
-                title: '居家好物',
-                image: 'https://placehold.co/375x160/9ba0a6/ffffff?text=居家生活好物'
-            }
-        ])
 
         // 分类数据
         const categories = ref([
@@ -112,13 +115,12 @@ export default {
         const productList = ref([])
         const page = ref(0)
         const size = ref(10)
-        const loadingMore = ref(false)
         const isInitialLoading = computed(() => loading.value && page.value === 0)
         const currentCategoryName = computed(() => {
             return categories.value.find(c => c.id === activeCategory.value)?.name || '分类'
         })
         const subtitleText = computed(() => {
-            return activeCategory.value === 0 ? '编辑为您精心挑选' : `为您找到 ${productList.value.length} 个${currentCategoryName.value}商品`
+            return activeCategory.value === 0 ? '编辑为您精心挑选' : `共 ${productList.value.length} 件`
         })
 
         // 选择分类
@@ -129,9 +131,9 @@ export default {
             fetchProducts()
         }
 
-        // 处理轮播图点击
-        const handleBannerClick = (banner) => {
-            console.log('轮播图点击:', banner)
+        // 跳转到搜索
+        const goToSearch = () => {
+            router.push('/search')
         }
 
         // 跳转到商品详情
@@ -141,12 +143,10 @@ export default {
 
         const fetchProducts = async () => {
             loading.value = true
-            loadingMore.value = true
             try {
                 const params = {
                     page: page.value,
                     size: size.value,
-                    // 后端约定的排序键：created_asc/price_desc/fav_desc/views_desc
                     sort: 'created_desc',
                     categoryId: activeCategory.value === 0 ? undefined : activeCategory.value,
                 }
@@ -154,14 +154,12 @@ export default {
                 const content = res?.content || []
                 if (page.value === 0) productList.value = []
                 productList.value.push(...content)
-                // 判断是否还有更多
                 hasMore.value = !(res?.last || content.length < size.value)
                 page.value += 1
             } catch (e) {
-                // 可选：Toast.fail('加载失败')
+                console.error('加载失败', e)
             } finally {
                 loading.value = false
-                loadingMore.value = false
             }
         }
 
@@ -171,7 +169,9 @@ export default {
             description: p.description,
             price: p.price,
             location: p.locationText,
-            image: (p.images && p.images[0]?.url) || 'https://placehold.co/160x120/eeeeee/999999?text=No+Image'
+            image: (p.images && p.images[0]?.url) || '',
+            condition: p.condition || 95,
+            seller: p.user || { nickname: '卖家', avatar: '' }
         })
 
         onMounted(() => {
@@ -179,10 +179,8 @@ export default {
         })
 
         return {
-            searchValue,
             activeCategory,
             loading,
-            banners,
             categories,
             productList,
             hasMore,
@@ -190,7 +188,7 @@ export default {
             currentCategoryName,
             subtitleText,
             selectCategory,
-            handleBannerClick,
+            goToSearch,
             goToProductDetail,
             toCard,
             fetchProducts
@@ -201,347 +199,297 @@ export default {
 
 <style scoped>
 .home-page {
-    background-color: #f2f2f7;
     min-height: 100vh;
+    background: var(--bg-page);
+    padding-bottom: 70px;
 }
 
-
-/* 搜索区域 */
-.search-section {
-    background: white;
-    padding: 20px 0 16px 0;
-    border-bottom: 1px solid #e5e5e7;
-}
-
-.search-container {
-    width: 90%;
-    margin: 0 auto;
-}
-
-.search-container .van-search {
-    background: #f2f2f7;
+/* 欢迎 Banner */
+.welcome-banner {
+    margin: 24px 20px;
     border-radius: 24px;
-    border: none;
-    padding: 0;
-    height: 48px !important;
-    min-height: 48px !important;
-}
-
-.search-container .van-search__content {
-    background: transparent;
-    border-radius: 24px;
-    padding: 0 20px !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    display: flex;
-    align-items: center;
-}
-
-.search-container .van-field__control {
-    color: #666;
-    font-size: 17px !important;
-    font-weight: 400;
-    line-height: 1.2;
-    height: 48px !important;
-    padding: 0 !important;
-}
-
-.search-container .van-field__left-icon {
-    margin-right: 12px;
-}
-
-.search-container .van-search__action {
-    height: 48px !important;
-    display: flex;
-    align-items: center;
-}
-
-.search-container .van-field {
-    height: 48px !important;
-    min-height: 48px !important;
-    line-height: 48px;
-    padding: 0 !important;
-}
-
-.search-container .van-field__body {
-    height: 48px !important;
-    min-height: 48px !important;
-    display: flex;
-    align-items: center;
-    padding: 0 !important;
-}
-
-.search-container .van-cell {
-    height: 48px !important;
-    min-height: 48px !important;
-    padding: 0 !important;
-}
-
-/* 强制覆盖所有可能的内部样式 */
-.search-container :deep(.van-search__content),
-.search-container :deep(.van-field),
-.search-container :deep(.van-field__body),
-.search-container :deep(.van-field__control),
-.search-container :deep(.van-cell) {
-    height: 48px !important;
-    min-height: 48px !important;
-    line-height: 48px !important;
-}
-
-/* 轮播图样式 */
-.banner-section {
-    margin: 16px 20px;
-}
-
-.banner-swipe {
-    height: 180px;
-    border-radius: 16px;
+    background: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
+    padding: 40px 32px;
+    color: #fff;
+    position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 20px -5px rgba(76, 175, 80, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.banner-item {
-    height: 100%;
-    cursor: pointer;
+.banner-content {
+    position: relative;
+    z-index: 2;
+    max-width: 60%;
 }
 
-.banner-image {
+.banner-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.banner-subtitle {
+    font-size: 15px;
+    opacity: 0.95;
+    margin: 0;
+    font-weight: 500;
+}
+
+.banner-illustration {
+    position: absolute;
+    right: 20px;
+    bottom: -20px;
+    width: 140px;
+    height: 140px;
+    z-index: 2;
+    transform: rotate(-10deg);
+}
+
+.illustration-img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
 }
 
-/* 主内容区 */
-.main-content {
-    display: flex;
-    gap: 16px;
-    padding: 0 20px 20px 20px;
-    align-items: flex-start;
+.banner-decoration-circle {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    z-index: 1;
 }
 
-/* 左侧分类导航 */
-.sidebar {
-    width: 80px;
-    flex-shrink: 0;
+.banner-decoration-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 20%;
+    width: 100px;
+    height: 60px;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+    background-size: 10px 10px;
+    z-index: 1;
+}
+
+/* 分类标签 */
+.category-section {
+    padding: 16px 0;
+    background: var(--bg-card);
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
-    top: 20px;
-    height: fit-content;
-    z-index: 10;
+    top: 72px;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
 }
 
-.category-list {
-    background: white;
-    border-radius: 16px;
-    padding: 12px 0;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
+.category-scroll {
+    display: flex;
+    overflow-x: auto;
+    padding: 0 20px;
+    gap: 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-.category-item {
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.category-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: transparent;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+.category-tag:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.category-tag:active {
+    transform: scale(0.95);
+}
+
+.category-tag.active {
+    background: transparent;
+    color: #2E7D32;
+    /* 深绿色文字 */
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+    border-radius: 0;
+    padding-bottom: 6px;
+    box-shadow: none;
+}
+
+.category-tag.active .van-icon {
+    color: #2E7D32 !important;
+    /* 深绿色图标 */
+}
+
+/* 统计卡片 */
+.stats-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--bg-card);
+    margin: 24px 20px;
+    padding: 24px 16px;
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 12px;
-    margin: 0 8px 4px 8px;
+    gap: 8px;
 }
 
-.category-item:hover {
-    background-color: #f2f2f7;
+.stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #388E3C;
+    /* 深绿色 */
+    font-family: var(--font-family-number);
 }
 
-.category-item.active {
-    background-color: #007AFF;
-    color: white;
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
-.category-item.active .van-icon {
-    color: white !important;
+.stat-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border-color);
 }
 
-.category-name {
-    font-size: 11px;
-    margin-top: 6px;
-    text-align: center;
-    font-weight: 500;
-    line-height: 1.2;
-}
-
-/* 右侧内容区 */
-.content-area {
-    flex: 1;
-    min-width: 0;
-}
-
-/* 商品分区 */
+/* 商品区域 */
 .product-section {
-    margin-bottom: 40px;
+    padding: 0 20px;
+    margin-top: 32px;
 }
 
 .section-header {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
 }
 
 .section-title {
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 700;
-    color: #1d1d1f;
-    margin: 0 0 4px 0;
-    line-height: 1.1;
+    color: var(--text-primary);
+    margin: 0 0 4px;
 }
 
 .section-subtitle {
-    font-size: 16px;
-    color: #86868b;
-    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-tertiary);
 }
 
-/* 商品对布局 */
-.product-pair-grid {
+/* 商品网格 */
+.product-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
 }
 
-.product-card {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+@media (max-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
-.product-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+@media (max-width: 640px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
 }
 
-.product-image {
-    width: 100%;
-    height: 120px;
-    background-color: #f2f2f7;
-}
-
-.product-info {
+.product-skeleton {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
     padding: 16px;
 }
 
-.product-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin: 0 0 4px 0;
-    line-height: 1.3;
-}
-
-.product-desc {
-    font-size: 14px;
-    color: #86868b;
-    margin: 0 0 12px 0;
-    line-height: 1.4;
-}
-
-.price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.product-price {
-    font-size: 18px;
-    font-weight: 700;
-    color: #007AFF;
-    margin: 0;
-}
-
-.product-location {
-    font-size: 12px;
-    color: #8e8e93;
-    font-weight: 500;
-}
-
 /* 加载更多 */
-.loading-more {
+.load-more-area {
+    padding: 20px 0;
     text-align: center;
-    padding: 20px;
-    color: #86868b;
 }
 
-.load-more-area {
-    padding: 16px 0 4px;
+.loading-more {
+    color: var(--text-tertiary);
 }
 
 .finished-text {
-    text-align: center;
-    color: #8e8e93;
-    padding: 8px 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .main-content {
-        flex-direction: column;
-        padding: 0 16px 16px 16px;
-    }
-
-
-    .sidebar {
-        width: 100%;
-        margin-bottom: 20px;
-        position: static;
-        top: auto;
-    }
-
-    .category-list {
-        display: flex;
-        overflow-x: auto;
-        padding: 12px 16px;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .category-list::-webkit-scrollbar {
-        display: none;
-    }
-
-    .category-item {
-        flex-shrink: 0;
-        margin: 0 8px 0 0;
-        padding: 12px 16px;
-        flex-direction: row;
-        gap: 8px;
-        white-space: nowrap;
-    }
-
-    .category-name {
-        margin-top: 0;
-        font-size: 14px;
-    }
-
-    .section-title {
-        font-size: 24px;
-    }
+.load-more-btn {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0 32px;
+    height: 40px;
+    font-weight: 500;
 }
 
+/* 响应式 */
 @media (max-width: 480px) {
-    .banner-section {
-        margin: 12px 16px;
+    .welcome-banner {
+        padding: 24px 16px;
     }
 
-    .banner-swipe {
-        height: 140px;
+    .banner-title {
+        font-size: 20px;
     }
 
-    .product-pair-grid {
-        grid-template-columns: 1fr;
+    .stats-card {
+        margin: 16px;
+        padding: 16px 12px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .product-section {
+        padding: 0 16px;
+    }
+
+    .product-grid {
         gap: 12px;
     }
 
     .section-title {
-        font-size: 22px;
+        font-size: 18px;
     }
-
 }
 </style>

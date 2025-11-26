@@ -16,6 +16,7 @@ import MyProducts from '@/views/MyProducts.vue'
 import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
 // import Post from '@/views/Post.vue' // Deprecated
+import Payment from '@/views/Payment.vue'
 import PostCreate from '@/views/PostCreate.vue'
 import PostManage from '@/views/PostManage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
@@ -185,6 +186,12 @@ const routes = [
     path: '/service-messages',
     name: 'ServiceMessages',
     component: ServiceMessages,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/payment/:id',
+    name: 'Payment',
+    component: Payment,
     meta: { requiresAuth: true, hideNavbar: true },
   },
 ]

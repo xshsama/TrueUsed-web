@@ -1,51 +1,66 @@
 <template>
     <div class="login-page">
-        <van-nav-bar title="登录" fixed left-arrow @click-left="$router.go(-1)" />
+        <!-- 背景装饰 -->
+        <div class="bg-decoration">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+        </div>
+
+        <van-nav-bar title="" fixed :border="false" left-arrow @click-left="goBack" class="transparent-nav" />
+
         <div class="page-wrapper">
             <div class="logo-block">
+                <div class="logo-icon">
+                    <van-icon name="shop-o" size="48" color="#007AFF" />
+                </div>
                 <div class="brand-mark">TrueUsed</div>
                 <p class="slogan">二手交易 · 真实可靠</p>
             </div>
 
             <div class="login-card">
+                <div class="card-header">
+                    <h2 class="card-title">欢迎回来</h2>
+                    <p class="card-subtitle">登录你的账号继续</p>
+                </div>
+
                 <van-form @submit="onSubmit">
-                    <van-cell-group inset>
-                        <van-field v-model="form.phone" name="phone" type="tel" label="手机号" placeholder="请输入手机号"
-                            :rules="phoneRules" clearable />
+                    <div class="input-group">
+                        <van-field v-model="form.phone" name="phone" type="tel" placeholder="请输入手机号" :rules="phoneRules"
+                            clearable left-icon="phone-o" class="custom-field" />
                         <van-field v-model="form.password" :type="showPassword ? 'text' : 'password'" name="password"
-                            label="密码" placeholder="请输入密码" :rules="passwordRules" clearable>
+                            placeholder="请输入密码" :rules="passwordRules" clearable left-icon="lock" class="custom-field">
                             <template #button>
-                                <van-icon :name="showPassword ? 'eye-o' : 'closed-eye'" @click="toggleShowPassword" />
+                                <van-icon :name="showPassword ? 'eye-o' : 'closed-eye'" @click="toggleShowPassword"
+                                    class="eye-icon" />
                             </template>
                         </van-field>
-                    </van-cell-group>
+                    </div>
 
-                    <div class="form-extra between">
+                    <div class="form-extra">
                         <div class="remember" @click="toggleRemember">
-                            <van-icon :name="remember ? 'checked' : 'circle'" />
-                            <span class="remember-text">记住我</span>
+                            <van-checkbox v-model="remember" icon-size="16px">记住我</van-checkbox>
                         </div>
-                        <div class="switch-login link" @click="forgotPassword">找回密码</div>
+                        <div class="forgot-link" @click="forgotPassword">忘记密码？</div>
                     </div>
 
                     <div class="submit-wrap">
-                        <van-button class="btn-primary" block round type="primary" native-type="submit"
-                            :loading="submitting">
-                            {{ submitting ? '登录中...' : '登录' }}
+                        <van-button class="login-btn" block round type="primary" native-type="submit"
+                            :loading="submitting" loading-text="登录中...">
+                            登 录
                         </van-button>
                     </div>
                 </van-form>
-
-                <div class="agreements">
-                    登录即表示同意 <span class="link" @click="openAgreement('user')">《用户协议》</span> 与 <span class="link"
-                        @click="openAgreement('privacy')">《隐私政策》</span>
-                </div>
             </div>
 
-            <div class="bottom-links">
-                <span class="link" @click="goRegister">注册账号</span>
-                <span class="divider">|</span>
-                <span class="link" @click="goHelp">遇到问题</span>
+            <div class="bottom-section">
+                <div class="register-prompt">
+                    还没有账号？<span class="link" @click="goRegister">立即注册</span>
+                </div>
+                <div class="agreements">
+                    登录即表示同意 <span class="link" @click="openAgreement('user')">《用户协议》</span> 与
+                    <span class="link" @click="openAgreement('privacy')">《隐私政策》</span>
+                </div>
             </div>
         </div>
     </div>
@@ -74,7 +89,7 @@ export default {
             password: ''
         })
 
-        // 读取记住的手机号（可扩展为 localStorage 存密码哈希，这里仅手机号）
+        // 读取记住的手机号
         const rememberedPhone = localStorage.getItem('remember_phone')
         if (rememberedPhone) form.phone = rememberedPhone
 
@@ -104,22 +119,29 @@ export default {
             remember.value = !remember.value
         }
 
-        // 安全重定向校验，仅允许站内路径，且不指向登录页
+        // 返回上一页或首页
+        const goBack = () => {
+            if (window.history.length > 1) {
+                router.back()
+            } else {
+                router.replace('/home')
+            }
+        }
+
+        // 安全重定向校验
         const getSafeRedirect = (val) => {
             let target = val
             if (Array.isArray(target)) target = target[0]
             if (typeof target !== 'string') return null
             if (!target.startsWith('/')) return null
-            // 防止协议相对或双斜杠导致跳转到外部
             if (target.startsWith('//')) return null
-            // 避免回到登录页
             if (target === '/login' || target.startsWith('/login?')) return null
             const resolved = router.resolve(target)
             if (resolved?.name === 'Login') return null
             return target
         }
 
-        // 若已登录，直接按 redirect 或主页跳转
+        // 已登录则跳转
         onMounted(() => {
             if (userStore?.token) {
                 const raw = route.query?.redirect
@@ -140,13 +162,10 @@ export default {
             submitting.value = true
             showLoadingToast({ message: '登录中...', duration: 0, forbidClick: true, loadingType: 'spinner' })
             try {
-                // 后端定义 LoginRequest: { username, password }
                 const payload = { username: form.phone, password: form.password }
                 const res = await loginApi(payload)
-                // res 结构: { userId, username, token, expiresInMs, roles }
                 if (!res || !res.token) throw new Error('登录返回异常')
 
-                // 记住手机号
                 if (remember.value) {
                     localStorage.setItem('remember_phone', form.phone)
                 } else {
@@ -154,59 +173,54 @@ export default {
                 }
 
                 userStore.setToken(res.token)
-                // 记录 token 过期时间戳（当前时间 + expiresInMs）
                 if (typeof res.expiresInMs === 'number' && res.expiresInMs > 0) {
                     const expAt = Date.now() + res.expiresInMs
                     localStorage.setItem('token_expires_at', String(expAt))
                 } else {
                     localStorage.removeItem('token_expires_at')
                 }
-                // 保留现有用户对象中的 avatarUrl / nickname 等，避免登录过程覆盖为空
+
                 const prev = userStore.user || {}
                 userStore.setUser({
                     id: res.userId,
                     username: res.username || prev.username,
                     nickname: prev.nickname,
-                    avatarUrl: prev.avatarUrl, // 登录响应无头像时保留旧值
+                    avatarUrl: prev.avatarUrl,
                     phone: form.phone || prev.phone,
                     roles: res.roles || prev.roles || [],
                     email: prev.email,
                     status: prev.status,
                 })
 
+                closeToast()
                 showSuccessToast('登录成功')
 
-                const rawRedirect = route.query?.redirect
-                const target = getSafeRedirect(rawRedirect)
-                if (target) {
-                    router.replace(target)
-                } else {
-                    // 有历史则返回，无历史则回到首页；避免二次导航
-                    if (window.history.length > 1) {
-                        router.back()
+                // 延迟跳转，让用户看到成功提示
+                setTimeout(() => {
+                    const rawRedirect = route.query?.redirect
+                    const target = getSafeRedirect(rawRedirect)
+                    if (target) {
+                        router.replace(target)
                     } else {
                         router.replace('/home')
                     }
-                }
+                }, 500)
             } catch (e) {
+                closeToast()
                 const msg = e?.response?.data?.message || e?.message || '登录失败，请稍后再试'
                 showFailToast(msg)
             } finally {
                 submitting.value = false
-                closeToast()
             }
         }
 
         const openAgreement = (type) => {
             showToast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
         }
-        const forgotPassword = () => showToast('找回密码（占位）')
+        const forgotPassword = () => showToast('找回密码功能开发中')
         const goRegister = () => router.push('/register')
-        const goHelp = () => showToast('帮助中心（占位）')
 
-        onBeforeUnmount(() => {
-            // 清理可能的计时器（虽然当前无倒计时，留作扩展安全）
-        })
+        onBeforeUnmount(() => { })
 
         return {
             form,
@@ -221,7 +235,8 @@ export default {
             openAgreement,
             forgotPassword,
             goRegister,
-            goHelp
+            goBack,
+            showToast
         }
     }
 }
@@ -230,143 +245,254 @@ export default {
 <style scoped>
 .login-page {
     min-height: 100vh;
-    background: #f5f7fa;
+    width: 100vw;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 背景装饰圆 */
+.bg-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+    width: 300px;
+    height: 300px;
+    top: -100px;
+    right: -100px;
+}
+
+.circle-2 {
+    width: 200px;
+    height: 200px;
+    bottom: 100px;
+    left: -80px;
+}
+
+.circle-3 {
+    width: 150px;
+    height: 150px;
+    bottom: -50px;
+    right: 50px;
+}
+
+/* 透明导航栏 */
+.transparent-nav {
+    background: transparent !important;
+}
+
+.transparent-nav :deep(.van-nav-bar__content) {
+    background: transparent;
+}
+
+.transparent-nav :deep(.van-icon) {
+    color: #fff !important;
 }
 
 .page-wrapper {
-    padding: 70px 20px 40px;
-    /* 预留 NavBar 高度 */
-    max-width: 520px;
+    padding: 80px 24px 40px;
+    max-width: 400px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
+/* Logo 区域 */
 .logo-block {
     text-align: center;
-    margin-top: 10px;
+    margin-bottom: 32px;
+}
+
+.logo-icon {
+    width: 80px;
+    height: 80px;
+    background: #fff;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 .brand-mark {
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 800;
-    background: linear-gradient(120deg, #007AFF, #3296ff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #fff;
     letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .slogan {
     font-size: 14px;
-    color: #6b7075;
+    color: rgba(255, 255, 255, 0.8);
     margin-top: 6px;
 }
 
+/* 登录卡片 */
 .login-card {
     background: #fff;
-    border-radius: 22px;
-    padding: 26px 24px 32px;
-    box-shadow: 0 6px 22px -8px rgba(0, 0, 0, .12);
+    border-radius: 24px;
+    padding: 32px 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 6px;
+}
+
+.card-subtitle {
+    font-size: 14px;
+    color: #888;
+    margin: 0;
+}
+
+/* 输入框组 */
+.input-group {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
 }
 
-.form-extra {
-    margin-top: 4px;
+.custom-field {
+    background: #f5f7fa;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.custom-field :deep(.van-cell) {
+    padding: 14px 16px;
+    align-items: center;
+}
+
+.custom-field :deep(.van-field__body) {
+    align-items: center;
+}
+
+.custom-field :deep(.van-field__left-icon) {
+    margin-right: 12px;
+    color: #764ba2;
     display: flex;
-    justify-content: flex-end;
-    font-size: 12px;
-    color: #666;
+    align-items: center;
 }
 
-.form-extra.between {
+.custom-field :deep(.van-field__left-icon .van-icon) {
+    font-size: 20px;
+}
+
+.custom-field :deep(.van-field__control) {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.eye-icon {
+    color: #999;
+    font-size: 18px;
+}
+
+/* 表单额外选项 */
+.form-extra {
+    display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 16px;
+    margin-bottom: 24px;
 }
 
-.remember {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    color: #444;
-}
-
-.remember-text {
-    font-size: 12px;
-}
-
-.switch-login {
-    cursor: pointer;
-    color: #007aff;
-}
-
-.submit-wrap {
-    margin-top: 8px;
-}
-
-.btn-primary {
-    border: none;
-}
-
-.agreements {
-    font-size: 12px;
-    color: #888;
-    line-height: 1.6;
-    text-align: center;
-    margin-top: 4px;
-}
-
-.agreements .link {
-    color: #007aff;
-}
-
-.bottom-links {
-    text-align: center;
+.remember :deep(.van-checkbox__label) {
     font-size: 13px;
     color: #666;
 }
 
-.bottom-links .link {
+.forgot-link {
+    font-size: 13px;
     color: #007aff;
     cursor: pointer;
 }
 
-.bottom-links .divider {
-    margin: 0 10px;
-    color: #bbb;
+/* 登录按钮 */
+.login-btn {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
 }
 
-/* 优化表单内元素 */
-:deep(.van-field__label) {
-    width: 60px;
+/* 底部区域 */
+.bottom-section {
+    margin-top: auto;
+    padding-top: 32px;
+    text-align: center;
 }
 
-:deep(.van-cell-group--inset) {
-    margin: 0;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px -4px rgba(0, 0, 0, .08);
+.register-prompt {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 16px;
 }
 
-:deep(.van-field) {
-    background: #fff;
+.register-prompt .link {
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
 }
 
-:deep(.van-button[disabled]) {
-    opacity: .6;
+.agreements {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.agreements .link {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 @media (max-width: 420px) {
+    .page-wrapper {
+        padding: 70px 20px 30px;
+    }
+
     .brand-mark {
-        font-size: 34px;
+        font-size: 28px;
     }
 
     .login-card {
-        padding: 22px 18px 28px;
+        padding: 24px 20px;
+    }
+
+    .card-title {
+        font-size: 22px;
     }
 }
 </style>

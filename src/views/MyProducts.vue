@@ -86,7 +86,7 @@ export default {
                     price: p.price,
                     category: p.categoryName,
                     status: p.status === 'AVAILABLE' ? 'on' : 'off',
-                    cover: p.images && p.images.length > 0 ? p.images[0].url : 'https://placehold.co/176x176/F1F5F9/334155?text=NoImage'
+                    cover: p.images && p.images.length > 0 ? p.images[0].url : ''
                 }));
 
                 if (reset) {

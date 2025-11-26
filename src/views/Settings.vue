@@ -24,8 +24,28 @@
                 <van-cell title="深色模式（占位）" value="跟随系统" is-link @click="toggleTheme" />
             </van-cell-group>
 
-            <div style="padding: 16px;">
-                <van-button type="danger" block round @click="logout">退出登录</van-button>
+            <van-cell-group inset title="缓存管理">
+                <van-cell title="清除缓存" is-link @click="clearCache">
+                    <template #value>
+                        <span class="cache-size">{{ cacheSize }}</span>
+                    </template>
+                </van-cell>
+            </van-cell-group>
+
+            <van-cell-group inset title="关于">
+                <van-cell title="版本号" :value="appVersion" />
+                <van-cell title="用户协议" is-link @click="showToast('用户协议')" />
+                <van-cell title="隐私政策" is-link @click="showToast('隐私政策')" />
+            </van-cell-group>
+
+            <div style="padding: 24px 16px;">
+                <van-button type="danger" block round size="large" :loading="isLoggingOut" @click="handleLogout">
+                    退出登录
+                </van-button>
+            </div>
+
+            <div class="logout-tip">
+                退出后将清除本地登录状态
             </div>
         </div>
     </div>
@@ -33,22 +53,32 @@
 
 <script>
 import { useUserStore } from '@/stores/user'
-import { Dialog, showSuccessToast, showToast } from 'vant'
+import { showConfirmDialog, showSuccessToast, showToast } from 'vant'
 import { onMounted, ref, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 
 const KEY = 'tu.settings'
 
 export default {
     name: 'Settings',
     setup() {
+        const router = useRouter()
         const userStore = useUserStore()
         const notify = ref(true)
         const marketing = ref(false)
         const personalized = ref(true)
+        const isLoggingOut = ref(false)
+        const cacheSize = ref('计算中...')
+        const appVersion = ref('1.0.0')
 
         const save = () => {
-            localStorage.setItem(KEY, JSON.stringify({ notify: notify.value, marketing: marketing.value, personalized: personalized.value }))
+            localStorage.setItem(KEY, JSON.stringify({
+                notify: notify.value,
+                marketing: marketing.value,
+                personalized: personalized.value
+            }))
         }
+
         const load = () => {
             try {
                 const v = JSON.parse(localStorage.getItem(KEY) || '{}')
@@ -57,20 +87,116 @@ export default {
                 if (typeof v.personalized === 'boolean') personalized.value = v.personalized
             } catch { }
         }
-        onMounted(load)
+
+        const calculateCacheSize = () => {
+            try {
+                let total = 0
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key)) {
+                        total += localStorage.getItem(key).length * 2 // UTF-16 编码
+                    }
+                }
+                if (total < 1024) {
+                    cacheSize.value = `${total} B`
+                } else if (total < 1024 * 1024) {
+                    cacheSize.value = `${(total / 1024).toFixed(1)} KB`
+                } else {
+                    cacheSize.value = `${(total / 1024 / 1024).toFixed(1)} MB`
+                }
+            } catch {
+                cacheSize.value = '未知'
+            }
+        }
+
+        const clearCache = async () => {
+            try {
+                await showConfirmDialog({
+                    title: '清除缓存',
+                    message: '将清除图片缓存和临时数据，登录状态不受影响',
+                })
+                // 清除非关键数据
+                const keysToKeep = ['token', 'token_expires_at', 'user', KEY]
+                const keysToRemove = []
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key) && !keysToKeep.includes(key)) {
+                        keysToRemove.push(key)
+                    }
+                }
+                keysToRemove.forEach(key => localStorage.removeItem(key))
+                calculateCacheSize()
+                showSuccessToast('缓存已清除')
+            } catch {
+                // 用户取消
+            }
+        }
+
+        onMounted(() => {
+            load()
+            calculateCacheSize()
+        })
 
         const toggleTheme = () => showToast('深色模式后续接入')
 
-        const logout = () => {
-            Dialog.confirm({ title: '确认退出', message: '确定要退出登录吗？' })
-                .then(() => { userStore.logout(); showSuccessToast('已退出'); history.back() })
-                .catch(() => { })
+        const handleLogout = async () => {
+            try {
+                await showConfirmDialog({
+                    title: '确认退出',
+                    message: '确定要退出登录吗？',
+                    confirmButtonText: '退出',
+                    confirmButtonColor: '#ee0a24',
+                })
+
+                isLoggingOut.value = true
+
+                // 调用 store 的 logout 方法
+                await userStore.logout()
+
+                showSuccessToast('已退出登录')
+
+                // 延迟跳转，让用户看到提示
+                setTimeout(() => {
+                    router.replace({ name: 'Home' })
+                }, 500)
+
+            } catch (error) {
+                // 用户点击取消
+                if (error !== 'cancel' && error?.message !== 'cancel') {
+                    console.error('Logout error:', error)
+                }
+            } finally {
+                isLoggingOut.value = false
+            }
         }
 
-        // 持久化
+        // 持久化设置
         watchEffect(save)
 
-        return { notify, marketing, personalized, toggleTheme, logout }
+        return {
+            notify,
+            marketing,
+            personalized,
+            isLoggingOut,
+            cacheSize,
+            appVersion,
+            toggleTheme,
+            clearCache,
+            handleLogout,
+            showToast
+        }
     }
 }
 </script>
+
+<style scoped>
+.cache-size {
+    color: #969799;
+    font-size: 14px;
+}
+
+.logout-tip {
+    text-align: center;
+    font-size: 12px;
+    color: #969799;
+    margin-top: -8px;
+}
+</style>

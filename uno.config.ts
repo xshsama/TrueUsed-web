@@ -1,45 +1,56 @@
 import { defineConfig, presetAttributify, presetIcons, presetUno } from 'unocss'
 
-// 主题：蓝色主色，提供常用渐变与阴影工具类
+// 主题：现代简约风格，避免过于鲜艳的颜色
 export default defineConfig({
     presets: [presetUno(), presetAttributify(), presetIcons()],
     theme: {
         colors: {
-            primary: '#007AFF',
-            primaryLight: '#66A6FF',
-            success: '#22C55E',
-            warning: '#F59E0B',
-            danger: '#EF4444',
+            // 使用更柔和、专业的色调
+            primary: '#4CAF50', // Material Green
+            primaryDark: '#388E3C',
+            primaryLight: '#81C784',
+
+            // 中性色
+            dark: '#1f2937', // Gray 800
+            secondary: '#6b7280', // Gray 500
+            light: '#F7F8FC', // Page Background
+
+            // 状态色 - 稍微降低饱和度
+            success: '#10b981',
+            warning: '#FFB300', // Amber
+            danger: '#ef4444',
+            info: '#3b82f6',
         },
     },
     shortcuts: [
-        // 卡片统一风格
-        ['card', 'rounded-2xl bg-white shadow-[0_8px_28px_-10px_rgba(0,0,0,0.15)] p-4 md:p-5'],
-        // 渐变主按钮
-        ['btn-primary', 'text-white rounded-xl px-4 py-2 bg-gradient-to-r from-[#007AFF] to-[#66A6FF] hover:opacity-95 active:opacity-90'],
-        // 次按钮
-        ['btn-ghost', 'rounded-xl px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50'],
-        // 蓝色渐变封面（顶部大条）
-        ['cover-blue', 'bg-gradient-to-r from-[#0ea5e9] via-[#3b82f6] to-[#60a5fa]'],
-        // 玻璃拟态卡片
-        ['glass-card', 'rounded-2xl bg-[rgba(255,255,255,0.72)] backdrop-blur-md backdrop-saturate-125 border border-[rgba(255,255,255,0.35)] shadow-[0_8px_28px_-12px_rgba(0,0,0,0.25)]'],
-        // 头像渐变描边容器
-        ['avatar-ring', 'p-0.5 rounded-full bg-gradient-to-r from-[#66A6FF] to-[#007AFF]'],
-        // 渐变色片（图标背景）
-        ['chip', 'inline-flex items-center justify-center rounded-xl text-white w-10 h-10 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]'],
-        ['chip-blue', 'bg-gradient-to-br from-[#3b82f6] to-[#60a5fa]'],
-        ['chip-purple', 'bg-gradient-to-br from-[#6C5CE7] to-[#A66BFF]'],
-        ['chip-green', 'bg-gradient-to-br from-[#22C55E] to-[#86EFAC]'],
-        ['chip-orange', 'bg-gradient-to-br from-[#f59e0b] to-[#fbbf24]'],
-        ['chip-pink', 'bg-gradient-to-br from-[#ec4899] to-[#f472b6]'],
-        ['chip-cyan', 'bg-gradient-to-br from-[#06b6d4] to-[#67e8f9]'],
-        // 矩形渐变色片（替代圆形，避免大圈套小圈）
-        ['chip-rect', 'inline-flex items-center justify-center rounded-lg text-white w-9 h-9 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]'],
-        ['chip-rect-blue', 'bg-gradient-to-br from-[#3b82f6] to-[#60a5fa]'],
-        ['chip-rect-purple', 'bg-gradient-to-br from-[#6C5CE7] to-[#A66BFF]'],
-        ['chip-rect-green', 'bg-gradient-to-br from-[#22C55E] to-[#86EFAC]'],
-        ['chip-rect-orange', 'bg-gradient-to-br from-[#f59e0b] to-[#fbbf24]'],
-        ['chip-rect-pink', 'bg-gradient-to-br from-[#ec4899] to-[#f472b6]'],
-        ['chip-rect-cyan', 'bg-gradient-to-br from-[#06b6d4] to-[#67e8f9]'],
+        // 卡片统一风格 - 减少阴影，更扁平化
+        ['card', 'bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300'],
+
+        // 按钮风格 - 扁平化，无渐变
+        ['btn-primary', 'inline-flex items-center justify-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primaryDark transition-colors duration-200 font-medium'],
+        ['btn-secondary', 'inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium'],
+        ['btn-ghost', 'inline-flex items-center justify-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200'],
+
+        // 布局辅助
+        ['flex-center', 'flex items-center justify-center'],
+        ['flex-between', 'flex items-center justify-between'],
+
+        // 文本样式
+        ['text-h1', 'text-2xl font-bold text-gray-900'],
+        ['text-h2', 'text-xl font-bold text-gray-900'],
+        ['text-h3', 'text-lg font-semibold text-gray-900'],
+        ['text-body', 'text-base text-gray-600'],
+        ['text-sm-muted', 'text-sm text-gray-500'],
+
+        // 标签/Chip - 柔和背景
+        ['chip', 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'],
+        ['chip-primary', 'bg-green-50 text-green-700'],
+        ['chip-success', 'bg-green-50 text-green-700'],
+        ['chip-warning', 'bg-yellow-50 text-yellow-700'],
+        ['chip-danger', 'bg-red-50 text-red-700'],
+        ['chip-gray', 'bg-gray-100 text-gray-700'],
+
+        // 头像
+        ['avatar', 'rounded-full object-cover bg-gray-100'],
     ],
 })

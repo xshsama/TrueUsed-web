@@ -2,12 +2,11 @@
     <div class="page">
         <van-nav-bar title="地址管理" left-arrow @click-left="$router.back()" fixed />
         <div class="container" style="padding-top: 56px; padding-bottom: 80px;">
-            <van-address-list v-model="chosenAddressId" :list="list" default-tag-text="默认" @edit="onEdit"
-                @select="onSelect" />
+            <van-address-list v-model="chosenAddressId" :list="list" default-tag-text="默认" add-button-text="新增地址"
+                @add="onAdd" @edit="onEdit" @select="onSelect" />
             <div v-if="list.length === 0" class="empty-state">
                 <van-empty description="暂无地址" />
             </div>
-
         </div>
     </div>
 </template>

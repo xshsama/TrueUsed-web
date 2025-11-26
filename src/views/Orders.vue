@@ -65,13 +65,16 @@
 </template>
 
 <script>
-import { cancelOrder, confirmDelivery, getMyOrders, payOrder } from '@/api/orders';
+import { cancelOrder, confirmDelivery, getMyOrders } from '@/api/orders';
 import '@/styles/order-card.css';
-import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
+import { showConfirmDialog, showFailToast, showSuccessToast, CountDown as VanCountDown } from 'vant';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 export default {
     name: 'Orders',
+    components: {
+        VanCountDown,
+    },
     setup() {
         const route = useRoute()
         const router = useRouter()
@@ -141,16 +144,9 @@ export default {
             active.value = allowed.includes(s) ? s : (s ? 'all' : 'all')
         }
 
-        const pay = async (order) => {
-            try {
-                await payOrder(order.id);
-                showSuccessToast('支付成功');
-                order.status = 'PAID';
-                // 支付成功后跳转到订单详情，保持与结算页一致的行为
-                router.replace({ name: 'OrderDetail', params: { id: order.id } });
-            } catch (error) {
-                showFailToast('支付失败');
-            }
+        const pay = (order) => {
+            // 跳转到独立的支付页面
+            router.push({ name: 'Payment', params: { id: order.id } });
         };
 
         const cancel = (order) => {

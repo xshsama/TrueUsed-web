@@ -14,6 +14,7 @@ import SellerCenter from './components/SellerCenter.vue'
 import {
   AddressEdit,
   AddressList,
+  Area,
   Badge,
   Button,
   Card,
@@ -32,6 +33,7 @@ import {
   Grid,
   GridItem,
   Icon,
+  Lazyload,
   List,
   Loading,
   NavBar,
@@ -58,6 +60,7 @@ import 'vant/lib/index.css'
 
 // 全局样式
 import './styles/global.css'
+import './styles/theme.css'
 import './styles/variables.css'
 // UnoCSS runtime (virtual CSS)
 import 'virtual:uno.css'
@@ -99,14 +102,16 @@ app.use(Divider)
 app.use(Tab)
 app.use(Tabs)
 app.use(NoticeBar)
-app.use(Skeleton)
 app.use(Tag)
 app.use(Switch)
 app.use(SwipeCell)
+app.use(Skeleton)
 app.use(Collapse)
 app.use(CollapseItem)
 app.use(AddressEdit)
 app.use(AddressList)
+app.use(Area)
+app.use(Lazyload)
 
 // 注册自定义全局组件
 app.component('CategorySelect', CategorySelect)
