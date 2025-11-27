@@ -45,4 +45,26 @@ export default {
     color: #374151;
     line-height: 1.6;
 }
+
+/* 搜索框样式优化 */
+:deep(.van-search__content) {
+    background-color: #fff;
+    border: 1px solid var(--primary-color);
+    border-radius: 99px;
+}
+
+/* 页面布局调整 */
+.page {
+    min-height: 100vh;
+    background: var(--bg-page);
+}
+
+.container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-top: 56px !important;
+    box-sizing: border-box;
+}
 </style>

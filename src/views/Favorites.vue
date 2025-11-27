@@ -11,10 +11,10 @@
                     </div>
                     <div class="header-filters">
                         <van-tabs v-model:active="activeTab" @change="onTabChange" shrink line-width="24px">
-                            <van-tab title="全部" name="all" />
-                            <van-tab title="在售" name="selling" />
-                            <van-tab title="已售" name="sold" />
-                            <van-tab title="已下架" name="offline" />
+                            <van-tab :title="`全部 (${favoriteList.length})`" name="all" />
+                            <van-tab :title="`在售 (${sellingCount})`" name="selling" />
+                            <van-tab :title="`已售 (${soldCount})`" name="sold" />
+                            <van-tab :title="`已下架 (${offlineCount})`" name="offline" />
                         </van-tabs>
                     </div>
                 </div>
@@ -28,18 +28,33 @@
                         <div v-else-if="filteredList.length" class="fav-grid">
                             <ProductCard v-for="item in filteredList" :key="item.id" :product="item" :show-desc="false"
                                 :status="item.status" @click="() => goToProductDetail(item.id)">
+                                <template #favorite>
+                                    <div class="fav-remove-btn" @click.stop="removeFavorite(item.id)">
+                                        <van-icon name="like" color="#ff4d4f" size="18" />
+                                    </div>
+                                </template>
                                 <template #footer-left>
-                                    <span class="time">{{ item.favoriteTime }}</span>
+                                    <span class="time"
+                                        style="font-size: 10px; color: #cbd5e1; transform: scale(0.9); transform-origin: left center; display: inline-block;">{{
+                                            item.favoriteTime
+                                        }}</span>
                                 </template>
                                 <template #footer-right>
-                                    <van-button size="mini" type="danger" plain round
-                                        @click.stop="removeFavorite(item.id)">取消</van-button>
+                                    <van-button v-if="item.status === 'selling'" size="small" color="#4CAF50" round
+                                        class="buy-btn" @click.stop="goToProductDetail(item.id)">去购买</van-button>
                                 </template>
                             </ProductCard>
                         </div>
-                        <van-empty v-else image="search" description="还没有收藏任何商品">
-                            <van-button type="primary" size="small" @click="$router.push('/home')">去看看</van-button>
-                        </van-empty>
+                        <div v-else class="empty-state-wrapper">
+                            <van-empty description="收藏夹有点空，快去发现你的下一个宝藏吧！">
+                                <template #image>
+                                    <div class="custom-empty-icon">
+                                        <van-icon name="like-o" size="64" color="#4CAF50" style="opacity: 0.2" />
+                                    </div>
+                                </template>
+                                <van-button type="primary" size="small" @click="$router.push('/home')">去看看</van-button>
+                            </van-empty>
+                        </div>
                     </van-list>
                 </van-pull-refresh>
             </div>
@@ -70,6 +85,10 @@ export default {
         const favoriteList = ref([])
         const keyword = ref('')
         const debounceTimer = ref(null)
+
+        const sellingCount = computed(() => favoriteList.value.filter(i => i.status === 'selling').length)
+        const soldCount = computed(() => favoriteList.value.filter(i => i.status === 'sold').length)
+        const offlineCount = computed(() => favoriteList.value.filter(i => i.status === 'offline').length)
 
         const filteredList = computed(() => {
             const kw = keyword.value.trim().toLowerCase()
@@ -219,13 +238,24 @@ export default {
             getStatusType,
             getStatusText,
             removeFavorite,
-            goToProductDetail
+            goToProductDetail,
+            sellingCount,
+            soldCount,
+            offlineCount
         }
     }
 }
 </script>
 
 <style scoped>
+/* 列表底部文字居中 */
+:deep(.van-list__finished-text) {
+    text-align: center;
+    color: #969799;
+    font-size: 13px;
+    padding: 16px 0;
+}
+
 .favorites-page {
     background: #f2f2f7;
     min-height: 100vh;
@@ -300,8 +330,43 @@ export default {
 /* 网格布局 模仿首页 product-pair-grid 的双列，但更弹性 */
 .fav-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 12px;
+}
+
+/* 价格强化 */
+.fav-grid :deep(.price-value) {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+/* 移除按钮（心形） */
+.fav-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.fav-remove-btn:active {
+    transform: scale(0.9);
+}
+
+/* 空状态图标容器 */
+.custom-empty-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
 }
 
 /* 单卡片 */
@@ -434,10 +499,18 @@ export default {
 }
 
 /* 按钮微调 */
-:deep(.van-button--mini) {
-    line-height: 1.1;
-    font-size: 11px;
-    padding: 0 10px;
+.buy-btn {
+    font-weight: 700;
+    font-size: 13px;
+    padding: 0 16px;
+    /* 加大左右内边距 */
+    height: 30px;
+    line-height: 28px;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+    border: none;
+    white-space: nowrap;
+    min-width: 72px;
+    /* 确保最小宽度 */
 }
 
 /* 空状态对齐 */

@@ -123,3 +123,38 @@ export function updateOrderStatus(id, status) {
     data: { status },
   })
 }
+
+/**
+ * 申请退款
+ * @param {number} id 订单ID
+ * @param {object} data 退款信息 { reason: string, refundType: string, refundAmount: number }
+ */
+export function requestRefund(id, data) {
+  return request({
+    url: `/orders/${id}/refund-request`,
+    method: 'post',
+    data,
+  })
+}
+
+/**
+ * 同意退款
+ * @param {number} id 订单ID
+ */
+export function approveRefund(id) {
+  return request({
+    url: `/orders/${id}/refund-approve`,
+    method: 'put',
+  })
+}
+
+/**
+ * 拒绝退款
+ * @param {number} id 订单ID
+ */
+export function rejectRefund(id) {
+  return request({
+    url: `/orders/${id}/refund-reject`,
+    method: 'put',
+  })
+}

@@ -75,6 +75,38 @@
                     <van-icon name="arrow" class="arrow-icon" />
                 </div>
 
+                <!-- 评价板块 -->
+                <div class="review-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <span class="title-icon">💬</span>
+                            商品评价 ({{ reviewCount }})
+                        </div>
+                        <div class="more-reviews" v-if="reviewCount > 0" @click="viewAllReviews">
+                            查看全部 <van-icon name="arrow" />
+                        </div>
+                    </div>
+                    <div class="review-list" v-if="reviews.length > 0">
+                        <div class="review-item" v-for="review in reviews" :key="review.id">
+                            <div class="review-user">
+                                <van-image :src="review.reviewerAvatar || defaultAvatar" round class="user-avatar"
+                                    fit="cover" />
+                                <span class="user-name">{{ review.isAnonymous ? '匿名用户' : review.reviewerName }}</span>
+                                <van-rate v-model="review.rating" readonly size="12px" color="#ffd21e" void-icon="star"
+                                    void-color="#eee" />
+                            </div>
+                            <div class="review-content">{{ review.content }}</div>
+                            <div class="review-time">{{ formatTime(review.createdAt) }}</div>
+                            <div class="seller-reply" v-if="review.replyContent">
+                                <span class="reply-label">卖家回复：</span>{{ review.replyContent }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="empty-reviews" v-else>
+                        暂无评价
+                    </div>
+                </div>
+
                 <!-- 商品详情 -->
                 <div class="detail-section">
                     <div class="section-header">
@@ -139,6 +171,7 @@
 
 <script>
 import { getProduct } from '@/api/products'
+import { getProductReviews } from '@/api/reviews'
 import { useAuth } from '@/composables/useAuth'
 import { useFavoritesStore } from '@/stores/favorites'
 import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant'
@@ -163,6 +196,10 @@ export default {
 
         // 商品信息
         const productInfo = ref({})
+
+        // 评价信息
+        const reviews = ref([])
+        const reviewCount = ref(0)
 
         // 卖家信息
         const sellerInfo = ref({
@@ -238,6 +275,11 @@ export default {
             showToast('卖家主页功能开发中')
         }
 
+        // 查看所有评价
+        const viewAllReviews = () => {
+            showToast('更多评价功能开发中')
+        }
+
         // 分享
         const handleShare = () => {
             showToast('分享功能开发中')
@@ -268,6 +310,15 @@ export default {
                 productInfo.value = res
                 productImages.value = (res.images || []).map((img) => img.url)
                 isFavorited.value = favoritesStore.isFavorited(productId)
+
+                // 获取评价
+                try {
+                    const reviewsData = await getProductReviews(productId, { page: 0, size: 3 })
+                    reviews.value = reviewsData.content || []
+                    reviewCount.value = reviewsData.totalElements || 0
+                } catch (e) {
+                    console.error('获取评价失败', e)
+                }
 
                 // 设置卖家信息
                 if (res.seller) {
@@ -304,6 +355,9 @@ export default {
             goToSellerProfile,
             handleShare,
             handlePurchase,
+            reviews,
+            reviewCount,
+            viewAllReviews
         }
     }
 }
@@ -477,6 +531,91 @@ export default {
 
 .seller-card:active {
     transform: scale(0.98);
+}
+
+/* 评价板块 */
+.review-section {
+    background: #fff;
+    margin: 0 12px 12px;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.more-reviews {
+    font-size: 12px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-item {
+    border-bottom: 1px solid #f5f5f5;
+    padding-bottom: 12px;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.review-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.user-avatar {
+    width: 24px;
+    height: 24px;
+}
+
+.user-name {
+    font-size: 13px;
+    color: #333;
+    margin-right: auto;
+}
+
+.review-content {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+.review-time {
+    font-size: 11px;
+    color: #999;
+}
+
+.seller-reply {
+    margin-top: 8px;
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.reply-label {
+    color: #ee0a24;
+    font-weight: 500;
+}
+
+.empty-reviews {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 20px 0;
 }
 
 .seller-left {

@@ -98,7 +98,7 @@
                             <div class="status-icon-wrapper linear-style">
                                 <van-icon :name="st.icon" size="28" />
                                 <span v-if="st.count > 0" class="status-badge">{{ st.count > 99 ? '99+' : st.count
-                                }}</span>
+                                    }}</span>
                             </div>
                             <span class="status-label">{{ st.label }}</span>
                         </div>
@@ -148,25 +148,34 @@
         </div>
 
         <!-- 编辑资料弹窗 -->
-        <van-dialog v-model:show="showEdit" title="编辑资料" show-cancel-button :before-close="handleBeforeClose"
+        <van-dialog v-model:show="showEdit" title="编辑资料" :show-confirm-button="false" :show-cancel-button="false"
             class="edit-dialog">
             <div class="form-content">
                 <div class="dialog-loading" v-if="saving">
-                    <van-loading type="spinner" color="#667eea" />
+                    <van-loading type="spinner" color="#4CAF50" />
                     <span>正在保存...</span>
                 </div>
                 <div class="avatar-upload-section">
                     <div class="upload-label">头像</div>
-                    <ImageUpload v-model="avatarList" :max-images="1" :size="100" :round="true" hint="点击上传头像"
-                        :show-count="false" />
+                    <div class="avatar-uploader-wrapper">
+                        <ImageUpload v-model="avatarList" :max-images="1" :size="100" :round="true" hint=""
+                            :show-count="false" />
+                        <div class="camera-icon-overlay">
+                            <van-icon name="photograph" />
+                        </div>
+                    </div>
                     <div class="upload-hint">支持 jpg/png/webp，建议 400x400 以上</div>
                 </div>
                 <van-field v-model="form.nickname" label="昵称" placeholder="请输入昵称" :error-message="errors.nickname"
-                    class="form-field" />
+                    class="form-field required-field" />
                 <van-field v-model="form.phone" label="手机号" placeholder="可选" :error-message="errors.phone"
                     class="form-field" />
                 <van-field v-model="form.bio" label="签名" type="textarea" rows="2" maxlength="80" show-word-limit
                     placeholder="介绍一下自己吧" class="form-field" />
+            </div>
+            <div class="dialog-footer">
+                <van-button class="btn-cancel" plain @click="showEdit = false">取消</van-button>
+                <van-button class="btn-confirm" type="primary" :loading="saving" @click="handleSave">确认</van-button>
             </div>
         </van-dialog>
     </div>
@@ -278,14 +287,25 @@ const handleBeforeClose = async (action) => {
         await userStore.saveMe(form.value)
         showSuccessToast('已更新资料')
         initialForm.value = { ...form.value }
-        saving.value = false
-        return true
+        showEdit.value = false
     } catch (e) {
         console.error('保存资料失败:', e)
-        saving.value = false
         showFailToast('更新失败')
-        return false
+    } finally {
+        saving.value = false
     }
+}
+
+const handleSave = async () => {
+    if (!validateAll()) {
+        showFailToast('请修正表单错误')
+        return
+    }
+    if (!isDirty.value) {
+        showEdit.value = false
+        return
+    }
+    await handleBeforeClose('confirm')
 }
 
 watch(avatarList, (val) => { form.value.avatarUrl = (val && val[0]) || '' })
@@ -311,7 +331,7 @@ const goToAddress = () => router.push({ name: 'Address' })
 const goToHelp = () => router.push({ name: 'Help' })
 const goToSettings = () => router.push({ name: 'Settings' })
 const goToMyPosts = () => router.push({ name: 'PostManage' }) // Assuming route name
-const goToMyReviews = () => showToast('功能开发中')
+const goToMyReviews = () => router.push({ name: 'MyReviews' })
 const goToWallet = () => showToast('功能开发中')
 const onClickAvatar = () => editProfile()
 </script>
@@ -750,9 +770,16 @@ const onClickAvatar = () => editProfile()
 }
 
 /* 编辑弹窗 */
+.edit-dialog :deep(.van-dialog__header) {
+    padding-top: 24px;
+    padding-bottom: 20px;
+    /* 增加标题下方间距 */
+    font-weight: 700;
+}
+
 .form-content {
     position: relative;
-    padding: 16px;
+    padding: 0 20px 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -761,7 +788,7 @@ const onClickAvatar = () => editProfile()
 .dialog-loading {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.9);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -769,34 +796,114 @@ const onClickAvatar = () => editProfile()
     gap: 12px;
     z-index: 10;
     font-size: 14px;
-    color: #666;
+    color: var(--primary-color);
 }
 
 .avatar-upload-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 8px;
 }
 
 .upload-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a1a1a;
+    display: none;
+    /* 隐藏多余的标签，头像自说明 */
+}
+
+.avatar-uploader-wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+/* 覆盖 ImageUpload 样式以隐藏默认加号并适配 */
+.avatar-uploader-wrapper :deep(.upload-placeholder) {
+    border: 2px solid var(--primary-color) !important;
+    /* 绿色描边 */
+    background: #f9f9f9;
+}
+
+.avatar-uploader-wrapper :deep(.plus-icon),
+.avatar-uploader-wrapper :deep(.upload-text) {
+    display: none;
+    /* 隐藏默认的加号和文字 */
+}
+
+.camera-icon-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    /* 让点击穿透到上传组件 */
+    color: var(--primary-color);
+    font-size: 32px;
 }
 
 .upload-hint {
     font-size: 12px;
     color: #999;
+    /* 浅灰色 */
+    font-weight: 400;
 }
 
 .form-field {
     background: #f5f7fa;
     border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+/* 输入框焦点状态 */
+.form-field:focus-within {
+    background: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .form-field :deep(.van-field__label) {
     color: #666;
+    font-weight: 400;
+    /* 字体变细 */
+    width: 4em;
+}
+
+/* 必填项星号颜色 */
+.required-field :deep(.van-field__label)::before {
+    content: '*';
+    color: #FF9800;
+    /* 橙色 */
+    margin-right: 2px;
+}
+
+/* 底部按钮 */
+.dialog-footer {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px 24px;
+}
+
+.dialog-footer .van-button {
+    flex: 1;
+    height: 40px;
+    border-radius: 20px;
+    font-size: 15px;
+}
+
+.btn-cancel {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    background: #fff !important;
+}
+
+.btn-confirm {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    font-weight: 600;
 }
 
 /* 响应式 */

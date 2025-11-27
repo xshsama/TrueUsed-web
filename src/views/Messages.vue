@@ -1,13 +1,13 @@
 <template>
     <div class="messages-page two-column only-chat-scroll">
         <!-- 顶部导航（统一） -->
-        <van-nav-bar title="消息" fixed />
+        <van-nav-bar title="消息" fixed class="green-header" />
 
         <div class="messages-layout">
             <!-- 左侧：联系人 / 会话列表 -->
             <aside class="sidebar" :class="{ hidden: isMobile && activeView === 'chat' }">
                 <div class="system-notice" @click="goToSystemNotice">
-                    <van-icon name="volume-o" size="20" color="#1989fa" />
+                    <van-icon name="volume-o" size="20" color="#07c160" />
                     <div class="notice-content">
                         <div class="notice-title">系统通知</div>
                         <div class="notice-desc">您有新的系统消息，点击查看</div>
@@ -19,14 +19,16 @@
                 <div class="sidebar-header">
                     <span class="section-title">会话</span>
                     <div class="actions">
-                        <van-button type="primary" size="mini" plain @click="clearAllMessages">清空</van-button>
+                        <van-button color="#07c160" size="mini" plain
+                            style="border: none; background: transparent; font-weight: 600;"
+                            @click="clearAllMessages">清空</van-button>
                     </div>
                 </div>
 
                 <van-pull-refresh v-model="refreshing" @refresh="onRefresh" class="sidebar-scroll">
                     <div v-if="conversationList.length" class="conversation-list">
                         <div v-for="conversation in conversationList" :key="conversation.id"
-                            :class="['conversation-item', { active: selectedId === conversation.id }]"
+                            :class="['conversation-item', { active: selectedId === conversation.id, unread: conversation.unreadCount > 0 }]"
                             @click="selectConversation(conversation)">
                             <van-image :src="conversation.avatar" :alt="conversation.name" class="user-avatar" round
                                 fit="cover" />
@@ -119,7 +121,10 @@
                         </van-field>
                     </div>
                 </div>
-                <div v-else class="placeholder-empty">选择左侧会话开始聊天</div>
+                <div v-else class="placeholder-empty">
+                    <van-icon name="chat-o" size="64" color="rgba(7, 193, 96, 0.15)" />
+                    <div>选择左侧会话开始聊天</div>
+                </div>
             </section>
         </div>
 
@@ -318,6 +323,13 @@ export default {
 </script>
 
 <style scoped>
+/* Header Green */
+:deep(.van-nav-bar) {
+    --van-nav-bar-background: #07c160;
+    --van-nav-bar-title-text-color: #fff;
+    --van-nav-bar-icon-color: #fff;
+}
+
 .messages-page {
     background: #f5f7fa;
     min-height: 100vh;
@@ -413,67 +425,40 @@ export default {
 
 
 .sidebar-header {
-    padding: 12px 16px;
+    padding: 12px 16px 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #f1f2f3;
-    background: #fafbfc;
-
-    .sidebar-header {
-        padding: 12px 16px 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--blend-surface, #fff);
-        border: var(--border-soft, 1px solid #f1f2f3);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-soft);
-    }
+    background: var(--blend-surface, #fff);
+    border: var(--border-soft, 1px solid #f1f2f3);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
 }
 
 .sidebar-scroll {
     flex: 1;
     overflow-y: auto;
-
-    .sidebar-scroll {
-        flex: 1;
-        overflow-y: auto;
-        background: transparent;
-        border-radius: var(--radius-lg);
-        padding-right: 4px;
-    }
+    background: transparent;
+    border-radius: var(--radius-lg);
+    padding-right: 4px;
 }
 
 .system-notice {
     display: flex;
     align-items: center;
-    background: #fff;
+    background: #E8F5E9;
     padding: 14px 16px;
-    border-bottom: 1px solid #f2f3f5;
     cursor: pointer;
-
-    .system-notice {
-        display: flex;
-        align-items: center;
-        background: var(--blend-surface, #fff);
-        padding: 14px 16px;
-        cursor: pointer;
-        border: var(--border-soft, 1px solid #f2f3f5);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-soft);
-        transition: background .35s var(--ease-standard), box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard);
-    }
-
-    .system-notice:hover {
-        background: #ffffff;
-        box-shadow: var(--shadow-medium);
-        transform: translateY(-2px);
-    }
+    border: var(--border-soft, 1px solid #f2f3f5);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    transition: background .35s var(--ease-standard), box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard);
 }
 
 .system-notice:hover {
-    background: #f8f9fb;
+    background: #e0f2f1;
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-2px);
 }
 
 .notice-content {
@@ -494,16 +479,11 @@ export default {
 }
 
 .conversation-list {
-    /* wrapper for list items */
     min-height: 10px;
-
-    .conversation-list {
-        min-height: 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 4px 4px 12px 2px;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 4px 12px 2px;
 }
 
 .conversation-item {
@@ -538,13 +518,23 @@ export default {
 }
 
 .conversation-item.active {
-    background: linear-gradient(150deg, #eef6ff, #ffffff 60%);
-    border-color: #c9def5;
-    box-shadow: 0 6px 18px -8px rgba(47, 129, 247, .35);
+    background: linear-gradient(150deg, #e8f5e9, #ffffff 60%);
+    border-color: #a5d6a7;
+    box-shadow: 0 6px 18px -8px rgba(76, 175, 80, .35);
 }
 
 .conversation-item.active::after {
-    box-shadow: 0 0 0 2px rgba(47, 129, 247, .35);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, .35);
+}
+
+/* Unread Styles */
+.conversation-item.unread .user-name {
+    font-weight: 800;
+}
+
+.conversation-item.unread .last-message {
+    color: #333;
+    font-weight: 500;
 }
 
 .user-avatar {
@@ -552,6 +542,9 @@ export default {
     height: 48px;
     margin-right: 12px;
     flex-shrink: 0;
+    background: #f1f8e9;
+    border: 1px solid #c8e6c9;
+    box-sizing: border-box;
 }
 
 /* 头像圆形统一修正（避免被外层样式覆盖仍显示成矩形） */
@@ -598,7 +591,7 @@ export default {
 
 .message-time {
     font-size: 12px;
-    color: #93989e;
+    color: #757575;
 }
 
 .last-message {
@@ -728,93 +721,75 @@ export default {
 
 .message-bubble {
     background: #fff;
-    padding: 10px 14px;
-    border-radius: 26px;
-    /* 提升圆润 */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+    padding: 10px 16px 11px;
+    border-radius: 28px 28px 28px 10px;
+    /* 左侧普通消息更圆润 */
+    box-shadow: 0 4px 10px -4px rgba(0, 0, 0, .12), 0 2px 4px -2px rgba(0, 0, 0, .08);
     word-break: break-word;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.55;
+    position: relative;
+    transition: box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard), background .35s var(--ease-standard);
+    --bubble-bg: #ffffff;
+    background: linear-gradient(145deg, var(--bubble-bg), #f7f9fc);
+}
 
-    .message-bubble {
-        background: #fff;
-        padding: 10px 16px 11px;
-        border-radius: 28px 28px 28px 10px;
-        /* 左侧普通消息更圆润 */
-        box-shadow: 0 4px 10px -4px rgba(0, 0, 0, .12), 0 2px 4px -2px rgba(0, 0, 0, .08);
-        word-break: break-word;
-        font-size: 14px;
-        line-height: 1.55;
-        position: relative;
-        transition: box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard), background .35s var(--ease-standard);
-        --bubble-bg: #ffffff;
-        background: linear-gradient(145deg, var(--bubble-bg), #f7f9fc);
-    }
+.message-other .message-bubble {
+    border: 1px solid #e0e0e0;
+}
 
-    .message-bubble:hover {
-        box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .18);
-    }
-
-    .message-self .message-bubble {
-        --bubble-bg: #1989fa;
-        background: linear-gradient(150deg, #1989fa, #1d6fe0 60%, #1a63c7);
-        color: #fff;
-        border-radius: 28px 28px 10px 28px;
-        /* 自己消息圆角 */
-    }
-
-    /* 气泡尾巴：左侧 */
-    .message-other .message-bubble::after {
-        content: '';
-        position: absolute;
-        left: -6px;
-        bottom: 8px;
-        width: 14px;
-        height: 14px;
-        background: inherit;
-        border-bottom-right-radius: 12px;
-        transform: rotate(40deg);
-        box-shadow: 2px 2px 4px -2px rgba(0, 0, 0, .12);
-    }
-
-    /* 气泡尾巴：右侧 */
-    .message-self .message-bubble::after {
-        content: '';
-        position: absolute;
-        right: -6px;
-        bottom: 8px;
-        width: 14px;
-        height: 14px;
-        background: inherit;
-        border-bottom-left-radius: 12px;
-        transform: rotate(-40deg);
-        filter: brightness(1.05);
-        box-shadow: -2px 2px 4px -2px rgba(0, 0, 0, .18);
-    }
-
-    /* 长文本优化：在极长连续英文或 URL 情况下仍能断行 */
-    .message-bubble {
-        word-break: break-word;
-        overflow-wrap: break-word;
-    }
+.message-bubble:hover {
+    box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .18);
 }
 
 .message-self .message-bubble {
-    background: #1989fa;
+    --bubble-bg: #07c160;
+    background: linear-gradient(150deg, #07c160, #06ad56 60%, #05964b);
     color: #fff;
+    border-radius: 28px 28px 10px 28px;
+    /* 自己消息圆角 */
+}
+
+/* 气泡尾巴：左侧 */
+.message-other .message-bubble::after {
+    content: '';
+    position: absolute;
+    left: -6px;
+    bottom: 8px;
+    width: 14px;
+    height: 14px;
+    background: inherit;
+    border-bottom-right-radius: 12px;
+    transform: rotate(40deg);
+    box-shadow: 2px 2px 4px -2px rgba(0, 0, 0, .12);
+}
+
+/* 气泡尾巴：右侧 */
+.message-self .message-bubble::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    bottom: 8px;
+    width: 14px;
+    height: 14px;
+    background: inherit;
+    border-bottom-left-radius: 12px;
+    transform: rotate(-40deg);
+    filter: brightness(1.05);
+    box-shadow: -2px 2px 4px -2px rgba(0, 0, 0, .18);
+}
+
+/* 长文本优化：在极长连续英文或 URL 情况下仍能断行 */
+.message-bubble {
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .message-image {
-    border-radius: 8px;
+    border-radius: 14px;
     overflow: hidden;
-    max-width: 220px;
-
-    .message-image {
-        border-radius: 14px;
-        overflow: hidden;
-        max-width: 240px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, .12);
-    }
+    max-width: 240px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .12);
 }
 
 .message-image .van-image {
@@ -823,38 +798,21 @@ export default {
 }
 
 .message-product {
-    background: #fff;
-    border-radius: 8px;
-    padding: 10px;
+    background: var(--blend-surface, #fff);
+    border-radius: var(--radius-lg);
+    padding: 10px 12px;
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
-    max-width: 260px;
-
-    .message-product {
-        background: var(--blend-surface, #fff);
-        border-radius: var(--radius-lg);
-        padding: 10px 12px;
-        display: flex;
-        align-items: center;
-        box-shadow: var(--shadow-soft);
-        max-width: 280px;
-        border: var(--border-soft);
-    }
+    box-shadow: var(--shadow-soft);
+    max-width: 280px;
+    border: var(--border-soft);
 }
 
 .product-image {
     width: 60px;
     height: 60px;
-    border-radius: 4px;
+    border-radius: 10px;
     margin-right: 12px;
-
-    .product-image {
-        width: 60px;
-        height: 60px;
-        border-radius: 10px;
-        margin-right: 12px;
-    }
 }
 
 .product-info {
@@ -870,17 +828,6 @@ export default {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-
-    .product-title {
-        font-size: 14px;
-        color: #323233;
-        margin-bottom: 4px;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        overflow: hidden;
-    }
 }
 
 .product-price {
@@ -891,43 +838,26 @@ export default {
 
 .product-card {
     margin: 0 16px 16px;
-    background: #fff;
-    border-radius: 8px;
+    background: var(--blend-surface, #fff);
+    border-radius: var(--radius-lg);
     padding: 12px;
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+    box-shadow: var(--shadow-soft);
+    border: var(--border-soft);
+    transition: box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard);
+}
 
-    .product-card {
-        margin: 0 16px 16px;
-        background: var(--blend-surface, #fff);
-        border-radius: var(--radius-lg);
-        padding: 12px;
-        display: flex;
-        align-items: center;
-        box-shadow: var(--shadow-soft);
-        border: var(--border-soft);
-        transition: box-shadow .35s var(--ease-standard), transform .35s var(--ease-standard);
-    }
-
-    .product-card:hover {
-        box-shadow: var(--shadow-medium);
-        transform: translateY(-2px);
-    }
+.product-card:hover {
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-2px);
 }
 
 .card-image {
     width: 80px;
     height: 80px;
-    border-radius: 4px;
+    border-radius: 14px;
     margin-right: 12px;
-
-    .card-image {
-        width: 80px;
-        height: 80px;
-        border-radius: 14px;
-        margin-right: 12px;
-    }
 }
 
 .card-content {
@@ -945,18 +875,6 @@ export default {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-
-    .card-title {
-        font-size: 14px;
-        font-weight: 500;
-        color: #323233;
-        margin-bottom: 8px;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        overflow: hidden;
-    }
 }
 
 .card-price {
@@ -980,11 +898,13 @@ export default {
 
 .placeholder-empty {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #8a8f96;
-    font-size: 14px;
+    color: #9aa0a6;
+    font-size: 18px;
+    gap: 16px;
 }
 
 /* 隐藏类（移动端切换） */

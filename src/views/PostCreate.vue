@@ -294,7 +294,7 @@ export default {
 
 .page-content {
     padding: 60px 16px 20px;
-    max-width: 800px;
+    /* max-width: 800px; */
     margin: 0 auto;
 }
 
@@ -321,7 +321,7 @@ export default {
 }
 
 .required {
-    color: #ee0a24;
+    color: #FF9800;
     font-size: 16px;
     font-weight: bold;
 }
@@ -351,6 +351,11 @@ export default {
 :deep(.van-field__label) {
     width: 5em;
     color: #646566;
+}
+
+/* 覆盖 Vant 必填星号颜色 */
+:deep(.van-field--required::before) {
+    color: #FF9800;
 }
 
 /* 调整复选框 */

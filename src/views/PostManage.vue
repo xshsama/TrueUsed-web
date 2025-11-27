@@ -1,12 +1,12 @@
 <template>
     <div class="post-manage-page">
         <!-- 顶部导航 -->
-        <van-nav-bar title="我的发布" left-arrow @click-left="$router.go(-1)" />
+        <van-nav-bar title="我的发布" left-arrow @click-left="$router.go(-1)" fixed placeholder />
 
         <div class="page-content">
             <!-- 状态标签 -->
             <div class="status-tabs">
-                <van-tabs v-model:active="activeTab" @change="onTabChange" sticky>
+                <van-tabs v-model:active="activeTab" @change="onTabChange" sticky offset-top="46">
                     <van-tab title="全部" name="all" />
                     <van-tab title="审核中" name="reviewing" />
                     <van-tab title="在售" name="selling" />
@@ -46,8 +46,13 @@
                         </div>
                     </div>
 
-                    <van-empty v-else image="search" description="还没有发布任何商品">
-                        <van-button type="primary" size="small" @click="$router.push('/post/create')">
+                    <van-empty v-else class="custom-empty" image="search">
+                        <template #description>
+                            <div class="empty-text">这里空空如也，快把你的闲置好物变成宝藏吧！</div>
+                            <div class="empty-subtext">发布流程简单快捷，立即体验！</div>
+                        </template>
+                        <van-button class="publish-btn" type="primary" size="small"
+                            @click="$router.push('/post/create')">
                             立即发布
                         </van-button>
                     </van-empty>
@@ -265,10 +270,13 @@ export default {
 .post-manage-page {
     background-color: #f7f8fa;
     min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .page-content {
-    padding-top: 46px;
+    width: 100%;
+    /* padding-top is handled by nav-bar placeholder */
 }
 
 .status-tabs {
@@ -317,7 +325,7 @@ export default {
 .item-price {
     font-size: 16px;
     font-weight: 600;
-    color: #ee0a24;
+    color: #FF9800;
     margin-bottom: 8px;
 }
 
@@ -344,5 +352,47 @@ export default {
     justify-content: center;
     margin-left: 12px;
     gap: 8px;
+}
+
+/* 空状态优化 */
+.custom-empty {
+    padding: 48px 0;
+}
+
+.custom-empty :deep(.van-empty__image) {
+    width: 120px;
+    height: 120px;
+    /* 尝试调整颜色为绿色调 */
+    filter: sepia(100%) hue-rotate(70deg) saturate(400%) opacity(0.8);
+}
+
+.empty-text {
+    font-size: 16px;
+    color: #323233;
+    font-weight: 500;
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+
+.empty-subtext {
+    font-size: 14px;
+    color: #969799;
+    margin-bottom: 24px;
+}
+
+.publish-btn {
+    padding: 0 32px;
+    height: 36px;
+    line-height: 36px;
+    border-radius: 18px;
+    transition: all 0.3s;
+    background: var(--primary-color, #4CAF50);
+    border-color: var(--primary-color, #4CAF50);
+}
+
+.publish-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    opacity: 0.9;
 }
 </style>

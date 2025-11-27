@@ -309,42 +309,40 @@ export default {
 .category-tag {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: transparent;
-    border-radius: var(--radius-full);
+    gap: 6px;
+    padding: 8px 16px;
+    background: #f7f8fa;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: #646566;
     white-space: nowrap;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     flex-shrink: 0;
     border: 1px solid transparent;
+    user-select: none;
 }
 
 .category-tag:hover {
-    background: rgba(0, 0, 0, 0.03);
+    background: #f0f2f5;
 }
 
 .category-tag:active {
-    transform: scale(0.95);
+    transform: scale(0.92);
+    transition-duration: 0.1s;
 }
 
 .category-tag.active {
-    background: transparent;
-    color: #2E7D32;
-    /* 深绿色文字 */
+    background: #E8F5E9;
+    color: var(--primary-color);
     font-weight: 600;
-    border-bottom: 2px solid var(--primary-color);
-    border-radius: 0;
-    padding-bottom: 6px;
+    border-color: rgba(76, 175, 80, 0.1);
     box-shadow: none;
 }
 
 .category-tag.active .van-icon {
-    color: #2E7D32 !important;
-    /* 深绿色图标 */
+    color: var(--primary-color) !important;
 }
 
 /* 统计卡片 */

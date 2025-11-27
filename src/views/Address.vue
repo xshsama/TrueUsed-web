@@ -92,4 +92,31 @@ export default {
 .empty-state {
     margin-top: 40px;
 }
+
+/* 自定义默认标签样式 */
+:deep(.van-tag--danger) {
+    background-color: #E8F5E9;
+    color: var(--primary-color);
+}
+
+:deep(.van-button--danger) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* 页面布局调整 */
+.page {
+    min-height: 100vh;
+    background: var(--bg-page);
+}
+
+.container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-top: 56px !important;
+    padding-bottom: 80px !important;
+    box-sizing: border-box;
+}
 </style>

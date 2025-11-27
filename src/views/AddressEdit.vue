@@ -109,3 +109,43 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+/* 输入框聚焦样式 */
+:deep(.van-cell:focus-within) {
+    position: relative;
+    z-index: 1;
+}
+
+:deep(.van-cell:focus-within::after) {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background-color: var(--primary-color);
+    transform: scaleY(0.5);
+}
+
+/* 按钮颜色覆盖 */
+:deep(.van-button--danger) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* 页面布局调整 */
+.page {
+    min-height: 100vh;
+    background: var(--bg-page);
+}
+
+.container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-top: 56px !important;
+    box-sizing: border-box;
+}
+</style>

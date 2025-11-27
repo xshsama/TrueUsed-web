@@ -119,6 +119,29 @@
                         @click="handleUpdateStatus('confirm')">
                         确认收货
                     </van-button>
+
+                    <!-- 退款相关按钮 -->
+                    <van-button
+                        v-if="isCurrentUserBuyer && ['PAID', 'SHIPPED', 'DELIVERED', 'COMPLETED'].includes(order.status)"
+                        type="warning" block round plain @click="$router.push(`/order/${order.id}/refund-apply`)"
+                        style="margin-top: 10px;">
+                        申请退款
+                    </van-button>
+
+                    <van-button
+                        v-if="['REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED'].includes(order.status)"
+                        type="warning" block round @click="$router.push(`/order/${order.id}/refund-detail`)"
+                        style="margin-top: 10px;">
+                        查看退款详情
+                    </van-button>
+
+                    <!-- 评价按钮 -->
+                    <van-button v-if="isCurrentUserBuyer && order.status === 'COMPLETED'" type="primary" block round
+                        plain @click="$router.push({ path: '/review/create', query: { orderId: order.id } })"
+                        style="margin-top: 10px;">
+                        评价商品
+                    </van-button>
+
                     <van-button v-if="isCurrentUserBuyer && order.status === 'PAID'" type="default" block round
                         @click="handleUpdateStatus('cancel')">
                         取消订单

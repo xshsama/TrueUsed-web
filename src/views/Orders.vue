@@ -2,9 +2,13 @@
     <div class="page">
         <van-nav-bar title="我的订单" left-arrow @click-left="$router.back()" fixed />
         <div class="container" style="padding-top:56px;">
-            <van-tabs v-model:active="active" @change="onTabChange">
+            <van-tabs v-model:active="active" @change="onTabChange" sticky offset-top="56">
                 <van-tab title="全部" name="all" />
-                <van-tab title="待付款" name="unpaid" />
+                <van-tab name="unpaid">
+                    <template #title>
+                        待付款 <van-icon v-if="active === 'unpaid'" name="card" />
+                    </template>
+                </van-tab>
                 <van-tab title="待发货" name="toship" />
                 <van-tab title="待收货" name="toreceive" />
                 <van-tab title="售后" name="afterSale" />
@@ -17,15 +21,24 @@
                     </template>
                     <template v-else>
                         <template v-if="filteredOrders.length === 0">
-                            <van-empty description="暂无相关订单" />
+                            <van-empty class="custom-empty" image="search">
+                                <template #description>
+                                    <div class="empty-text">您的订单列表是空的</div>
+                                </template>
+                                <van-button round type="primary" class="bottom-button" to="/home">
+                                    去首页看看
+                                </van-button>
+                            </van-empty>
                         </template>
                         <transition-group name="order-list" tag="div" class="order-list-container">
                             <div v-for="o in filteredOrders" :key="o.id" class="order-card">
                                 <div class="order-head">
-                                    <span class="order-no">订单号：{{ o.id }}</span>
+                                    <span class="order-no">订单号 {{ o.id }}</span>
                                     <div class="status-col">
-                                        <span class="order-status" :data-status="o.status">{{ statusText(o.status)
-                                        }}</span>
+                                        <van-tag :color="getStatusColor(o.status)"
+                                            :text-color="getStatusTextColor(o.status)" size="medium">
+                                            {{ statusText(o.status) }}
+                                        </van-tag>
                                         <!-- 待付款倒计时 -->
                                         <div v-if="o.status === 'PENDING'" class="mini-countdown">
                                             <van-icon name="clock-o" />
@@ -36,7 +49,7 @@
                                 </div>
                                 <div class="order-body" @click="view(o)">
                                     <van-image :src="o.product.images?.url" width="80" height="80" fit="cover"
-                                        radius="12" />
+                                        radius="8" />
                                     <div class="info">
                                         <div class="title">{{ o.product.title }}</div>
                                         <div class="meta">共1件</div>
@@ -52,7 +65,12 @@
                                         @click="confirm(o)">确认收货</van-button>
                                     <van-button v-if="o.status === 'PAID'" size="small" round plain
                                         @click="cancel(o)">取消订单</van-button>
-                                    <van-button size="small" round plain @click="view(o)">查看详情</van-button>
+                                    <van-button v-if="o.status === 'COMPLETED'" size="small" round plain type="primary"
+                                        @click.stop="$router.push({ path: '/review/create', query: { orderId: o.id } })">
+                                        评价
+                                    </van-button>
+                                    <van-button size="small" round plain class="btn-detail"
+                                        @click="view(o)">查看详情</van-button>
                                 </div>
                             </div>
                         </transition-group>
@@ -96,6 +114,29 @@ export default {
             CANCELLED: '已取消',
         };
 
+        const getStatusType = (status) => {
+            if (status === 'COMPLETED' || status === 'SHIPPED') return 'success';
+            if (status === 'PENDING') return 'warning';
+            if (status === 'CANCELLED') return 'default';
+            return 'primary';
+        };
+
+        const getStatusColor = (status) => {
+            if (status === 'PENDING') return '#fff7cc'; // 暖黄背景
+            if (status === 'COMPLETED' || status === 'SHIPPED') return '#e8f5e9'; // 绿色背景
+            if (status === 'CANCELLED') return '#f5f5f5'; // 灰色背景
+            if (status === 'PAID') return '#e3f2fd'; // 蓝色背景
+            return '';
+        };
+
+        const getStatusTextColor = (status) => {
+            if (status === 'PENDING') return '#ff9800';
+            if (status === 'COMPLETED' || status === 'SHIPPED') return '#4caf50';
+            if (status === 'CANCELLED') return '#999999';
+            if (status === 'PAID') return '#1989fa';
+            return '';
+        };
+
         const filteredOrders = computed(() => {
             if (active.value === 'all') return orders.value;
             const statusMapping = {
@@ -103,6 +144,12 @@ export default {
                 toship: 'PAID',
                 toreceive: 'SHIPPED',
             };
+
+            if (active.value === 'afterSale') {
+                const refundStatuses = ['REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED', 'REFUND_REJECTED'];
+                return orders.value.filter(o => refundStatuses.includes(o.status));
+            }
+
             const targetStatus = statusMapping[active.value];
             if (!targetStatus) return [];
             return orders.value.filter(o => o.status === targetStatus);
@@ -197,7 +244,7 @@ export default {
             active, loading, refreshing, finished, isInitialLoading, filteredOrders,
             statusText: (s) => statusMap[s] || s,
             onLoad, onRefresh, onTabChange, pay, cancel, confirm, view,
-            getRemainingTime
+            getRemainingTime, getStatusType, getStatusColor, getStatusTextColor
         };
     }
 }
@@ -205,6 +252,31 @@ export default {
 
 <style scoped>
 /* 样式已迁移至 order-card.css */
+
+/* 空状态优化 */
+.custom-empty {
+    padding: 48px 0;
+}
+
+.custom-empty :deep(.van-empty__image) {
+    width: 120px;
+    height: 120px;
+    filter: sepia(100%) hue-rotate(70deg) saturate(400%) opacity(0.8);
+}
+
+.empty-text {
+    font-size: 16px;
+    color: #323233;
+    font-weight: 500;
+    margin-top: 16px;
+    margin-bottom: 8px;
+}
+
+.bottom-button {
+    width: 160px;
+    height: 40px;
+    margin-top: 16px;
+}
 
 /* 列表过渡动画 */
 .order-list-container {
@@ -253,5 +325,25 @@ export default {
     color: #ff9f0a;
     margin-left: 2px;
     line-height: 1;
+}
+
+/* 覆盖 Tab 徽标颜色 */
+:deep(.van-badge--fixed) {
+    background-color: #FF9800;
+}
+
+/* 页面布局调整 */
+.page {
+    min-height: 100vh;
+    background: var(--bg-page);
+}
+
+.container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-top: 56px !important;
+    box-sizing: border-box;
 }
 </style>

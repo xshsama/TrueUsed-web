@@ -2,7 +2,18 @@
     <div class="product-card" @click="onClick">
         <div class="card-media">
             <van-image :src="productImage" :alt="product.title || '商品'" fit="cover" class="product-image" lazy-load
-                radius="14" />
+                radius="14">
+                <template #loading>
+                    <div class="image-placeholder">
+                        <van-icon name="photo-o" size="24" color="#cbd5e1" />
+                    </div>
+                </template>
+                <template #error>
+                    <div class="image-placeholder">
+                        <van-icon name="bag-o" size="24" color="#cbd5e1" />
+                    </div>
+                </template>
+            </van-image>
             <div v-if="product.condition" class="condition-tag">{{ product.condition }}新</div>
             <slot name="badge"></slot>
             <slot name="favorite"></slot>
@@ -19,9 +30,17 @@
                     <span class="price-value">{{ product.price ?? '-' }}</span>
                 </span>
             </div>
-            <div class="seller-info" v-if="product.seller">
+            <div class="seller-info" v-if="showSeller && product.seller">
                 <van-image :src="product.seller.avatar || defaultAvatar" round width="20" height="20" />
                 <span class="seller-name">{{ product.seller.nickname || '匿名' }}</span>
+            </div>
+            <div class="card-footer" v-if="$slots['footer-left'] || $slots['footer-right']">
+                <div class="footer-left">
+                    <slot name="footer-left"></slot>
+                </div>
+                <div class="footer-right">
+                    <slot name="footer-right"></slot>
+                </div>
             </div>
         </div>
     </div>
@@ -37,6 +56,7 @@ export default {
         showDesc: { type: Boolean, default: true },
         clickable: { type: Boolean, default: true },
         status: { type: String, default: '' }, // selling | sold | offline
+        showSeller: { type: Boolean, default: true },
     },
     emits: ['click'],
     data() {
@@ -113,10 +133,16 @@ export default {
     height: 100%;
     display: block;
     object-fit: cover;
+    background: #f8fafc;
+    /* 默认背景，防止加载前白屏 */
 }
 
-.product-image :deep(.van-image__img) {
+/* 隐藏 alt 文本，防止图片加载失败时显示巨大的文字 */
+.product-image :deep(img) {
     transition: transform 0.5s ease;
+    text-indent: -9999px;
+    color: transparent;
+    /* 双重保险隐藏 alt 文本 */
 }
 
 .product-card:hover .product-image :deep(.van-image__img) {
@@ -162,7 +188,9 @@ export default {
 }
 
 .status-offline {
-    background: rgba(107, 114, 128, 0.9);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    color: #fff;
 }
 
 /* 内容区域 */
@@ -175,8 +203,9 @@ export default {
 }
 
 .product-title {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 700;
+    /* 粗体 */
     color: var(--text-primary);
     margin: 0;
     line-height: 1.4;
@@ -185,7 +214,7 @@ export default {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    height: 40px;
+    height: 42px;
 }
 
 /* 价格和位置信息 */
@@ -200,17 +229,20 @@ export default {
     display: flex;
     align-items: baseline;
     gap: 2px;
-    color: var(--price-color, #f59e0b);
+    color: #ff9800;
+    /* 橙色辅助色 */
 }
 
 .price-symbol {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .price-value {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 22px;
+    /* 更大字号 */
+    font-weight: 900;
+    /* 极粗体 */
     letter-spacing: -0.5px;
     font-family: var(--font-family-number);
 }
@@ -238,10 +270,45 @@ export default {
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
     display: flex;
-    justify-content: space-between;
+    flex-direction: column-reverse;
+    /* 垂直堆叠，按钮在上，日期在下 */
+    gap: 8px;
+    /* 增加垂直间距 */
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.footer-left {
+    width: 100%;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.8;
+    /* 视觉降级 */
+}
+
+.footer-right {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    /* 按钮靠右 */
+}
+
+/* 占位图样式 */
+.image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
     align-items: center;
-    font-size: 12px;
-    color: var(--text-tertiary);
+    justify-content: center;
+    background: #e8f5e9;
+    /* 浅绿色背景 */
+}
+
+.image-placeholder .van-icon {
+    color: rgba(76, 175, 80, 0.6) !important;
+    /* 绿色图标 */
 }
 
 /* 响应式调整 */

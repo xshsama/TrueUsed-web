@@ -517,6 +517,11 @@ export default {
     color: var(--primary-color);
 }
 
+/* 总收入颜色改为辅助色 */
+.stat-item:last-child .stat-value {
+    color: #FF9800;
+}
+
 .stat-label {
     font-size: 12px;
     color: var(--text-secondary);
@@ -527,6 +532,11 @@ export default {
     width: 1px;
     height: 30px;
     background: var(--border-color);
+}
+
+/* 覆盖 Tab 徽标颜色 */
+:deep(.van-badge--fixed) {
+    background-color: #FF9800;
 }
 
 /* 订单卡片 */

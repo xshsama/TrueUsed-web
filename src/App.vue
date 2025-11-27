@@ -34,10 +34,10 @@
 
                 <!-- 右侧操作区（可放搜索 / 登录 / 主题切换）-->
                 <div class="nav-actions">
-                    <div class="search-box" v-show="showWide">
+                    <label class="search-box" v-show="showWide">
                         <van-icon name="search" class="search-icon" />
                         <input type="text" placeholder="搜索好物..." @keyup.enter="goSearch($event.target.value)" />
-                    </div>
+                    </label>
                     <button class="post-btn" @click="router.push('/post/create')">
                         <van-icon name="plus" /> 发布
                     </button>
@@ -156,6 +156,7 @@ export default {
 
         onMounted(() => {
             favoritesStore.fetchFavorites()
+            messageStore.fetchUnreadCount()
         })
 
         return {
@@ -204,7 +205,7 @@ export default {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-bottom: none;
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.2);
     height: 72px;
     width: 100%;
     transition: all 0.3s ease;
@@ -213,8 +214,6 @@ export default {
 /* 主内容区域圆角处理 */
 .app-main {
     background: var(--bg-page);
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
     margin-top: -1px;
     /* 消除缝隙 */
     position: relative;
@@ -291,7 +290,10 @@ export default {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 8px 18px;
+    padding: 8px 0;
+    /* 移除水平 padding，改用 width 控制 */
+    width: 96px;
+    /* 固定宽度防止抖动 */
     border-radius: 99px;
     display: inline-flex;
     align-items: center;
@@ -350,40 +352,39 @@ export default {
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
+    background: #fff;
+    border-radius: 99px;
+    padding: 0 16px;
+    width: 220px;
+    height: 40px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    cursor: text;
 }
 
 .search-icon {
-    position: absolute;
-    left: 12px;
+    position: static;
+    margin-right: 8px;
     color: var(--primary-color);
     font-size: 16px;
     pointer-events: none;
-    z-index: 1;
 }
 
 .search-box input {
-    background: #fff;
-    border: 1px solid transparent;
-    border-radius: 99px;
-    padding: 10px 16px 10px 36px;
+    background: transparent;
+    border: none;
+    padding: 0;
     font-size: 14px;
-    width: 200px;
+    width: 140px;
     outline: none;
     color: #333;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
 }
 
-.search-box input:focus {
-    background: #fff;
-    border-color: var(--primary-color);
-    color: var(--text-primary);
+.search-box:focus-within {
+    width: 260px;
     box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
-    width: 240px;
-}
-
-.search-box input:focus::placeholder {
-    color: #999;
 }
 
 .search-box input::placeholder {

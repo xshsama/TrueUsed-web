@@ -194,6 +194,30 @@ const routes = [
     component: Payment,
     meta: { requiresAuth: true, hideNavbar: true },
   },
+  {
+    path: '/order/:id/refund-apply',
+    name: 'RefundApply',
+    component: () => import('@/views/RefundApply.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/order/:id/refund-detail',
+    name: 'RefundDetail',
+    component: () => import('@/views/RefundDetail.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/review/create',
+    name: 'ReviewCreate',
+    component: () => import('@/views/ReviewCreate.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/my-reviews',
+    name: 'MyReviews',
+    component: () => import('@/views/MyReviews.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
 ]
 
 const router = createRouter({
