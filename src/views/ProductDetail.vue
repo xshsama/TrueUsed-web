@@ -170,16 +170,20 @@
 </template>
 
 <script>
+import { createConversation } from '@/api/chat'
 import { getProduct } from '@/api/products'
 import { getProductReviews } from '@/api/reviews'
 import { useAuth } from '@/composables/useAuth'
 import { useFavoritesStore } from '@/stores/favorites'
-import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant'
+import { ImagePreview, Rate, showFailToast, showSuccessToast, showToast } from 'vant'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'ProductDetail',
+    components: {
+        [Rate.name]: Rate,
+    },
     setup() {
         const router = useRouter()
         const route = useRoute()
@@ -267,7 +271,26 @@ export default {
             const loggedIn = await requireLogin({ message: '联系卖家需要登录，是否立即登录？' })
             if (!loggedIn) return
 
-            router.push(`/messages/chat/${sellerInfo.value.id}`)
+            if (!sellerInfo.value.id) {
+                showFailToast('卖家信息加载失败')
+                return
+            }
+
+            try {
+                const res = await createConversation(sellerInfo.value.id)
+                if (res && res.id) {
+                    router.push(`/messages/chat/${res.id}`)
+                } else {
+                    showFailToast('无法启动会话')
+                }
+            } catch (e) {
+                console.error(e)
+                if (e.response && e.response.data && e.response.data.message) {
+                    showFailToast(e.response.data.message)
+                } else {
+                    showFailToast('启动会话失败')
+                }
+            }
         }
 
         // 查看卖家主页
@@ -307,6 +330,7 @@ export default {
                 const productId = Number(route.params.id)
                 await favoritesStore.fetchFavorites()
                 const res = await getProduct(productId)
+                console.log('Product Detail Response:', res) // Debug log
                 productInfo.value = res
                 productImages.value = (res.images || []).map((img) => img.url)
                 isFavorited.value = favoritesStore.isFavorited(productId)

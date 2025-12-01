@@ -12,6 +12,7 @@ import SellerCenter from './components/SellerCenter.vue'
 
 // Vant UI
 import {
+  ActionSheet,
   AddressEdit,
   AddressList,
   Area,
@@ -41,6 +42,7 @@ import {
   Picker,
   Popup,
   PullRefresh,
+  Rate,
   Search,
   Skeleton,
   Swipe,
@@ -69,6 +71,7 @@ const app = createApp(App)
 const pinia = createPinia()
 
 // 注册Vant组件
+app.use(ActionSheet)
 app.use(Tabbar)
 app.use(TabbarItem)
 app.use(NavBar)
@@ -94,6 +97,7 @@ app.use(Field)
 app.use(Uploader)
 app.use(Picker)
 app.use(Popup)
+app.use(Rate)
 app.use(Dialog)
 app.use(Toast)
 app.use(Loading)

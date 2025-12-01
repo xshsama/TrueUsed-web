@@ -70,23 +70,26 @@
 </template>
 
 <script>
-import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant';
-import { nextTick, onMounted, reactive, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useMessageStore } from '@/stores/message'
+import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'MessageChat',
     setup() {
         const router = useRouter()
         const route = useRoute()
+        const messageStore = useMessageStore()
         const chatContainer = ref(null)
         const imageInput = ref(null)
 
         const inputMessage = ref('')
-        const messageList = ref([])
         const showActions = ref(false)
-        const userInfo = ref({})
         const productInfo = ref(null)
+
+        const conversationId = Number(route.params.id)
+        const userInfo = ref({}) // Need to fetch conversation details to get user info
 
         // 操作面板选项
         const actionSheetActions = reactive([
@@ -95,65 +98,7 @@ export default {
             { name: '删除聊天', value: 'delete', color: '#ee0a24' }
         ])
 
-        // 模拟用户信息
-        userInfo.value = {
-            id: route.params.id,
-            name: '张小明',
-            avatar: 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=张'
-        }
-
-        // 模拟商品信息（可选）
-        productInfo.value = {
-            id: 1,
-            title: 'iPhone 14 Pro 256GB 深空黑色',
-            price: '6888',
-            image: 'https://via.placeholder.com/80x80/333333/ffffff?text=iPhone'
-        }
-
-        // 模拟消息列表
-        const mockMessages = [
-            {
-                id: 1,
-                type: 'text',
-                content: '你好，请问这个iPhone还在吗？',
-                isSelf: false,
-                timestamp: Date.now() - 300000
-            },
-            {
-                id: 2,
-                type: 'text',
-                content: '在的，9成新，原装正品',
-                isSelf: true,
-                timestamp: Date.now() - 240000
-            },
-            {
-                id: 3,
-                type: 'text',
-                content: '可以面交吗？我在浦东新区',
-                isSelf: false,
-                timestamp: Date.now() - 180000
-            },
-            {
-                id: 4,
-                type: 'product',
-                content: 'iPhone 14 Pro商品卡片',
-                productId: 1,
-                productTitle: 'iPhone 14 Pro 256GB',
-                productPrice: '6888',
-                productImage: 'https://via.placeholder.com/60x60/333333/ffffff?text=iPhone',
-                isSelf: true,
-                timestamp: Date.now() - 120000
-            },
-            {
-                id: 5,
-                type: 'text',
-                content: '好的，那我们约个时间地点吧',
-                isSelf: false,
-                timestamp: Date.now() - 60000
-            }
-        ]
-
-        messageList.value = mockMessages
+        const messageList = computed(() => messageStore.messages)
 
         // 滚动到底部
         const scrollToBottom = () => {
@@ -169,30 +114,26 @@ export default {
             const message = inputMessage.value.trim()
             if (!message) return
 
-            const newMessage = {
-                id: Date.now(),
-                type: 'text',
-                content: message,
-                isSelf: true,
-                timestamp: Date.now()
-            }
+            console.log('Attempting to send message. Conversation ID:', conversationId)
+            console.log('Available conversations:', messageStore.conversations)
 
-            messageList.value.push(newMessage)
-            inputMessage.value = ''
-            scrollToBottom()
-
-            // 模拟对方回复
-            setTimeout(() => {
-                const replyMessage = {
-                    id: Date.now() + 1,
-                    type: 'text',
-                    content: '收到，谢谢！',
-                    isSelf: false,
-                    timestamp: Date.now()
+            const conversation = messageStore.conversations.find(c => c.id === conversationId)
+            if (conversation) {
+                console.log('Found conversation:', conversation)
+                console.log('Receiver ID (otherUserId):', conversation.otherUserId)
+                if (!conversation.otherUserId) {
+                    console.error('otherUserId is missing in conversation object!')
+                    showToast('无法发送消息：接收者ID缺失')
+                    return
                 }
-                messageList.value.push(replyMessage)
-                scrollToBottom()
-            }, 1000)
+                messageStore.sendMessage(conversation.otherUserId, message)
+                inputMessage.value = ''
+            } else {
+                console.warn('Conversation not found in store')
+                // If conversation not in list (maybe new or not loaded), we have a problem.
+                // We should ensure conversations are loaded.
+                showToast('无法发送消息：找不到会话')
+            }
         }
 
         // 选择图片
@@ -202,24 +143,7 @@ export default {
 
         // 图片选择回调
         const onImageSelect = (event) => {
-            const file = event.target.files[0]
-            if (!file) return
-
-            // 创建图片预览URL
-            const imageUrl = URL.createObjectURL(file)
-
-            const imageMessage = {
-                id: Date.now(),
-                type: 'image',
-                content: imageUrl,
-                isSelf: true,
-                timestamp: Date.now()
-            }
-
-            messageList.value.push(imageMessage)
-            scrollToBottom()
-
-            // 清空input
+            showToast('图片发送功能开发中')
             event.target.value = ''
         }
 
@@ -263,7 +187,39 @@ export default {
             router.push(`/product/${productId}`)
         }
 
-        onMounted(() => {
+        onMounted(async () => {
+            if (!conversationId || conversationId <= 0) {
+                showToast('无效的会话')
+                router.back()
+                return
+            }
+
+            messageStore.connect()
+
+            // Always fetch conversations to ensure we have the latest data (especially for new chats)
+            await messageStore.fetchConversations()
+
+            const conversation = messageStore.conversations.find(c => c.id === conversationId)
+            if (conversation) {
+                userInfo.value = {
+                    id: conversation.otherUserId,
+                    name: conversation.otherUserName,
+                    avatar: conversation.otherUserAvatar || 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=' + conversation.otherUserName.charAt(0)
+                }
+            } else {
+                console.warn('Conversation not found after fetch:', conversationId)
+            }
+
+            await messageStore.fetchMessages(conversationId)
+            scrollToBottom()
+        })
+
+        onUnmounted(() => {
+            messageStore.clearCurrentConversation()
+        })
+
+        watch(() => messageStore.messages.length, (newLen) => {
+            console.log('Message list length changed:', newLen)
             scrollToBottom()
         })
 

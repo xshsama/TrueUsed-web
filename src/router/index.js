@@ -218,6 +218,12 @@ const routes = [
     component: () => import('@/views/MyReviews.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
+  {
+    path: '/notifications',
+    name: 'SystemNotifications',
+    component: () => import('@/views/SystemNotifications.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
 ]
 
 const router = createRouter({

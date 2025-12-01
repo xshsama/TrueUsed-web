@@ -241,7 +241,8 @@ export default {
             goToProductDetail,
             sellingCount,
             soldCount,
-            offlineCount
+            offlineCount,
+            page
         }
     }
 }

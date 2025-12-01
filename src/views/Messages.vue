@@ -44,7 +44,12 @@
                             </div>
                         </div>
                     </div>
-                    <van-empty v-else image="chat-o" description="暂无消息">
+                    <van-empty v-else description="暂无消息">
+                        <template #image>
+                            <div style="display: flex; justify-content: center; margin-top: 90px;">
+                                <van-icon name="chat-o" size="60" color="#dcdee0" />
+                            </div>
+                        </template>
                         <van-button type="primary" size="small" @click="$router.push('/home')">去逛逛</van-button>
                     </van-empty>
                 </van-pull-refresh>
@@ -137,8 +142,9 @@
 
 <script>
 import { useMessageStore } from '@/stores/message'
+import { useNotificationStore } from '@/stores/notification'
 import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default {
@@ -147,21 +153,34 @@ export default {
         const router = useRouter()
         const route = useRoute()
         const messageStore = useMessageStore()
+        const notificationStore = useNotificationStore()
 
         const refreshing = ref(false)
-        const systemNoticeCount = ref(3)
-        const conversationList = ref([])
+        const systemNoticeCount = computed(() => notificationStore.unreadCount)
+        // const conversationList = ref([]) // Use store
         const selectedId = ref(null)
 
         // 聊天相关
         const chatContainer = ref(null)
         const imageInput = ref(null)
         const inputMessage = ref('')
-        const messageList = ref([])
+        // const messageList = ref([]) // Use store
         const showActions = ref(false)
         const productInfo = ref(null)
         const selfAvatar = ref('https://via.placeholder.com/40x40/FF6B6B/ffffff?text=我')
+
+        const conversationList = computed(() => messageStore.conversations.map(c => ({
+            id: c.id,
+            name: c.otherUserName,
+            avatar: c.otherUserAvatar || 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=' + c.otherUserName.charAt(0),
+            lastMessage: c.lastMessage,
+            time: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString() : '',
+            unreadCount: c.unreadCount,
+            otherUserId: c.otherUserId
+        })))
+
         const currentUser = computed(() => conversationList.value.find(c => c.id === selectedId.value))
+        const messageList = computed(() => messageStore.messages)
 
         const actionSheetActions = reactive([
             { name: '发送商品', value: 'product' },
@@ -180,40 +199,28 @@ export default {
         evaluateMobile()
         window.addEventListener('resize', evaluateMobile)
 
-        // 模拟会话数据
-        const mockConversations = [
-            { id: 1, name: '张小明', avatar: 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=张', lastMessage: '这个iPhone还在吗？可以面交吗？', time: '刚刚', unreadCount: 2 },
-            { id: 2, name: '李华', avatar: 'https://via.placeholder.com/40x40/2196F3/ffffff?text=李', lastMessage: '好的，那我明天下午去取', time: '10分钟前', unreadCount: 0 },
-            { id: 3, name: '王小花', avatar: 'https://via.placeholder.com/40x40/FF9800/ffffff?text=王', lastMessage: '能便宜一点吗？', time: '1小时前', unreadCount: 1 },
-            { id: 4, name: '陈大明', avatar: 'https://via.placeholder.com/40x40/9C27B0/ffffff?text=陈', lastMessage: '谢谢，商品收到了很满意', time: '昨天', unreadCount: 0 }
-        ]
-        conversationList.value = mockConversations
-
-        // 初始消息（模拟）
-        const baseMessages = [
-            { id: 1, type: 'text', content: '你好，请问这个iPhone还在吗？', isSelf: false, timestamp: Date.now() - 300000 },
-            { id: 2, type: 'text', content: '在的，9成新，原装正品', isSelf: true, timestamp: Date.now() - 240000 },
-            { id: 3, type: 'text', content: '可以面交吗？我在浦东新区', isSelf: false, timestamp: Date.now() - 180000 },
-            { id: 4, type: 'product', content: 'iPhone 14 Pro商品卡片', productId: 1, productTitle: 'iPhone 14 Pro 256GB', productPrice: '6888', productImage: 'https://via.placeholder.com/60x60/333333/ffffff?text=iPhone', isSelf: true, timestamp: Date.now() - 120000 },
-            { id: 5, type: 'text', content: '好的，那我们约个时间地点吧', isSelf: false, timestamp: Date.now() - 60000 }
-        ]
-
-        const productInfoData = { id: 1, title: 'iPhone 14 Pro 256GB 深空黑色', price: '6888', image: 'https://via.placeholder.com/80x80/333333/ffffff?text=iPhone' }
-
         // 选中会话
-        const selectConversation = (conversation) => {
+        const selectConversation = async (conversation) => {
+            if (!conversation || !conversation.id) return
             selectedId.value = conversation.id
-            conversation.unreadCount = 0
-            updateUnreadCount()
-            // 根据会话载入消息（模拟：统一使用 baseMessages）
-            messageList.value = [...baseMessages]
-            productInfo.value = productInfoData
+            // conversation.unreadCount = 0 // Handled by backend/store fetch
+
+            // Load messages
+            await messageStore.fetchMessages(conversation.id)
+
+            productInfo.value = null // Reset product info or fetch if needed
             scrollToBottom()
             if (isMobile.value) activeView.value = 'chat'
         }
 
         // 路由参数回填（如果直接访问 /messages?cid=3 或未来拓展）
-        onMounted(() => {
+        onMounted(async () => {
+            messageStore.connect()
+            await Promise.all([
+                messageStore.fetchConversations(),
+                notificationStore.fetchUnreadCount()
+            ])
+
             const cid = route.query.cid || null
             if (cid) {
                 const target = conversationList.value.find(c => c.id == cid)
@@ -221,28 +228,34 @@ export default {
             }
         })
 
-        const backToList = () => { activeView.value = 'list' }
+        onUnmounted(() => {
+            // messageStore.disconnect() // Keep connected? Or disconnect? Usually keep connected in SPA.
+            messageStore.clearCurrentConversation()
+        })
 
-        // 未读数
-        const updateUnreadCount = () => {
-            const totalUnread = conversationList.value.reduce((sum, c) => sum + c.unreadCount, 0)
-            messageStore.setUnreadCount(totalUnread)
+        // Watch for new messages to scroll
+        watch(() => messageStore.messages.length, () => {
+            scrollToBottom()
+        })
+
+        const backToList = () => {
+            activeView.value = 'list'
+            selectedId.value = null
+            messageStore.clearCurrentConversation()
         }
-        updateUnreadCount()
 
         // 下拉刷新
-        const onRefresh = () => {
-            setTimeout(() => {
-                conversationList.value = [...mockConversations]
-                refreshing.value = false
-                showSuccessToast('刷新成功')
-                updateUnreadCount()
-            }, 800)
+        const onRefresh = async () => {
+            await Promise.all([
+                messageStore.fetchConversations(),
+                notificationStore.fetchUnreadCount()
+            ])
+            refreshing.value = false
+            showSuccessToast('刷新成功')
         }
 
         const goToSystemNotice = () => {
-            showToast('系统通知功能开发中')
-            systemNoticeCount.value = 0
+            router.push('/notifications')
         }
 
         // 消息滚动底部
@@ -257,25 +270,22 @@ export default {
             if (!selectedId.value) return showToast('请选择会话')
             const text = inputMessage.value.trim()
             if (!text) return
-            const newMsg = { id: Date.now(), type: 'text', content: text, isSelf: true, timestamp: Date.now() }
-            messageList.value.push(newMsg)
-            inputMessage.value = ''
-            scrollToBottom()
-            setTimeout(() => {
-                const reply = { id: Date.now() + 1, type: 'text', content: '收到，谢谢！', isSelf: false, timestamp: Date.now() }
-                messageList.value.push(reply)
-                scrollToBottom()
-            }, 900)
+
+            const conversation = conversationList.value.find(c => c.id === selectedId.value)
+            if (conversation) {
+                messageStore.sendMessage(conversation.otherUserId, text)
+                inputMessage.value = ''
+                // Optimistic update is handled by store or waiting for echo
+            }
         }
 
         const selectImage = () => { imageInput.value?.click() }
         const onImageSelect = (e) => {
             const file = e.target.files[0]
             if (!file) return
-            const url = URL.createObjectURL(file)
-            messageList.value.push({ id: Date.now(), type: 'image', content: url, isSelf: true, timestamp: Date.now() })
+            // TODO: Upload image then send URL
+            showToast('图片发送功能开发中')
             e.target.value = ''
-            scrollToBottom()
         }
         const previewImage = (url) => ImagePreview([url])
         const showEmoji = () => showToast('表情功能开发中')
@@ -286,7 +296,7 @@ export default {
                 case 'report': showToast('举报功能开发中'); break
                 case 'delete':
                     Dialog.confirm({ title: '确认删除', message: '删除后聊天记录将无法恢复' }).then(() => {
-                        messageList.value = []
+                        // messageList.value = []
                         showSuccessToast('已删除')
                     })
                     break
@@ -299,10 +309,10 @@ export default {
         const clearAllMessages = () => {
             Dialog.confirm({ title: '确认清空', message: '清空后所有聊天记录将无法恢复' })
                 .then(() => {
-                    conversationList.value = []
-                    selectedId.value = null
-                    messageList.value = []
-                    messageStore.clearUnreadCount()
+                    // conversationList.value = []
+                    // selectedId.value = null
+                    // messageList.value = []
+                    // messageStore.clearUnreadCount()
                     showSuccessToast('已清空所有消息')
                 })
         }

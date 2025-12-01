@@ -1,6 +1,16 @@
 <template>
     <div class="home-page">
-        <!-- 顶部头部区域 (已移除，使用全局导航) -->
+        <!-- 顶部导航 -->
+        <div class="top-nav">
+            <div class="nav-title">TrueUsed</div>
+            <div class="nav-actions">
+                <van-icon name="search" size="24" @click="goToSearch" />
+                <van-badge :content="unreadCount > 0 ? unreadCount : null" max="99">
+                    <van-icon name="bell-o" size="24" @click="goToNotifications" />
+                </van-badge>
+            </div>
+        </div>
+
         <!-- 欢迎 Banner -->
         <div class="welcome-banner">
             <div class="banner-content">
@@ -84,8 +94,10 @@
 </template>
 
 <script>
+import { getUnreadCount } from '@/api/notifications'
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
+import { useUserStore } from '@/stores/user'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -94,10 +106,12 @@ export default {
     components: { ProductCard },
     setup() {
         const router = useRouter()
+        const userStore = useUserStore()
 
         const activeCategory = ref(0)
         const loading = ref(false)
         const hasMore = ref(true)
+        const unreadCount = ref(0)
 
         // 分类数据
         const categories = ref([
@@ -141,6 +155,10 @@ export default {
             router.push(`/product/${id}`)
         }
 
+        const goToNotifications = () => {
+            router.push('/notifications')
+        }
+
         const fetchProducts = async () => {
             loading.value = true
             try {
@@ -176,6 +194,12 @@ export default {
 
         onMounted(() => {
             fetchProducts()
+            // 获取未读消息数
+            if (userStore.isLoggedIn) {
+                getUnreadCount().then(res => {
+                    unreadCount.value = res
+                }).catch(e => console.error(e))
+            }
         })
 
         return {
@@ -187,9 +211,11 @@ export default {
             isInitialLoading,
             currentCategoryName,
             subtitleText,
+            unreadCount,
             selectCategory,
             goToSearch,
             goToProductDetail,
+            goToNotifications,
             toCard,
             fetchProducts
         }
@@ -202,11 +228,40 @@ export default {
     min-height: 100vh;
     background: var(--bg-page);
     padding-bottom: 70px;
+    padding-top: 54px;
+    /* 为顶部导航留出空间 */
+}
+
+/* 顶部导航 */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 54px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.nav-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.nav-actions {
+    display: flex;
+    gap: 16px;
 }
 
 /* 欢迎 Banner */
 .welcome-banner {
-    margin: 24px 20px;
+    margin: 16px 20px;
     border-radius: 24px;
     background: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
     padding: 40px 32px;
