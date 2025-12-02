@@ -12,7 +12,14 @@
             <div class="message-list">
                 <div v-for="message in messageList" :key="message.id"
                     :class="['message-item', message.isSelf ? 'message-self' : 'message-other']">
-                    <van-image v-if="!message.isSelf" :src="userInfo.avatar" class="message-avatar" round fit="cover" />
+                    <van-image
+                        :src="message.isSelf ? (userStore.user?.avatarUrl || userStore.user?.avatar || defaultAvatar('我')) : userInfo.avatar"
+                        class="message-avatar" round fit="cover">
+                        <template v-slot:error>
+                            <img :src="defaultAvatar(message.isSelf ? '我' : userInfo.name)"
+                                style="width: 100%; height: 100%; object-fit: cover;" />
+                        </template>
+                    </van-image>
                     <div class="message-content">
                         <div v-if="message.type === 'text'" class="message-bubble">
                             {{ message.content }}
@@ -29,8 +36,6 @@
                             </div>
                         </div>
                     </div>
-                    <van-image v-if="message.isSelf" :src="'https://via.placeholder.com/40x40/FF6B6B/ffffff?text=我'"
-                        class="message-avatar" round fit="cover" />
                 </div>
             </div>
 
@@ -47,17 +52,15 @@
 
         <!-- 输入区域 -->
         <div class="chat-input">
-            <van-field v-model="inputMessage" placeholder="输入消息..." center @keyup.enter="sendMessage">
-                <template #left-icon>
-                    <van-icon name="smile-o" @click="showEmoji" />
-                </template>
-                <template #extra>
-                    <van-icon name="photo-o" @click="selectImage" style="margin-right: 8px;" />
-                    <van-button type="primary" size="small" @click="sendMessage" :disabled="!inputMessage.trim()">
-                        发送
-                    </van-button>
-                </template>
-            </van-field>
+            <van-icon name="smile-o" size="28" color="#666" class="tool-icon" @click="showEmoji" />
+            <div class="input-wrapper">
+                <input v-model="inputMessage" type="text" placeholder="输入消息..." @keyup.enter="sendMessage" />
+            </div>
+            <van-icon name="photo-o" size="28" color="#666" class="tool-icon" @click="selectImage" />
+            <div class="send-btn" :class="{ 'active': inputMessage.trim() }" @click="sendMessage">
+                <span v-if="inputMessage.trim()">发送</span>
+                <van-icon v-else name="plus" size="20" color="#fff" />
+            </div>
         </div>
 
         <!-- 更多操作面板 -->
@@ -71,6 +74,7 @@
 
 <script>
 import { useMessageStore } from '@/stores/message'
+import { useUserStore } from '@/stores/user'
 import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -81,6 +85,7 @@ export default {
         const router = useRouter()
         const route = useRoute()
         const messageStore = useMessageStore()
+        const userStore = useUserStore()
         const chatContainer = ref(null)
         const imageInput = ref(null)
 
@@ -99,6 +104,11 @@ export default {
         ])
 
         const messageList = computed(() => messageStore.messages)
+
+        // 默认头像
+        const defaultAvatar = (name) => {
+            return `https://ui-avatars.com/api/?name=${name || 'User'}&background=random&color=fff`
+        }
 
         // 滚动到底部
         const scrollToBottom = () => {
@@ -194,6 +204,15 @@ export default {
                 return
             }
 
+            // 确保用户信息是最新的
+            if (!userStore.user || !userStore.user.avatarUrl) {
+                try {
+                    await userStore.loadMe()
+                } catch (e) {
+                    console.error('Failed to load user info', e)
+                }
+            }
+
             messageStore.connect()
 
             // Always fetch conversations to ensure we have the latest data (especially for new chats)
@@ -204,7 +223,7 @@ export default {
                 userInfo.value = {
                     id: conversation.otherUserId,
                     name: conversation.otherUserName,
-                    avatar: conversation.otherUserAvatar || 'https://via.placeholder.com/40x40/4CAF50/ffffff?text=' + conversation.otherUserName.charAt(0)
+                    avatar: conversation.otherUserAvatar || defaultAvatar(conversation.otherUserName)
                 }
             } else {
                 console.warn('Conversation not found after fetch:', conversationId)
@@ -239,7 +258,9 @@ export default {
             showEmoji,
             showMoreActions,
             onActionSelect,
-            goToProduct
+            goToProduct,
+            defaultAvatar,
+            userStore
         }
     }
 }
@@ -250,13 +271,13 @@ export default {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #f0f0f0;
+    background-color: #F5F5F5;
 }
 
 .chat-content {
     flex: 1;
     overflow-y: auto;
-    padding: 46px 0 60px 0;
+    padding: 46px 0 70px 0;
 }
 
 .message-list {
@@ -265,8 +286,8 @@ export default {
 
 .message-item {
     display: flex;
-    margin-bottom: 16px;
-    align-items: flex-end;
+    margin-bottom: 20px;
+    align-items: flex-start;
 }
 
 .message-self {
@@ -276,67 +297,97 @@ export default {
 .message-avatar {
     width: 40px;
     height: 40px;
-    margin: 0 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.message-other .message-avatar {
+    margin-right: 10px;
+}
+
+.message-self .message-avatar {
+    margin-left: 10px;
 }
 
 .message-content {
     max-width: 70%;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-self .message-content {
+    align-items: flex-end;
 }
 
 .message-bubble {
-    background: #fff;
-    padding: 12px 16px;
-    border-radius: 18px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    padding: 10px 14px;
+    font-size: 15px;
+    line-height: 1.5;
     word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
 }
 
+/* 接收方（左侧）气泡 */
+.message-other .message-bubble {
+    background: #FFFFFF;
+    color: #333333;
+    border-radius: 16px 16px 16px 4px;
+}
+
+/* 发送方（右侧）气泡 */
 .message-self .message-bubble {
-    background: #1989fa;
-    color: #fff;
+    background: #5ABD78;
+    color: #FFFFFF;
+    border-radius: 16px 16px 4px 16px;
 }
 
 .message-image {
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     max-width: 200px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .message-image .van-image {
     width: 100%;
     height: auto;
+    display: block;
 }
 
 .message-product {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 12px;
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    max-width: 250px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    max-width: 260px;
 }
 
 .product-image {
     width: 60px;
     height: 60px;
-    border-radius: 4px;
+    border-radius: 6px;
     margin-right: 12px;
+    flex-shrink: 0;
 }
 
 .product-info {
     flex: 1;
+    min-width: 0;
 }
 
 .product-title {
     font-size: 14px;
-    color: #323233;
+    color: #333;
     margin-bottom: 4px;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
+    line-height: 1.4;
 }
 
 .product-price {
@@ -348,17 +399,17 @@ export default {
 .product-card {
     margin: 0 16px 16px;
     background: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 12px;
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .card-image {
     width: 80px;
     height: 80px;
-    border-radius: 4px;
+    border-radius: 6px;
     margin-right: 12px;
 }
 
@@ -370,7 +421,7 @@ export default {
 .card-title {
     font-size: 14px;
     font-weight: 500;
-    color: #323233;
+    color: #333;
     margin-bottom: 8px;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -391,8 +442,62 @@ export default {
     left: 0;
     right: 0;
     background: #fff;
-    border-top: 1px solid #ebedf0;
-    padding: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.05);
     z-index: 100;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.tool-icon {
+    padding: 0 8px;
+}
+
+.input-wrapper {
+    flex: 1;
+    margin: 0 8px;
+    background: #F5F5F5;
+    border-radius: 20px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    padding: 0;
+    margin: 0;
+    outline: none;
+}
+
+.send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #E0E0E0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    transition: all 0.3s;
+    flex-shrink: 0;
+}
+
+.send-btn.active {
+    background: #5ABD78;
+    width: auto;
+    padding: 0 12px;
+    border-radius: 18px;
+}
+
+.send-btn span {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 </style>

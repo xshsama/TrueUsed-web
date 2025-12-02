@@ -1,4 +1,8 @@
-import { getConversations, getMessages } from '@/api/chat'
+import {
+  sendMessage as apiSendMessage,
+  getConversations,
+  getMessages,
+} from '@/api/chat'
 import { Client } from '@stomp/stompjs'
 import { defineStore } from 'pinia'
 import SockJS from 'sockjs-client'
@@ -80,13 +84,13 @@ export const useMessageStore = defineStore('message', () => {
       msg.conversationId === currentConversationId.value
     ) {
       // Check if it's already there (dedup)
-      if (!messages.value.some((m) => m.id === msg.id)) {
+      if (!messages.value.some((m) => String(m.id) === String(msg.id))) {
         // Format it for frontend
         const formattedMsg = {
           id: msg.id,
           type: 'text', // Backend currently only supports text
           content: msg.content,
-          isSelf: msg.isSelf, // Backend calculates this
+          isSelf: msg.senderId === userStore.user?.id, // Calculate based on ID
           timestamp: msg.timestamp
             ? new Date(msg.timestamp).getTime()
             : Date.now(),
@@ -96,18 +100,25 @@ export const useMessageStore = defineStore('message', () => {
     }
   }
 
-  const sendMessage = (receiverId, content) => {
-    if (stompClient.value && isConnected.value) {
-      const payload = { receiverId, content }
-      stompClient.value.publish({
-        destination: '/app/chat',
-        body: JSON.stringify(payload),
-      })
-      // Optimistic update or wait for echo?
-      // The backend echoes the message back to sender queue.
-      // So handleIncomingMessage will catch it.
-    } else {
-      console.error('Not connected to WebSocket')
+  const sendMessage = async (receiverId, content) => {
+    try {
+      const res = await apiSendMessage({ receiverId, content })
+      // Add to local messages
+      const formattedMsg = {
+        id: res.id,
+        type: 'text',
+        content: res.content,
+        isSelf: true,
+        timestamp: res.timestamp
+          ? new Date(res.timestamp).getTime()
+          : Date.now(),
+      }
+      messages.value.push(formattedMsg)
+
+      // Refresh conversations to update last message
+      fetchConversations()
+    } catch (error) {
+      console.error('Failed to send message', error)
     }
   }
 
@@ -141,7 +152,7 @@ export const useMessageStore = defineStore('message', () => {
           id: msg.id,
           type: 'text',
           content: msg.content,
-          isSelf: msg.isSelf,
+          isSelf: msg.senderId === userStore.user?.id,
           timestamp: msg.timestamp
             ? new Date(msg.timestamp).getTime()
             : Date.now(),

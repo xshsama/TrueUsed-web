@@ -80,71 +80,73 @@
                 </button>
             </div>
 
-            <!-- 用户中心内容 -->
-            <div v-if="activeTab === 'user'" class="user-section">
-                <!-- 我的订单 -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <span class="section-title">
-                            <van-icon name="orders-o" class="section-icon" /> 我的订单
-                        </span>
-                        <span class="section-link" @click="viewAllOrders">
-                            全部订单 <van-icon name="arrow" />
-                        </span>
-                    </div>
-                    <div class="order-status-grid">
-                        <div class="order-status-item" v-for="st in orderStatus" :key="st.key"
-                            @click="goToOrderStatus(st.key)">
-                            <div class="status-icon-wrapper linear-style">
-                                <van-icon :name="st.icon" size="28" />
-                                <span v-if="st.count > 0" class="status-badge">{{ st.count > 99 ? '99+' : st.count
+            <transition name="fade-slide" mode="out-in">
+                <!-- 用户中心内容 -->
+                <div v-if="activeTab === 'user'" class="user-section" key="user">
+                    <!-- 我的订单 -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-title">
+                                <van-icon name="orders-o" class="section-icon" /> 我的订单
+                            </span>
+                            <span class="section-link" @click="viewAllOrders">
+                                全部订单 <van-icon name="arrow" />
+                            </span>
+                        </div>
+                        <div class="order-status-grid">
+                            <div class="order-status-item" v-for="st in orderStatus" :key="st.key"
+                                @click="goToOrderStatus(st.key)">
+                                <div class="status-icon-wrapper linear-style">
+                                    <van-icon :name="st.icon" size="28" />
+                                    <span v-if="st.count > 0" class="status-badge">{{ st.count > 99 ? '99+' : st.count
                                     }}</span>
+                                </div>
+                                <span class="status-label">{{ st.label }}</span>
                             </div>
-                            <span class="status-label">{{ st.label }}</span>
+                        </div>
+                    </div>
+
+                    <!-- 常用功能 -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <span class="section-title">
+                                <van-icon name="apps-o" class="section-icon" /> 常用功能
+                            </span>
+                        </div>
+                        <div class="menu-grid">
+                            <div class="menu-grid-item" @click="goToAddress">
+                                <van-icon name="location-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">地址管理</span>
+                            </div>
+                            <div class="menu-grid-item" @click="goToMyPosts">
+                                <van-icon name="notes-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">我的发布</span>
+                            </div>
+                            <div class="menu-grid-item" @click="goToMyReviews">
+                                <van-icon name="comment-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">我的评价</span>
+                            </div>
+                            <div class="menu-grid-item" @click="goToWallet">
+                                <van-icon name="balance-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">钱包/余额</span>
+                            </div>
+                            <div class="menu-grid-item" @click="goToHelp">
+                                <van-icon name="question-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">帮助中心</span>
+                            </div>
+                            <div class="menu-grid-item" @click="goToSettings">
+                                <van-icon name="setting-o" class="menu-grid-icon" />
+                                <span class="menu-grid-text">设置</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 常用功能 -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <span class="section-title">
-                            <van-icon name="apps-o" class="section-icon" /> 常用功能
-                        </span>
-                    </div>
-                    <div class="menu-grid">
-                        <div class="menu-grid-item" @click="goToAddress">
-                            <van-icon name="location-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">地址管理</span>
-                        </div>
-                        <div class="menu-grid-item" @click="goToMyPosts">
-                            <van-icon name="notes-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">我的发布</span>
-                        </div>
-                        <div class="menu-grid-item" @click="goToMyReviews">
-                            <van-icon name="comment-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">我的评价</span>
-                        </div>
-                        <div class="menu-grid-item" @click="goToWallet">
-                            <van-icon name="balance-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">钱包/余额</span>
-                        </div>
-                        <div class="menu-grid-item" @click="goToHelp">
-                            <van-icon name="question-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">帮助中心</span>
-                        </div>
-                        <div class="menu-grid-item" @click="goToSettings">
-                            <van-icon name="setting-o" class="menu-grid-icon" />
-                            <span class="menu-grid-text">设置</span>
-                        </div>
-                    </div>
+                <!-- 卖家中心 -->
+                <div v-else key="seller">
+                    <SellerCenter />
                 </div>
-            </div>
-
-            <!-- 卖家中心 -->
-            <div v-else>
-                <SellerCenter />
-            </div>
+            </transition>
         </div>
 
         <!-- 编辑资料弹窗 -->
@@ -921,5 +923,21 @@ const onClickAvatar = () => editProfile()
     .user-nickname {
         font-size: 20px;
     }
+}
+
+/* 切换动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateX(10px);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-10px);
 }
 </style>

@@ -67,7 +67,7 @@
 
             <!-- 骨架屏 -->
             <div v-if="isInitialLoading" class="product-grid">
-                <div v-for="i in 4" :key="i" class="product-skeleton">
+                <div v-for="i in 8" :key="i" class="product-skeleton">
                     <van-skeleton animated :row="3" />
                 </div>
             </div>
@@ -446,6 +446,7 @@ export default {
 .product-section {
     padding: 0 20px;
     margin-top: 32px;
+    min-height: 80vh;
 }
 
 .section-header {

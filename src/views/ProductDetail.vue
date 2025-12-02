@@ -151,7 +151,8 @@
         <div class="action-bar" v-if="!loading">
             <div class="action-left">
                 <div class="action-item" @click="toggleFavorite">
-                    <van-icon :name="isFavorited ? 'star' : 'star-o'" :class="{ 'icon-favorited': isFavorited }" />
+                    <van-icon :name="isFavorited ? 'star' : 'star-o'"
+                        :class="{ 'icon-favorited': isFavorited, 'icon-animate': isAnimating }" />
                     <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
                 </div>
                 <div class="action-item" @click="contactSeller">
@@ -191,6 +192,7 @@ export default {
         const { requireLogin } = useAuth()
 
         const isFavorited = ref(false)
+        const isAnimating = ref(false)
         const loading = ref(true)
         const currentImageIndex = ref(0)
         const defaultAvatar = ''
@@ -251,6 +253,14 @@ export default {
             const prev = isFavorited.value
             // 乐观更新
             isFavorited.value = !prev
+
+            if (!prev) {
+                isAnimating.value = true
+                setTimeout(() => {
+                    isAnimating.value = false
+                }, 400)
+            }
+
             try {
                 if (prev) {
                     await favoritesStore.remove(productId)
@@ -369,6 +379,7 @@ export default {
             productInfo,
             sellerInfo,
             isFavorited,
+            isAnimating,
             loading,
             currentImageIndex,
             defaultAvatar,
@@ -799,6 +810,24 @@ export default {
 
 .icon-favorited {
     color: #ee0a24 !important;
+}
+
+.icon-animate {
+    animation: favorite-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes favorite-bounce {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .action-right {

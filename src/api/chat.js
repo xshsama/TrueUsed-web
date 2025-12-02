@@ -32,3 +32,11 @@ export function createConversation(otherUserId) {
     params: { userId: otherUserId },
   })
 }
+
+export function sendMessage(data) {
+  return request({
+    url: '/messages',
+    method: 'post',
+    data,
+  })
+}
