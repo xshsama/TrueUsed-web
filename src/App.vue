@@ -1,45 +1,73 @@
 <template>
     <div id="app">
-        <!-- 全局顶部导航（大气分散布局） -->
-        <header class="global-top-navbar elevated" v-if="!route.meta.hideNavbar">
-            <div class="navbar-inner">
-                <!-- 品牌 / Logo -->
-                <div class="brand" @click="goTop('home')">
-                    <span class="brand-icon">♻️</span>
-                    <span class="brand-text">TrueUsed</span>
+        <!-- 全局顶部导航（硬核电商布局） -->
+        <header class="global-top-navbar" v-if="!route.meta.hideNavbar">
+            <div class="navbar-container">
+                <!-- 1. Logo 区域 (Wordmark Design) -->
+                <div class="nav-left" @click="goTop('home')" style="display: flex; align-items: center; gap: 8px;">
+                    <div
+                        style="background: #00875A; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-style: italic; box-shadow: 0 2px 6px rgba(0,135,90,0.2);">
+                        T
+                    </div>
+                    <div style="font-family: 'Poppins', sans-serif; font-size: 24px; line-height: 1;">
+                        <span style="font-weight: 800; color: #1F2937;">True</span>
+                        <span style="font-weight: 400; color: #00875A;">Used</span>
+                    </div>
                 </div>
 
-                <!-- 中部导航 -->
-                <nav class="global-nav-links capsule-style">
-                    <div :class="['g-nav-item capsule', { active: topActive === 'home' }]" @click="goTop('home')">
-                        <van-icon :name="topActive === 'home' ? 'wap-home' : 'wap-home-o'" class="nav-icon" />
-                        <span>首页</span>
+                <!-- 2. 搜索框区域 (C位) -->
+                <div class="nav-center">
+                    <div class="search-wrapper">
+                        <div class="search-category">
+                            <span>全部</span>
+                            <van-icon name="arrow-down" size="12" style="margin-left: 4px; color: #999;" />
+                        </div>
+                        <input type="text" placeholder="搜索好物..." @keyup.enter="goSearch($event.target.value)" />
+                        <div class="search-btn"
+                            @click="(e) => goSearch(e.target.closest('.search-wrapper').querySelector('input').value)">
+                            <van-icon name="search" size="20" />
+                        </div>
                     </div>
-                    <div :class="['g-nav-item capsule', { active: topActive === 'messages' }]"
-                        @click="goTop('messages')">
-                        <van-icon :name="topActive === 'messages' ? 'chat' : 'chat-o'" class="nav-icon" />
+                </div>
+
+                <!-- 3. 右侧功能区 -->
+                <div class="nav-right">
+                    <!-- 消息 -->
+                    <div class="nav-icon-link" @click="goTop('messages')">
+                        <div class="icon-box">
+                            <van-icon name="chat-o" size="22" />
+                            <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                        </div>
                         <span>消息</span>
-                        <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
                     </div>
-                    <div :class="['g-nav-item capsule', { active: topActive === 'favorites' }]"
-                        @click="goTop('favorites')">
-                        <van-icon :name="topActive === 'favorites' ? 'like' : 'like-o'" class="nav-icon" />
+
+                    <!-- 收藏 -->
+                    <div class="nav-icon-link" @click="goTop('favorites')">
+                        <van-icon name="like-o" size="22" />
                         <span>收藏</span>
                     </div>
-                    <div :class="['g-nav-item capsule', { active: topActive === 'profile' }]" @click="goTop('profile')">
-                        <van-icon :name="topActive === 'profile' ? 'user' : 'user-o'" class="nav-icon" />
-                        <span>我的</span>
-                    </div>
-                </nav>
 
-                <!-- 右侧操作区（可放搜索 / 登录 / 主题切换）-->
-                <div class="nav-actions">
-                    <label class="search-box" v-show="showWide">
-                        <van-icon name="search" class="search-icon" />
-                        <input type="text" placeholder="搜索好物..." @keyup.enter="goSearch($event.target.value)" />
-                    </label>
-                    <button class="post-btn" @click="router.push('/post/create')">
-                        <van-icon name="plus" /> 发布
+                    <!-- 用户头像 / 登录 -->
+                    <div class="nav-user-container">
+                        <div v-if="userStore.isLoggedIn" class="user-avatar-wrapper" @click="goTop('profile')">
+                            <img :src="userStore.user?.avatarUrl || defaultAvatar" class="user-avatar" />
+                            <!-- 悬停下拉菜单 -->
+                            <div class="user-dropdown">
+                                <div class="dropdown-item" @click.stop="router.push('/profile')">个人中心</div>
+                                <div class="dropdown-item" @click.stop="router.push('/orders')">我的订单</div>
+                                <div class="dropdown-item" @click.stop="router.push('/settings')">设置</div>
+                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-item danger" @click.stop="handleLogout">退出登录</div>
+                            </div>
+                        </div>
+                        <div v-else class="login-link" @click="router.push('/login')">
+                            登录/注册
+                        </div>
+                    </div>
+
+                    <!-- 发布按钮 -->
+                    <button class="post-btn-primary" @click="router.push('/post/create')">
+                        发布闲置
                     </button>
                 </div>
             </div>
@@ -89,6 +117,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useFavoritesStore } from './stores/favorites';
 import { useMessageStore } from './stores/message';
+import { useUserStore } from './stores/user';
 
 export default {
     name: 'App',
@@ -97,11 +126,19 @@ export default {
         const route = useRoute()
         const messageStore = useMessageStore()
         const favoritesStore = useFavoritesStore()
+        const userStore = useUserStore()
 
         const active = ref(0)
         const unreadCount = computed(() => messageStore.unreadCount)
         // 顶部导航当前激活
         const topActive = ref('home')
+
+        const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+
+        const handleLogout = () => {
+            userStore.logout()
+            router.push('/login')
+        }
 
         // 根据当前路由设置active值
         const updateActiveTab = () => {
@@ -157,6 +194,9 @@ export default {
         onMounted(() => {
             favoritesStore.fetchFavorites()
             messageStore.fetchUnreadCount()
+            if (userStore.isLoggedIn) {
+                userStore.loadMe().catch(() => { })
+            }
         })
 
         return {
@@ -168,7 +208,10 @@ export default {
             route,
             router,
             showWide,
-            goSearch
+            goSearch,
+            userStore,
+            defaultAvatar,
+            handleLogout
         }
     }
 }
@@ -195,227 +238,283 @@ export default {
     transform: translateY(5px);
 }
 
-/* 顶部导航（重构版） */
-.global-top-navbar.elevated {
+/* 顶部导航（重构版 - 硬核电商风） */
+.global-top-navbar {
     position: sticky;
     top: 0;
-    z-index: 200;
-    background: var(--primary-color);
-    /* 改为主题蓝 */
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    z-index: 1000;
+    /* Frosted Glass / 毛玻璃效果 */
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
     border-bottom: none;
-    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.2);
+
     height: 72px;
-    width: 100%;
-    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
 }
 
-/* 主内容区域圆角处理 */
-.app-main {
-    background: var(--bg-page);
-    margin-top: -1px;
-    /* 消除缝隙 */
-    position: relative;
-    z-index: 1;
-    overflow: hidden;
-    /* 确保圆角生效 */
+.navbar-container {
     width: 100%;
-    min-height: calc(100vh - 72px);
-}
-
-.global-top-navbar .navbar-inner {
     max-width: 1280px;
     margin: 0 auto;
     padding: 0 24px;
-    height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 16px;
+    height: 100%;
 }
 
-.brand {
+/* 1. Logo 区域 */
+.nav-left {
+    width: 200px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    font-weight: 800;
-    font-size: 24px;
-    letter-spacing: -0.5px;
-    color: #fff;
-    /* 白色文字 */
     cursor: pointer;
-    user-select: none;
-    text-decoration: none;
-    transition: transform 0.2s ease;
 }
 
-.brand:active {
-    transform: scale(0.95);
-}
-
-.brand-icon {
-    font-size: 26px;
-    margin-right: 10px;
-    filter: brightness(0) invert(1);
-    /* 图标变白 */
-}
-
-.brand-text {
-    background: none;
-    -webkit-text-fill-color: initial;
-    color: #fff;
-}
-
-/* 胶囊式导航 */
-.global-nav-links.capsule-style {
+/* 2. 搜索框区域 (C位) */
+.nav-center {
     flex: 1;
     display: flex;
-    flex-direction: row;
-    align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 0 16px;
-    height: 100%;
-    margin: 0;
-    list-style: none;
-    overflow: hidden;
+    margin: 0 40px;
+    max-width: 680px;
 }
 
-.g-nav-item.capsule {
-    flex-shrink: 0;
-    appearance: none;
-    -webkit-appearance: none;
-    background: transparent !important;
+.search-wrapper {
+    width: 100%;
+    /* Capsule Container / 胶囊容器 */
     border: none !important;
-    box-shadow: none !important;
-    padding: 8px 0;
-    /* 移除水平 padding，改用 width 控制 */
-    width: 96px;
-    /* 固定宽度防止抖动 */
+    background-color: #F3F4F6;
+    /* Unified pale gray background */
     border-radius: 99px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 15px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
-    /* 浅白色 */
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    line-height: 1.5;
-    outline: none;
-    box-sizing: border-box;
-    margin: 0;
-    font-family: inherit;
-}
-
-.g-nav-item.capsule:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #fff;
-}
-
-.g-nav-item.capsule:active {
-    transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.2) !important;
-}
-
-.g-nav-item.capsule.active {
-    background: #fff !important;
-    color: var(--primary-color) !important;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-}
-
-.nav-icon {
-    font-size: 18px;
+    height: 48px;
     display: flex;
     align-items: center;
-    margin: 0;
-}
-
-/* 右侧操作区 */
-.nav-actions {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    min-width: 240px;
-    justify-content: flex-end;
-}
-
-.search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    border-radius: 99px;
-    padding: 0 16px;
-    width: 220px;
-    height: 40px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 4px;
+    /* Inner spacing */
     transition: all 0.3s ease;
-    cursor: text;
 }
 
-.search-icon {
-    position: static;
-    margin-right: 8px;
-    color: var(--primary-color);
-    font-size: 16px;
-    pointer-events: none;
+.search-wrapper:focus-within {
+    background-color: #FFFFFF;
+    transform: translateY(-1px);
+    /* Green Glow Shadow */
+    box-shadow: 0 4px 20px rgba(0, 135, 90, 0.15);
 }
 
-.search-box input {
-    background: transparent;
+.search-category {
+    display: flex;
+    align-items: center;
+    padding-left: 16px;
+    padding-right: 8px;
+    height: 100%;
+    background: transparent !important;
+    /* Transparent to blend with capsule */
+    border-right: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.search-category:hover {
+    color: #00875A;
+}
+
+.search-wrapper input {
+    flex: 1;
+    height: 100%;
     border: none;
-    padding: 0;
-    font-size: 14px;
-    width: 140px;
     outline: none;
+    padding: 0 12px;
+    font-size: 14px;
     color: #333;
-    box-shadow: none;
 }
 
-.search-box:focus-within {
-    width: 260px;
-    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+.search-btn {
+    width: 40px;
+    height: 40px;
+    margin: 2px;
+    /* Floating effect spacing */
+    border-radius: 50%;
+    background: #1F2937;
+    /* Dark button for tool consistency */
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
 }
 
-.search-box input::placeholder {
-    color: #999;
+.search-btn:hover {
+    transform: scale(1.05);
+    background: #000;
+}
+
+/* 3. 右侧功能区 */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+}
+
+.nav-icon-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+    /* Dark Gray */
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    gap: 2px;
+    transition: color 0.2s;
+    position: relative;
+}
+
+.nav-icon-link:hover {
+    color: #00875A;
+}
+
+.icon-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* 用户头像区域 */
+.nav-user-container {
+    position: relative;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.user-avatar-wrapper {
+    position: relative;
+    cursor: pointer;
+    padding: 4px 0;
+    /* 增加热区 */
+}
+
+.user-avatar {
+    width: 40px;
+    /* Bigger */
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #E5E7EB;
+    /* Distinct border */
+    transition: box-shadow 0.2s;
+}
+
+.user-avatar-wrapper:hover .user-avatar {
+    box-shadow: 0 0 0 2px rgba(0, 135, 90, 0.2);
+}
+
+/* 下拉菜单 */
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 140px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    z-index: 1100;
+    border: 1px solid #f0f0f0;
+}
+
+/* 纯CSS实现悬停显示 */
+.user-avatar-wrapper:hover .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background: #f5f7fa;
+    color: #00875A;
+}
+
+.dropdown-item.danger {
+    color: #ef4444;
+}
+
+.dropdown-item.danger:hover {
+    background: #fef2f2;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #eee;
+    margin: 4px 0;
+}
+
+.login-link {
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.login-link:hover {
+    color: #00875A;
 }
 
 /* 发布按钮 */
-.post-btn {
-    background: #fff;
-    color: var(--primary-color);
+.post-btn-primary {
+    /* Liquid Green Button / 液态绿宝石 */
+    background: linear-gradient(135deg, #00875A 0%, #064E3B 100%);
+    color: #fff;
     border: none;
-    padding: 10px 24px;
+    padding: 0 20px;
+    height: 40px;
     border-radius: 99px;
     font-size: 14px;
     font-weight: 600;
+    letter-spacing: 0.5px;
+
+    /* Green Glow Shadow */
+    box-shadow: 0 4px 12px rgba(0, 135, 90, 0.3);
+
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    transition: transform 0.2s;
+    margin-left: 12px;
 }
 
-.post-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    background: #f8fafc;
+.post-btn-primary:hover {
+    transform: scale(1.05);
 }
 
-.post-btn:active {
-    transform: translateY(1px);
+.post-btn-primary:active {
+    transform: scale(0.95);
 }
 
 /* 全局通用小红点 */

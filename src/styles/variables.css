@@ -1,14 +1,14 @@
 :root {
   /* Colors - Aligned with theme.css */
-  --primary-color: #4CAF50;
-  --primary-color-rgb: 76, 175, 80;
-  --primary-color-dark: #388E3C;
-  --text-color-primary: #111827;
-  --text-color-secondary: #4b5563;
-  --text-color-placeholder: #d1d5db;
-  --background-color-light: #F7F8FC;
+  --primary-color: #00875A;
+  --primary-color-rgb: 0, 135, 90;
+  --primary-color-dark: #006946;
+  --text-color-primary: #1F2937;
+  --text-color-secondary: #64748b;
+  --text-color-placeholder: #cbd5e1;
+  --background-color-light: #F5F7FA;
   --card-background-color: #ffffff;
-  --border-color: #e5e7eb;
+  --border-color: #e2e8f0;
 
   /* Typography */
   --font-size-base: 16px;
@@ -24,18 +24,18 @@
   --spacing-xl: 32px;
 
   /* Borders */
-  --card-radius: 12px;
+  --card-radius: 10px;
   --radius-pill: 9999px;
 
   /* Shadows */
   --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-soft-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-soft-lg: 0 4px 12px rgba(0, 0, 0, 0.06);
 
   /* Auxiliary Colors */
-  --auxiliary-color: #FFB300; /* Amber/Warm Yellow */
-  --auxiliary-color-rgb: 255, 179, 0;
-  --price-color: #FFB300;
+  --auxiliary-color: #FF5722; /* Urgency - 赤诚橙 */
+  --auxiliary-color-rgb: 255, 87, 34;
+  --price-color: #FF5722;
 
   /* Fonts */
-  --font-family-number: 'DIN Alternate', 'Roboto', sans-serif;
+  --font-family-number: 'DIN Condensed', 'Roboto Bold', 'DIN Alternate', sans-serif;
 }

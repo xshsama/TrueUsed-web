@@ -496,17 +496,20 @@ export default {
 }
 
 .product-price {
-    color: #ee0a24;
+    color: #FF5722;
     font-weight: 700;
 }
 
 .product-price .currency {
-    font-size: 16px;
+    font-size: 18px;
+    font-family: var(--font-family-number);
 }
 
 .product-price .price-value {
-    font-size: 28px;
+    font-size: 32px;
     letter-spacing: -1px;
+    font-family: var(--font-family-number);
+    font-weight: 800;
 }
 
 .product-condition :deep(.van-tag) {
@@ -515,10 +518,10 @@ export default {
 }
 
 .product-title {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: #1a1a1a;
-    line-height: 1.5;
+    line-height: 1.4;
     margin-bottom: 12px;
 }
 
@@ -846,8 +849,9 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 0 24px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee0a24 100%);
+    background: linear-gradient(135deg, #FF7043 0%, #FF5722 100%);
     border: none;
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
 }
 
 .buy-btn .btn-text {

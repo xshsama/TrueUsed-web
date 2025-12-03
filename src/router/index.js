@@ -75,7 +75,7 @@ const routes = [
     path: '/messages/chat/:id',
     name: 'MessageChat',
     component: MessageChat,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true },
   },
   {
     path: '/profile',

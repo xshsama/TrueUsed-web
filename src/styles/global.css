@@ -11,6 +11,7 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none; /* Prevent bounce/rubber-banding globally */
 }
 
 /* 设计 Tokens */

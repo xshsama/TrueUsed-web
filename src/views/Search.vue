@@ -48,21 +48,18 @@
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                 <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
                     <!-- 骨架屏 -->
-                    <div v-if="loading && page === 0" class="result-list">
-                        <van-skeleton v-for="i in 4" :key="i" animated avatar :row="3" />
-                    </div>
-                    <div v-else-if="resultList.length > 0" class="result-list">
-                        <div v-for="item in resultList" :key="item.id" class="result-item"
-                            @click="goToProductDetail(item.id)">
-                            <van-image :src="(item.images && item.images[0]?.url) || placeholderImg" :alt="item.title"
-                                class="item-image" fit="cover" lazy-load />
-                            <div class="item-content">
-                                <div class="item-title" v-html="highlightKeyword(item.title)"></div>
-                                <div class="item-price">¥{{ item.price }}</div>
-                                <div class="item-location">{{ item.locationText }}</div>
-                            </div>
+                    <div v-if="loading && page === 0" class="product-grid">
+                        <div v-for="i in 8" :key="i" class="product-skeleton">
+                            <van-skeleton animated :row="3" />
                         </div>
                     </div>
+
+                    <!-- 结果列表 (Grid) -->
+                    <div v-else-if="resultList.length > 0" class="product-grid">
+                        <ProductCard v-for="item in resultList" :key="item.id" :product="item" :show-desc="true"
+                            @click="goToProductDetail(item.id)" />
+                    </div>
+
                     <van-empty v-else-if="searched && !loading" image="search" description="没有找到相关商品" />
                 </van-list>
             </van-pull-refresh>
@@ -72,12 +69,14 @@
 
 <script>
 import { listProducts } from '@/api/products'
+import ProductCard from '@/components/ProductCard.vue'
 import { showFailToast, showSuccessToast } from 'vant'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
     name: 'Search',
+    components: { ProductCard },
     setup() {
         const router = useRouter()
 
@@ -93,7 +92,6 @@ export default {
         const priceMin = ref()
         const priceMax = ref()
         const categoryId = ref()
-        const placeholderImg = ref('https://via.placeholder.com/120x120/eeeeee/999999?text=No+Image')
 
         const sortOptions = [
             { text: '最新发布', value: 'created,desc' },
@@ -214,17 +212,6 @@ export default {
             fetchList()
         }
 
-        // 高亮关键词
-        const escapeHtml = (s) =>
-            String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-        const highlightKeyword = (text) => {
-            if (!searchValue.value) return text
-            const keyword = searchValue.value.trim()
-            const safe = escapeHtml(text)
-            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            return safe.replace(new RegExp(`(${safeKeyword})`, 'gi'), '<span style="color: #ee0a24;">$1</span>')
-        }
-
         // 跳转商品详情
         const goToProductDetail = (id) => {
             router.push(`/product/${id}`)
@@ -244,7 +231,6 @@ export default {
             priceMin,
             priceMax,
             categoryId,
-            placeholderImg,
             searchHistory,
             hotSearch,
             onSearch,
@@ -254,7 +240,6 @@ export default {
             onLoad,
             onSortChange,
             applyFilters,
-            highlightKeyword,
             goToProductDetail
         }
     }
@@ -295,10 +280,6 @@ export default {
     gap: 8px;
 }
 
-.result-list {
-    padding: 0 16px;
-}
-
 .filter-bar {
     display: flex;
     gap: 12px;
@@ -318,49 +299,42 @@ export default {
     color: #c8c9cc;
 }
 
-.result-item {
-    display: flex;
+/* 商品网格 - 响应式 Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* 手机端双列 */
+    gap: 12px;
+    padding: 12px 16px;
+    /* consistent padding */
+}
+
+@media (min-width: 768px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 20px 16px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .product-grid {
+        grid-template-columns: repeat(5, 1fr);
+        /* 宽屏五列 */
+    }
+}
+
+.product-skeleton {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 16px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.item-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 4px;
-    margin-right: 12px;
-}
-
-.item-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.item-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #323233;
-    margin-bottom: 8px;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    line-height: 1.4;
-}
-
-.item-price {
-    font-size: 16px;
-    font-weight: 600;
-    color: #ee0a24;
-    margin-bottom: 4px;
-}
-
-.item-location {
-    font-size: 12px;
-    color: #969799;
+    margin-bottom: 0;
 }
 </style>

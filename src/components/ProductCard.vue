@@ -1,8 +1,8 @@
 <template>
     <div class="product-card" @click="onClick">
+        <!-- 封面图 (60%高度) -->
         <div class="card-media">
-            <van-image :src="productImage" :alt="product.title || '商品'" fit="cover" class="product-image" lazy-load
-                radius="14">
+            <van-image :src="productImage" :alt="product.title || '商品'" fit="cover" class="product-image" lazy-load>
                 <template #loading>
                     <div class="image-placeholder">
                         <van-icon name="photo-o" size="24" color="#cbd5e1" />
@@ -14,32 +14,39 @@
                     </div>
                 </template>
             </van-image>
-            <div v-if="product.condition" class="condition-tag">{{ product.condition }}新</div>
-            <slot name="badge"></slot>
-            <slot name="favorite"></slot>
-            <div v-if="statusText" class="status-tag" :class="'status-' + statusType">
-                <van-icon :name="statusIcon" size="12" />
-                <span>{{ statusText }}</span>
+
+            <!-- 状态遮罩 (如果在售状态不需要显示，其他状态显示) -->
+            <div v-if="statusText && status !== 'selling'" class="status-overlay">
+                {{ statusText }}
             </div>
         </div>
+
+        <!-- 信息区 (40%高度) -->
         <div class="card-content">
-            <h3 class="product-title" :title="product.title || '商品'">{{ product.title || '商品' }}</h3>
-            <div class="product-meta">
-                <span class="product-price">
-                    <span class="price-symbol">¥</span>
-                    <span class="price-value">{{ product.price ?? '-' }}</span>
-                </span>
-            </div>
-            <div class="seller-info" v-if="showSeller && product.seller">
-                <van-image :src="product.seller.avatar || defaultAvatar" round width="20" height="20" />
-                <span class="seller-name">{{ product.seller.nickname || '匿名' }}</span>
-            </div>
-            <div class="card-footer" v-if="$slots['footer-left'] || $slots['footer-right']">
-                <div class="footer-left">
-                    <slot name="footer-left"></slot>
+            <!-- 价格行 -->
+            <div class="price-row">
+                <div class="price-main">
+                    <span class="currency">¥</span>
+                    <span class="amount">{{ product.price ?? '-' }}</span>
                 </div>
-                <div class="footer-right">
-                    <slot name="footer-right"></slot>
+                <!-- 降价提示 -->
+                <div v-if="savedAmount > 0" class="price-drop-tag">
+                    ⬇降价 ¥{{ savedAmount }}
+                </div>
+            </div>
+
+            <!-- 标题 (两行省略) -->
+            <h3 class="product-title" :title="product.title || '商品'">
+                {{ product.title || '商品' }}
+            </h3>
+
+            <!-- 底部操作栏 -->
+            <div class="action-bar">
+                <div class="action-btn" @click.stop="$emit('delete', product)">
+                    <van-icon name="delete-o" size="18" />
+                </div>
+                <div class="action-btn" @click.stop="$emit('cart', product)">
+                    <van-icon name="cart-o" size="18" />
                 </div>
             </div>
         </div>
@@ -55,10 +62,10 @@ export default {
         product: { type: Object, required: true },
         showDesc: { type: Boolean, default: true },
         clickable: { type: Boolean, default: true },
-        status: { type: String, default: '' }, // selling | sold | offline
+        status: { type: String, default: 'selling' }, // selling | sold | offline
         showSeller: { type: Boolean, default: true },
     },
-    emits: ['click'],
+    emits: ['click', 'delete', 'cart'],
     data() {
         return {
             defaultAvatar: defaultAvatarUrl
@@ -66,25 +73,23 @@ export default {
     },
     computed: {
         productImage() {
-            // 优先使用 image 字段，其次尝试从 images 数组获取
             if (this.product.image) return this.product.image
             if (this.product.images && this.product.images.length > 0) {
-                // 支持 images 为对象数组 [{url: '...'}] 或字符串数组
                 const firstImg = this.product.images[0]
                 return typeof firstImg === 'string' ? firstImg : firstImg?.url
             }
             return ''
         },
         statusText() {
-            const map = { selling: '在售', sold: '已售', offline: '已下架' }
+            const map = { selling: '', sold: '已售', offline: '已下架' }
             return map[this.status] || ''
         },
-        statusType() {
-            return this.status || 'default'
-        },
-        statusIcon() {
-            const iconMap = { selling: 'checked', sold: 'success', offline: 'close' }
-            return iconMap[this.status] || 'info-o'
+        savedAmount() {
+            if (this.product.originalPrice && this.product.price) {
+                const diff = Math.floor(this.product.originalPrice - this.product.price);
+                return diff > 0 ? diff : 0;
+            }
+            return 0;
         }
     },
     methods: {
@@ -98,33 +103,33 @@ export default {
 
 <style scoped>
 .product-card {
-    background: var(--bg-card);
-    border-radius: 16px;
+    background: #FFF;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid transparent;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    position: relative;
+    /* Aspect Ratio 3:4 */
+    aspect-ratio: 3/4;
+    transition: transform 0.2s;
 }
 
 .product-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary-color-light, #e0e7ff);
 }
 
 .product-card:active {
     transform: scale(0.98);
 }
 
-/* 媒体区域 */
+/* 封面图 60% */
 .card-media {
+    height: 60%;
+    width: 100%;
     position: relative;
-    aspect-ratio: 1;
-    background: var(--bg-input);
+    background: #f8fafc;
     overflow: hidden;
 }
 
@@ -132,197 +137,112 @@ export default {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: cover;
-    background: #f8fafc;
-    /* 默认背景，防止加载前白屏 */
 }
 
-/* 隐藏 alt 文本，防止图片加载失败时显示巨大的文字 */
-.product-image :deep(img) {
-    transition: transform 0.5s ease;
-    text-indent: -9999px;
-    color: transparent;
-    /* 双重保险隐藏 alt 文本 */
-}
-
-.product-card:hover .product-image :deep(.van-image__img) {
-    transform: scale(1.08);
-}
-
-/* 状态标签 */
-.status-tag {
+/* 状态遮罩 */
+.status-overlay {
     position: absolute;
-    left: 8px;
-    top: 8px;
-    bottom: auto;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 20px;
-    color: #fff;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px);
-}
-
-.condition-tag {
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
-    background: rgba(0, 0, 0, 0.6);
+    justify-content: center;
     color: #fff;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    backdrop-filter: blur(4px);
+    font-weight: 600;
+    font-size: 16px;
+    backdrop-filter: blur(2px);
 }
 
-.status-selling {
-    background: rgba(16, 185, 129, 0.9);
-}
-
-.status-sold {
-    background: rgba(245, 158, 11, 0.9);
-}
-
-.status-offline {
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    color: #fff;
-}
-
-/* 内容区域 */
+/* 信息区 40% */
 .card-content {
+    height: 40%;
     padding: 12px;
     display: flex;
     flex-direction: column;
-    flex: 1;
+    justify-content: space-between;
+}
+
+/* 价格行 */
+.price-row {
+    display: flex;
+    align-items: center;
     gap: 8px;
 }
 
-.product-title {
-    font-size: 15px;
+.price-main {
+    color: #000;
+    font-weight: bold;
+    display: flex;
+    align-items: baseline;
+}
+
+.currency {
+    font-size: 14px;
+    margin-right: 1px;
+}
+
+.amount {
+    font-size: 20px;
+    font-family: 'Oswald', sans-serif;
+    /* Keep font if available */
     font-weight: 700;
-    /* 粗体 */
-    color: var(--text-primary);
-    margin: 0;
+}
+
+.price-drop-tag {
+    color: #EE0A24;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* 标题 */
+.product-title {
+    font-size: 14px;
+    color: #333;
     line-height: 1.4;
+    margin: 0;
+    font-weight: 500;
+
+    /* 2 lines truncate */
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    height: 42px;
-}
-
-/* 价格和位置信息 */
-.product-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-top: auto;
-}
-
-.product-price {
-    display: flex;
-    align-items: baseline;
-    gap: 2px;
-    color: #ff9800;
-    /* 橙色辅助色 */
-}
-
-.price-symbol {
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.price-value {
-    font-size: 22px;
-    /* 更大字号 */
-    font-weight: 900;
-    /* 极粗体 */
-    letter-spacing: -0.5px;
-    font-family: var(--font-family-number);
-}
-
-.seller-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-color);
-}
-
-.seller-name {
-    font-size: 11px;
-    color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-/* 底部插槽区域 */
-.card-footer {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column-reverse;
-    /* 垂直堆叠，按钮在上，日期在下 */
-    gap: 8px;
-    /* 增加垂直间距 */
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.footer-left {
-    width: 100%;
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    opacity: 0.8;
-    /* 视觉降级 */
-}
-
-.footer-right {
-    width: 100%;
+/* 底部操作栏 */
+.action-bar {
     display: flex;
     justify-content: flex-end;
-    /* 按钮靠右 */
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 8px;
 }
 
-/* 占位图样式 */
+.action-btn {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    padding: 4px;
+}
+
+.action-btn:hover {
+    color: #0f172a;
+}
+
+.action-btn:active {
+    opacity: 0.7;
+}
+
+/* Placeholder */
 .image-placeholder {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e8f5e9;
-    /* 浅绿色背景 */
-}
-
-.image-placeholder .van-icon {
-    color: rgba(76, 175, 80, 0.6) !important;
-    /* 绿色图标 */
-}
-
-/* 响应式调整 */
-@media (max-width: 720px) {
-    .card-content {
-        padding: 12px;
-    }
-
-    .product-title {
-        font-size: 14px;
-    }
-
-    .price-value {
-        font-size: 18px;
-    }
+    background: #f1f5f9;
 }
 </style>
