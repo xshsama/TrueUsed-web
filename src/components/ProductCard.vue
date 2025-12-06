@@ -1,52 +1,53 @@
 <template>
     <div class="product-card" @click="onClick">
-        <!-- 封面图 (60%高度) -->
-        <div class="card-media">
+        <!-- Image Section -->
+        <div class="card-image-box">
             <van-image :src="productImage" :alt="product.title || '商品'" fit="cover" class="product-image" lazy-load>
                 <template #loading>
-                    <div class="image-placeholder">
-                        <van-icon name="photo-o" size="24" color="#cbd5e1" />
-                    </div>
+                    <div class="image-placeholder"><van-icon name="photo-o" /></div>
                 </template>
                 <template #error>
-                    <div class="image-placeholder">
-                        <van-icon name="bag-o" size="24" color="#cbd5e1" />
-                    </div>
+                    <div class="image-placeholder"><van-icon name="bag-o" /></div>
                 </template>
             </van-image>
 
-            <!-- 状态遮罩 (如果在售状态不需要显示，其他状态显示) -->
+            <!-- Tags Overlay -->
+            <div class="img-tag top-left" v-if="hasRealShot">
+                <van-icon name="photograph" /> 实拍图
+            </div>
+            <div class="img-tag bottom-right" v-if="timeAgo">
+                <van-icon name="clock-o" /> {{ timeAgo }}
+            </div>
+
+            <!-- Status Overlay -->
             <div v-if="statusText && status !== 'selling'" class="status-overlay">
                 {{ statusText }}
             </div>
         </div>
 
-        <!-- 信息区 (40%高度) -->
-        <div class="card-content">
-            <!-- 价格行 -->
+        <!-- Content Section -->
+        <div class="card-info">
+            <h3 class="product-title">{{ product.title || '未命名商品' }}</h3>
+
             <div class="price-row">
-                <div class="price-main">
-                    <span class="currency">¥</span>
-                    <span class="amount">{{ product.price ?? '-' }}</span>
-                </div>
-                <!-- 降价提示 -->
-                <div v-if="savedAmount > 0" class="price-drop-tag">
-                    ⬇降价 ¥{{ savedAmount }}
-                </div>
+                <div class="main-price">¥<span class="price-num">{{ product.price ?? '-' }}</span></div>
+                <div class="original-price" v-if="product.originalPrice">¥{{ product.originalPrice }}</div>
             </div>
 
-            <!-- 标题 (两行省略) -->
-            <h3 class="product-title" :title="product.title || '商品'">
-                {{ product.title || '商品' }}
-            </h3>
+            <div class="save-tag-row" v-if="savedAmount > 0">
+                <span class="save-tag">立省 ¥{{ savedAmount }}</span>
+            </div>
 
-            <!-- 底部操作栏 -->
-            <div class="action-bar">
-                <div class="action-btn" @click.stop="$emit('delete', product)">
-                    <van-icon name="delete-o" size="18" />
+            <div class="seller-row" v-if="showSeller">
+                <div class="seller-left">
+                    <img :src="sellerAvatar" class="seller-avatar" />
+                    <div class="seller-text">
+                        <div class="seller-name">{{ sellerName }}</div>
+                        <div class="seller-sub">{{ sellerLocation }} · {{ sellerCredit }}</div>
+                    </div>
                 </div>
-                <div class="action-btn" @click.stop="$emit('cart', product)">
-                    <van-icon name="cart-o" size="18" />
+                <div class="want-count" v-if="wantCount > 0">
+                    <van-icon name="eye-o" /> {{ wantCount }}人想要
                 </div>
             </div>
         </div>
@@ -60,16 +61,16 @@ export default {
     name: 'ProductCard',
     props: {
         product: { type: Object, required: true },
-        showDesc: { type: Boolean, default: true },
         clickable: { type: Boolean, default: true },
         status: { type: String, default: 'selling' }, // selling | sold | offline
         showSeller: { type: Boolean, default: true },
     },
-    emits: ['click', 'delete', 'cart'],
-    data() {
-        return {
-            defaultAvatar: defaultAvatarUrl
+    emits: ['click'],
+    setup(props, { emit }) {
+        const onClick = () => {
+            if (props.clickable) emit('click', props.product)
         }
+        return { onClick }
     },
     computed: {
         productImage() {
@@ -80,6 +81,13 @@ export default {
             }
             return ''
         },
+        hasRealShot() {
+            // Check tags or mock
+            return this.product.tags?.includes('实拍图') || false
+        },
+        timeAgo() {
+            return this.product.timeAgo || ''
+        },
         statusText() {
             const map = { selling: '', sold: '已售', offline: '已下架' }
             return map[this.status] || ''
@@ -89,13 +97,23 @@ export default {
                 const diff = Math.floor(this.product.originalPrice - this.product.price);
                 return diff > 0 ? diff : 0;
             }
-            return 0;
-        }
-    },
-    methods: {
-        onClick() {
-            if (!this.clickable) return
-            this.$emit('click', this.product)
+            // Mock saved amount if original price missing but passed in props like 'saved'
+            return this.product.saved || 0
+        },
+        sellerAvatar() {
+            return this.product.seller?.avatar || defaultAvatarUrl
+        },
+        sellerName() {
+            return this.product.seller?.nickname || '匿名卖家'
+        },
+        sellerLocation() {
+            return this.product.locationText || this.product.seller?.city || '未知'
+        },
+        sellerCredit() {
+            return this.product.seller?.credit || '信用极好'
+        },
+        wantCount() {
+            return this.product.wantCount || 0
         }
     }
 }
@@ -105,144 +123,184 @@ export default {
 .product-card {
     background: #FFF;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    /* Aspect Ratio 3:4 */
-    aspect-ratio: 3/4;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #f3f4f6;
 }
 
 .product-card:hover {
     transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.product-card:active {
-    transform: scale(0.98);
-}
-
-/* 封面图 60% */
-.card-media {
-    height: 60%;
-    width: 100%;
+.card-image-box {
     position: relative;
-    background: #f8fafc;
+    padding-top: 100%;
+    /* 1:1 Aspect Ratio */
+    background: #f9fafb;
     overflow: hidden;
 }
 
 .product-image {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    display: block;
 }
 
-/* 状态遮罩 */
-.status-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 600;
-    font-size: 16px;
-    backdrop-filter: blur(2px);
-}
-
-/* 信息区 40% */
-.card-content {
-    height: 40%;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-/* 价格行 */
-.price-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.price-main {
-    color: #000;
-    font-weight: bold;
-    display: flex;
-    align-items: baseline;
-}
-
-.currency {
-    font-size: 14px;
-    margin-right: 1px;
-}
-
-.amount {
-    font-size: 20px;
-    font-family: 'Oswald', sans-serif;
-    /* Keep font if available */
-    font-weight: 700;
-}
-
-.price-drop-tag {
-    color: #EE0A24;
-    font-size: 11px;
-    font-weight: 500;
-}
-
-/* 标题 */
-.product-title {
-    font-size: 14px;
-    color: #333;
-    line-height: 1.4;
-    margin: 0;
-    font-weight: 500;
-
-    /* 2 lines truncate */
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 底部操作栏 */
-.action-bar {
-    display: flex;
-    justify-content: flex-end;
-    gap: 16px;
-    margin-top: auto;
-    padding-top: 8px;
-}
-
-.action-btn {
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s;
-    padding: 4px;
-}
-
-.action-btn:hover {
-    color: #0f172a;
-}
-
-.action-btn:active {
-    opacity: 0.7;
-}
-
-/* Placeholder */
 .image-placeholder {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f1f5f9;
+    color: #cbd5e1;
+    font-size: 24px;
+}
+
+.img-tag {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    backdrop-filter: blur(2px);
+}
+
+.img-tag.top-left {
+    top: 8px;
+    left: 8px;
+}
+
+.img-tag.bottom-right {
+    bottom: 8px;
+    right: 8px;
+}
+
+.status-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.card-info {
+    padding: 12px;
+}
+
+.product-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 40px;
+    /* Fixed height for 2 lines */
+}
+
+.price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.main-price {
+    color: #EF4444;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.price-num {
+    font-size: 18px;
+}
+
+.original-price {
+    color: #9CA3AF;
+    font-size: 12px;
+    text-decoration: line-through;
+}
+
+.save-tag-row {
+    margin-bottom: 12px;
+}
+
+.save-tag {
+    background: #FEF2F2;
+    color: #EF4444;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.seller-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #F3F4F6;
+    padding-top: 8px;
+}
+
+.seller-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.seller-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.seller-text {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.seller-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seller-sub {
+    font-size: 10px;
+    color: #9CA3AF;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.want-count {
+    font-size: 10px;
+    color: #6B7280;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
 }
 </style>

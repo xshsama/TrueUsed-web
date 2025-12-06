@@ -1,286 +1,230 @@
 <template>
-    <div class="profile-page" :class="isSellerMode ? 'theme-seller' : 'theme-buyer'">
-        <!-- 头部区域 (沉浸式背景) -->
-        <div class="profile-header">
-            <div class="header-content">
-                <!-- 用户信息 & 头像 -->
-                <div class="user-identity">
-                    <div class="avatar-section" @click="editProfile">
-                        <div class="avatar-container">
-                            <van-image :src="avatarSrc" class="user-avatar" round fit="cover" @error="onAvatarError" />
-                            <div class="edit-badge" v-if="isLoggedIn">
-                                <van-icon name="photograph" />
-                            </div>
-                        </div>
-                    </div>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50]">
 
-                    <div class="info-section">
-                        <div class="nickname-row">
-                            <h1 class="nickname">{{ userInfo.nickname || userInfo.username || '点击登录' }}</h1>
-                            <van-tag v-if="isLoggedIn" round color="rgba(255,255,255,0.2)" text-color="#fff">
-                                {{ isSellerMode ? '个人卖家' : '普通会员' }}
-                            </van-tag>
-                        </div>
 
-                        <!-- 身份切换 (The Switcher) -->
-                        <div class="identity-switcher-wrapper">
-                            <div class="identity-switcher">
-                                <div class="switcher-track"></div>
-                                <div class="switcher-slider" :style="{ left: isSellerMode ? '50%' : '0' }"></div>
-                                <div class="switcher-item" :class="{ active: !isSellerMode }"
-                                    @click="switchMode(false)">
-                                    <span class="text">买家版</span>
-                                </div>
-                                <div class="switcher-item" :class="{ active: isSellerMode }" @click="switchMode(true)">
-                                    <span class="text">卖家版</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
+        <!-- --- Main Layout Container --- -->
+        <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+            <!-- --- 2. Profile Card --- -->
+            <section
+                class="relative w-full overflow-hidden rounded-2xl text-white shadow-xl shadow-[#3e6b56]/10 p-8 md:p-10 transition-colors duration-500"
+                :class="isSellerMode ? 'bg-gradient-to-br from-[#2c3e50] via-[#34495e] to-[#4a6b5e]' : 'bg-gradient-to-br from-[#355E4B] via-[#41705A] to-[#5C9E84]'">
+
+                <!-- Decorative Background -->
+                <div
+                    class="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none">
                 </div>
 
-                <!-- 核心数据 (Key Data) - Compact Layout -->
-                <div class="header-stats">
-                    <div class="stat-item">
-                        <div class="stat-value">
-                            <span class="symbol">¥</span>
-                            <span class="num">{{ isSellerMode ? '12,850.00' : '2,450' }}</span>
+                <div class="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
+
+                    <!-- Avatar Section -->
+                    <div class="relative group shrink-0">
+                        <div
+                            class="w-24 h-24 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl relative z-10">
+                            <img :src="avatarSrc" class="w-full h-full object-cover" @error="onAvatarError" />
                         </div>
-                        <div class="stat-label">{{ isSellerMode ? '累计收益' : '累计节省' }}</div>
+                        <div class="absolute bottom-1 right-1 bg-[#2c3e50] p-1.5 rounded-full border border-white/20 z-20 cursor-pointer hover:scale-110 transition-transform"
+                            @click="editProfile">
+                            <div class="i-lucide-user text-white text-xs"></div>
+                        </div>
                     </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-value">
-                            <span class="num">{{ isSellerMode ? '15' : '8' }}</span>
+
+                    <!-- User Info & Stats -->
+                    <div class="flex-1 text-center md:text-left space-y-4">
+                        <div class="flex flex-col md:flex-row items-center gap-4">
+                            <h1 class="text-3xl font-bold tracking-tight">{{ userInfo.nickname || userInfo.username ||
+                                '点击登录' }}</h1>
+                            <div class="flex items-center gap-2" v-if="isLoggedIn">
+                                <span
+                                    class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-white/10 flex items-center gap-1.5 text-[#A8E6CF]">
+                                    <div class="i-lucide-shield-check text-xs fill-[#A8E6CF]"
+                                        :class="isSellerMode ? 'text-[#34495e]' : 'text-[#355E4B]'"></div>
+                                    实名认证
+                                </span>
+                                <span
+                                    class="bg-black/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium border border-white/5 text-white/90">
+                                    信用极好
+                                </span>
+                            </div>
                         </div>
-                        <div class="stat-label">{{ isSellerMode ? '在售商品' : '可用券' }}</div>
+
+                        <!-- Data Grid -->
+                        <div class="flex items-center justify-center md:justify-start gap-8 md:gap-12 pt-2">
+                            <template v-for="(stat, idx) in currentStats" :key="idx">
+                                <div class="text-center md:text-left">
+                                    <div class="text-2xl font-bold font-mono">{{ stat.value }}</div>
+                                    <div class="text-xs text-[#A8E6CF]/80 font-medium uppercase tracking-wider mt-0.5">
+                                        {{ stat.label }}</div>
+                                </div>
+                                <div v-if="idx < currentStats.length - 1" class="w-px h-8 bg-white/10"></div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Switch (Seller/Buyer) -->
+                    <div
+                        class="bg-black/20 p-1 rounded-full flex gap-1 shadow-inner border border-white/5 backdrop-blur-sm self-center md:self-start">
+                        <button @click="isSellerMode = false"
+                            class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 border-none cursor-pointer"
+                            :class="!isSellerMode ? 'bg-white text-[#355E4B] shadow-md' : 'bg-transparent text-white/60 hover:text-white'">
+                            买家版
+                        </button>
+                        <button @click="isSellerMode = true"
+                            class="px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 border-none cursor-pointer"
+                            :class="isSellerMode ? 'bg-white text-[#2c3e50] shadow-md' : 'bg-transparent text-white/60 hover:text-white'">
+                            卖家版
+                        </button>
                     </div>
                 </div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- --- 3. Left Column (主要功能区) --- -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Orders Section -->
+                    <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-lg font-bold text-[#2c3e50]">
+                                {{ isSellerMode ? '我卖出的' : '我的订单' }}
+                            </h2>
+                            <a href="#"
+                                class="text-xs text-gray-400 flex items-center hover:text-[#4a8b6e] transition-colors group"
+                                @click.prevent="router.push('/orders')">
+                                全部订单 <div
+                                    class="i-lucide-chevron-right text-sm group-hover:translate-x-0.5 transition-transform">
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2">
+                            <div v-for="(item, idx) in currentOrderMenu" :key="idx"
+                                class="flex flex-col items-center gap-3 relative cursor-pointer group p-2 rounded-xl hover:bg-gray-50 transition-colors"
+                                @click="handleOrderClick(item)">
+                                <div v-if="item.badge > 0"
+                                    class="absolute top-1 right-2 md:right-8 bg-[#e74c3c] text-white text-[10px] min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full border border-white font-bold shadow-sm z-10">
+                                    {{ item.badge }}
+                                </div>
+                                <div
+                                    :class="[isSellerMode ? 'text-[#34495e]' : 'text-[#4a8b6e]', 'group-hover:scale-110 transition-transform duration-300']">
+                                    <div :class="[item.icon, 'text-[28px] stroke-[1.5]']"></div>
+                                </div>
+                                <span class="text-xs text-gray-600 font-medium">{{ item.label }}</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Recent Viewed / Recommendations -->
+                    <section>
+                        <div class="flex items-center gap-2 mb-4 px-1">
+                            <div class="w-1.5 h-5 rounded-full" :class="isSellerMode ? 'bg-[#34495e]' : 'bg-[#4a8b6e]'">
+                            </div>
+                            <h2 class="font-bold text-[#2c3e50]">
+                                {{ isSellerMode ? '数据概览 & 建议' : '最近浏览 & 推荐' }}
+                            </h2>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div v-for="item in [1, 2]" :key="item"
+                                class="bg-white rounded-xl p-3 shadow-sm hover:shadow-md border border-gray-100 hover:border-[#4a8b6e]/30 transition-all cursor-pointer group">
+                                <div class="aspect-[4/3] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
+                                    <img :src="`https://images.unsplash.com/photo-${item === 1 ? '1517336714731-489689fd1ca4' : '1516035069371-29a1b244cc32'}?auto=format&fit=crop&q=80&w=400`"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <div v-if="isSellerMode"
+                                        class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
+                                        32人浏览</div>
+                                    <div v-else
+                                        class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
+                                        刚刚看过</div>
+                                </div>
+                                <h3
+                                    class="text-sm font-bold text-[#2c3e50] line-clamp-1 group-hover:text-[#4a8b6e] transition-colors">
+                                    99新 MacBook Pro M1 / 个人自用</h3>
+                                <div class="flex items-center justify-between mt-2">
+                                    <span class="text-[#e74c3c] font-bold text-base">¥8,500</span>
+                                    <span v-if="isSellerMode"
+                                        class="text-[10px] text-[#4a8b6e] bg-[#f0fdf7] px-1.5 py-0.5 rounded">曝光率高</span>
+                                    <span v-else
+                                        class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">降价提醒</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+
+                <!-- --- 4. Right Column (工具栏 & 资产) --- -->
+                <div class="space-y-6">
+
+                    <!-- My Assets -->
+                    <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50">
+                        <h2 class="text-lg font-bold text-[#2c3e50] mb-6">我的资产</h2>
+                        <div class="space-y-1">
+                            <div v-for="(item, idx) in currentAssets" :key="idx"
+                                class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 cursor-pointer group transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center group-hover:text-white transition-colors"
+                                        :class="isSellerMode ? 'bg-[#f0f9ff] text-[#34495e] group-hover:bg-[#34495e]' : 'bg-[#f0fdf7] text-[#4a8b6e] group-hover:bg-[#4a8b6e]'">
+                                        <div :class="[item.icon, 'text-lg']"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-600">{{ item.label }}</span>
+                                </div>
+                                <span class="text-sm font-bold text-[#2c3e50]">{{ item.value }}</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Services Grid -->
+                    <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50">
+                        <h2 class="text-lg font-bold text-[#2c3e50] mb-4">常用服务</h2>
+                        <div class="grid grid-cols-3 gap-y-4">
+                            <div v-for="(item, idx) in currentServices" :key="idx"
+                                class="flex flex-col items-center gap-2 cursor-pointer group"
+                                @click="handleServiceClick(item)">
+                                <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 transition-colors"
+                                    :class="isSellerMode ? 'group-hover:bg-[#34495e]/10 group-hover:text-[#34495e]' : 'group-hover:bg-[#4a8b6e]/10 group-hover:text-[#4a8b6e]'">
+                                    <div :class="[item.icon, 'text-[20px] stroke-[1.5]']"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 scale-90">{{ item.label }}</span>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+
             </div>
 
-            <!-- 装饰背景 -->
-            <div class="header-bg-decoration"></div>
-        </div>
+        </main>
 
-        <!-- 内容区域 -->
-        <div class="page-content">
-            <transition name="fade-slide" mode="out-in">
-
-                <!-- 买家中心 (Consumer UX) -->
-                <div v-if="!isSellerMode" class="mode-content buyer-content" key="buyer">
-
-                    <!-- 1. 订单追踪 -->
-                    <section class="card-section">
-                        <div class="card-header" @click="viewAllOrders">
-                            <span class="card-title">我的订单</span>
-                            <span class="card-more">全部 <van-icon name="arrow" /></span>
-                        </div>
-
-                        <div v-if="hasOrders" class="grid-menu">
-                            <div class="grid-item" v-for="item in buyerOrderStatus" :key="item.key"
-                                @click="goToOrderStatus(item.key)">
-                                <div class="icon-box buyer-icon">
-                                    <van-icon :name="item.icon" />
-                                    <div class="badge" v-if="item.count > 0">{{ item.count }}</div>
-                                </div>
-                                <span class="label">{{ item.label }}</span>
-                            </div>
-                        </div>
-
-                        <!-- 空状态 -->
-                        <div v-else class="empty-state-card">
-                            <van-icon name="shopping-cart-o" class="empty-icon" />
-                            <p class="empty-text">您还没有订单，去首页逛逛吧</p>
-                            <van-button round type="primary" size="small" color="#4FA37F" to="/">去首页</van-button>
-                        </div>
-                    </section>
-
-                    <!-- 2. 资产与服务 -->
-                    <section class="card-section">
-                        <div class="card-header">
-                            <span class="card-title">我的资产 & 服务</span>
-                        </div>
-                        <div class="grid-menu col-4">
-                            <div class="grid-item" @click="goToFavorites">
-                                <div class="icon-box buyer-icon"><van-icon name="star-o" /></div>
-                                <span class="label">我的收藏</span>
-                            </div>
-                            <div class="grid-item" @click="goToAddress">
-                                <div class="icon-box buyer-icon"><van-icon name="location-o" /></div>
-                                <span class="label">收货地址</span>
-                            </div>
-                            <div class="grid-item">
-                                <div class="icon-box buyer-icon"><van-icon name="delete-o" /></div>
-                                <span class="label">浏览历史</span>
-                            </div>
-                            <div class="grid-item" @click="goToSettings">
-                                <div class="icon-box buyer-icon"><van-icon name="setting-o" /></div>
-                                <span class="label">设置</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- 3. 推荐 (常购/猜你喜欢) -->
-                    <section class="recommend-section">
-                        <div class="recommend-title">猜你喜欢</div>
-                        <div class="recommend-grid">
-                            <!-- 占位符: 实际项目中这里应该是商品 Feed 流 -->
-                            <div class="recommend-placeholder" v-for="i in 2" :key="i">
-                                <div class="ph-img"></div>
-                                <div class="ph-txt"></div>
-                                <div class="ph-txt short"></div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- 卖家中心 (Merchant UX) -->
-                <div v-else class="mode-content seller-content" key="seller">
-
-                    <!-- 1. 待办事项 (Action Items) -->
-                    <section class="card-section">
-                        <div class="card-header">
-                            <span class="card-title">待办事项</span>
-                            <span class="card-more action-urgent">{{ pendingActionsCount }} 个待处理</span>
-                        </div>
-                        <div class="action-buttons-row">
-                            <div class="action-btn-item clickable" @click="handleAction('ship')">
-                                <div class="action-btn-content">
-                                    <span class="action-num">3</span>
-                                    <span class="action-txt">待发货</span>
-                                </div>
-                                <van-icon name="arrow" class="action-arrow" />
-                            </div>
-                            <div class="action-btn-item clickable" @click="handleAction('refund')">
-                                <div class="action-btn-content">
-                                    <span class="action-num">0</span>
-                                    <span class="action-txt">处理退款</span>
-                                </div>
-                                <van-icon name="arrow" class="action-arrow" />
-                            </div>
-                            <div class="action-btn-item clickable" @click="handleAction('reply')">
-                                <div class="action-btn-content">
-                                    <span class="action-num">99+</span>
-                                    <span class="action-txt">未读消息</span>
-                                </div>
-                                <van-icon name="arrow" class="action-arrow" />
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- 2. 生意参谋 (Analytics) -->
-                    <section class="card-section">
-                        <div class="card-header">
-                            <span class="card-title">生意参谋</span>
-                            <span class="card-more clickable">近7天数据 <van-icon name="arrow-down" /></span>
-                        </div>
-                        <div class="analytics-preview">
-                            <div class="chart-placeholder">
-                                <!-- Smooth Curve (Spline) -->
-                                <svg width="100%" height="60" viewBox="0 0 300 60" preserveAspectRatio="none">
-                                    <defs>
-                                        <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
-                                            <stop offset="0%" style="stop-color:rgb(232,143,79);stop-opacity:0.2" />
-                                            <stop offset="100%" style="stop-color:rgb(232,143,79);stop-opacity:0" />
-                                        </linearGradient>
-                                    </defs>
-                                    <path d="M0,50 C50,45 80,30 150,25 S250,40 300,15" fill="none" stroke="#E88F4F"
-                                        stroke-width="2" />
-                                    <path d="M0,50 C50,45 80,30 150,25 S250,40 300,15 V60 H0 Z" fill="url(#grad1)"
-                                        stroke="none" />
-                                    <circle cx="300" cy="15" r="3" fill="#E88F4F" />
-                                </svg>
-                            </div>
-                            <div class="analytics-data-row">
-                                <div class="data-point">
-                                    <span class="num">1,205</span>
-                                    <span class="lbl">浏览量</span>
-                                </div>
-                                <div class="data-point">
-                                    <span class="num">8</span>
-                                    <span class="lbl">已卖出</span>
-                                </div>
-                                <div class="data-point">
-                                    <span class="num">¥3,400</span>
-                                    <span class="lbl">收益</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- 3. 商品管理 -->
-                    <section class="card-section">
-                        <div class="card-header">
-                            <span class="card-title">常用工具</span>
-                        </div>
-                        <div class="grid-menu col-4">
-                            <div class="grid-item" @click="goToMyPosts">
-                                <div class="icon-box seller-icon"><van-icon name="goods-collect-o" /></div>
-                                <span class="label">商品管理</span>
-                            </div>
-                            <div class="grid-item">
-                                <div class="icon-box seller-icon"><van-icon name="chart-trending-o" /></div>
-                                <span class="label">数据中心</span>
-                            </div>
-                            <div class="grid-item">
-                                <div class="icon-box seller-icon"><van-icon name="logistics" /></div>
-                                <span class="label">发货设置</span>
-                            </div>
-                            <div class="grid-item">
-                                <div class="icon-box seller-icon"><van-icon name="shop-o" /></div>
-                                <span class="label">店铺设置</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- 空状态 (无发布/无销售) - 演示用 -->
-                    <section v-if="!hasSales" class="empty-state-card mt-4">
-                        <div class="empty-illustration-piggy">🐷</div>
-                        <p class="empty-text">把闲置变现，第一笔收入在等你</p>
-                    </section>
-
-                </div>
-            </transition>
-        </div>
-
-        <!-- 卖家模式底部悬浮按钮 (Green Button) -->
-        <div class="sticky-footer" v-if="isSellerMode">
-            <van-button block round color="#4FA37F" class="publish-btn" icon="plus" @click="goToPublish">
-                立即发布闲置
-            </van-button>
-        </div>
-
-        <!-- 底部占位，防止内容被 Tabbar 遮挡 -->
-        <div class="bottom-spacer"></div>
-
-        <!-- 编辑资料弹窗 -->
+        <!-- Edit Profile Dialog (Reused from original) -->
         <van-dialog v-model:show="showEdit" title="编辑资料" :show-confirm-button="false" :show-cancel-button="false"
             class="edit-dialog">
-            <div class="form-content">
-                <div class="dialog-loading" v-if="saving">
-                    <van-loading type="spinner" color="#4CAF50" />
-                    <span>正在保存...</span>
-                </div>
-                <div class="avatar-upload-section">
-                    <div class="upload-label">头像</div>
-                    <div class="avatar-uploader-wrapper">
-                        <ImageUpload v-model="avatarList" :max-images="1" :size="100" :round="true" hint=""
+            <div class="p-4">
+                <div class="flex flex-col items-center mb-4">
+                    <div class="relative w-20 h-20 mb-2">
+                        <ImageUpload v-model="avatarList" :max-images="1" :size="80" :round="true" hint=""
                             :show-count="false" />
-                        <div class="camera-icon-overlay">
-                            <van-icon name="photograph" />
+                        <div
+                            class="absolute bottom-0 right-0 bg-gray-800 text-white p-1 rounded-full pointer-events-none">
+                            <div class="i-lucide-camera text-xs"></div>
                         </div>
                     </div>
+                    <span class="text-xs text-gray-500">点击更换头像</span>
                 </div>
                 <van-field v-model="form.nickname" label="昵称" placeholder="请输入昵称" :error-message="errors.nickname"
-                    class="form-field required-field" />
+                    class="mb-2" />
                 <van-field v-model="form.phone" label="手机号" placeholder="可选" :error-message="errors.phone"
-                    class="form-field" />
+                    class="mb-2" />
                 <van-field v-model="form.bio" label="签名" type="textarea" rows="2" maxlength="80" show-word-limit
-                    placeholder="介绍一下自己吧" class="form-field" />
-            </div>
-            <div class="dialog-footer">
-                <van-button class="btn-cancel" plain @click="showEdit = false">取消</van-button>
-                <van-button class="btn-confirm" type="primary" :loading="saving" @click="handleSave">确认</van-button>
+                    placeholder="介绍一下自己吧" />
+
+                <div class="flex gap-3 mt-6">
+                    <van-button block plain @click="showEdit = false">取消</van-button>
+                    <van-button block type="primary" color="#4a8b6e" :loading="saving"
+                        @click="handleSave">保存</van-button>
+                </div>
             </div>
         </van-dialog>
     </div>
@@ -298,590 +242,162 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const loading = ref(true)
 const isSellerMode = ref(false)
-
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.user || {})
-const defaultAvatar = defaultAvatarUrl
-const avatarSrc = ref('')
+const avatarSrc = ref(defaultAvatarUrl)
 
-// Mock Data States
-const hasOrders = ref(true) // Set to false to see empty state
-const hasSales = ref(true)
+// --- Data Definitions ---
+
+// 1. Stats
+const buyerStats = [
+    { label: '累计节省', value: '¥2,450', sub: '击败90%用户' },
+    { label: '我的闲置', value: '12', sub: '去变现' },
+    { label: '可用优惠券', value: '8', sub: '即将过期' }
+]
+const sellerStats = [
+    { label: '累计收益', value: '¥12,850', sub: '本月+12%' },
+    { label: '在售商品', value: '5', sub: '库存正常' },
+    { label: '今日访客', value: '128', sub: '新增关注+2' }
+]
+const currentStats = computed(() => isSellerMode.value ? sellerStats : buyerStats)
+
+// 2. Order Menu
+const buyerOrderMenu = [
+    { label: '待付款', icon: 'i-lucide-credit-card', badge: 1, key: 'unpaid' },
+    { label: '待发货', icon: 'i-lucide-package', badge: 0, key: 'toship' },
+    { label: '待收货', icon: 'i-lucide-truck', badge: 2, key: 'toreceive' },
+    { label: '退款/售后', icon: 'i-lucide-rotate-ccw', badge: 0, key: 'afterSale' },
+]
+const sellerOrderMenu = [
+    { label: '待付款', icon: 'i-lucide-clock', badge: 0, key: 'unpaid' },
+    { label: '待发货', icon: 'i-lucide-package', badge: 3, key: 'toship' },
+    { label: '已发货', icon: 'i-lucide-truck', badge: 5, key: 'shipped' },
+    { label: '售后/退款', icon: 'i-lucide-rotate-ccw', badge: 1, key: 'refund' },
+]
+const currentOrderMenu = computed(() => isSellerMode.value ? sellerOrderMenu : buyerOrderMenu)
+
+// 3. Assets
+const currentAssets = computed(() => [
+    { label: '我的钱包', value: isSellerMode.value ? '¥12,850' : '¥0.00', icon: 'i-lucide-wallet' },
+    { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '3张' : '8张', icon: 'i-lucide-ticket' },
+    { label: '积分', value: '1,240', icon: 'i-lucide-star' },
+])
+
+// 4. Services
+const buyerServices = [
+    { label: '收货地址', icon: 'i-lucide-map-pin', action: 'address' },
+    { label: '我的收藏', icon: 'i-lucide-heart', action: 'favorites' },
+    { label: '浏览记录', icon: 'i-lucide-clock', action: 'history' },
+    { label: '官方验货', icon: 'i-lucide-shield-check', action: 'check' },
+    { label: '帮助中心', icon: 'i-lucide-message-circle', action: 'help' },
+    { label: '设置', icon: 'i-lucide-settings', action: 'settings' },
+]
+const sellerServices = [
+    { label: '商品管理', icon: 'i-lucide-archive', action: 'products' },
+    { label: '数据中心', icon: 'i-lucide-bar-chart-3', action: 'data' },
+    { label: '客户管理', icon: 'i-lucide-users', action: 'customers' },
+    { label: '验货报告', icon: 'i-lucide-shield-check', action: 'check' },
+    { label: '帮助中心', icon: 'i-lucide-message-circle', action: 'help' },
+    { label: '店铺设置', icon: 'i-lucide-settings', action: 'shop-settings' },
+]
+const currentServices = computed(() => isSellerMode.value ? sellerServices : buyerServices)
+
+
+// --- Logic ---
 
 onMounted(async () => {
     if (route.query.tab === 'seller') {
         isSellerMode.value = true
     }
-    try {
-        if (isLoggedIn.value) {
-            await userStore.loadMe()
-        }
-    } finally {
-        loading.value = false
+    if (isLoggedIn.value) {
+        await userStore.loadMe()
     }
-    avatarSrc.value = (userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar)) || defaultAvatar
+    updateAvatar()
 })
 
-watch(() => userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar), (v) => {
-    avatarSrc.value = v || defaultAvatar
-})
+watch(() => userInfo.value, updateAvatar, { deep: true })
+
+function updateAvatar() {
+    avatarSrc.value = (userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar)) || defaultAvatarUrl
+}
 
 const onAvatarError = () => {
-    if (avatarSrc.value !== defaultAvatar) {
-        avatarSrc.value = defaultAvatar
+    if (avatarSrc.value !== defaultAvatarUrl) {
+        avatarSrc.value = defaultAvatarUrl
     }
 }
 
-const switchMode = (isSeller) => {
-    isSellerMode.value = isSeller;
-}
-
-const buyerOrderStatus = ref([
-    { key: 'unpaid', label: '待付款', icon: 'credit-pay', count: 1 },
-    { key: 'toship', label: '待发货', icon: 'logistics', count: 0 },
-    { key: 'toreceive', label: '待收货', icon: 'bag-o', count: 2 },
-    { key: 'afterSale', label: '退款/售后', icon: 'refund-o', count: 0 }
-])
-
-const pendingActionsCount = ref(3)
-
-// Form Logic
+// Edit Profile Logic
 const showEdit = ref(false)
 const saving = ref(false)
 const form = ref({ nickname: '', avatarUrl: '', bio: '', phone: '' })
-const initialForm = ref({ nickname: '', avatarUrl: '', bio: '', phone: '' })
 const avatarList = ref([])
 const errors = ref({ nickname: '', phone: '' })
 
-const validateNickname = (val) => {
-    if (!val || !val.trim()) return '请输入昵称'
-    if (val.trim().length < 2) return '昵称至少 2 个字符'
-    return ''
-}
-const validatePhone = (val) => {
-    if (!val) return ''
-    const ok = /^[0-9+\-()\s]{6,20}$/.test(String(val).trim())
-    return ok ? '' : '手机号格式不正确'
-}
-const validateAll = () => {
-    errors.value.nickname = validateNickname(form.value.nickname)
-    errors.value.phone = validatePhone(form.value.phone)
-    return !(errors.value.nickname || errors.value.phone)
-}
-const isDirty = computed(() => JSON.stringify(form.value) !== JSON.stringify(initialForm.value))
-
 const editProfile = () => {
     if (!isLoggedIn.value) {
-        goLogin()
+        router.push({ name: 'Login', query: { redirect: '/profile' } })
         return
     }
     form.value = {
-        nickname: (userInfo.value && userInfo.value.nickname) || '',
-        avatarUrl: (userInfo.value && userInfo.value.avatarUrl) || '',
-        bio: (userInfo.value && userInfo.value.bio) || '',
-        phone: (userInfo.value && userInfo.value.phone) || ''
+        nickname: userInfo.value.nickname || '',
+        avatarUrl: userInfo.value.avatarUrl || '',
+        bio: userInfo.value.bio || '',
+        phone: userInfo.value.phone || ''
     }
-    initialForm.value = { ...form.value }
-    errors.value = { nickname: validateNickname(form.value.nickname), phone: validatePhone(form.value.phone) }
     avatarList.value = form.value.avatarUrl ? [form.value.avatarUrl] : []
     showEdit.value = true
 }
 
 const handleSave = async () => {
-    if (!validateAll()) {
-        showFailToast('请修正表单错误')
-        return
-    }
-    if (!isDirty.value) {
-        showEdit.value = false
+    if (!form.value.nickname) {
+        showFailToast('请输入昵称')
         return
     }
     try {
         saving.value = true
+        form.value.avatarUrl = avatarList.value[0] || ''
         await userStore.saveMe(form.value)
-        showSuccessToast('已更新资料')
-        initialForm.value = { ...form.value }
+        showSuccessToast('保存成功')
         showEdit.value = false
     } catch (e) {
-        console.error('保存资料失败:', e)
-        showFailToast('更新失败')
+        showFailToast('保存失败')
     } finally {
         saving.value = false
     }
 }
 
-watch(avatarList, (val) => { form.value.avatarUrl = (val && val[0]) || '' })
-watch(() => form.value.nickname, (v) => { errors.value.nickname = validateNickname(v) })
-watch(() => form.value.phone, (v) => { errors.value.phone = validatePhone(v) })
+// Navigation Handlers
+const handleOrderClick = (item) => {
+    if (isSellerMode.value) {
+        router.push({ name: 'OrderManage', query: { status: item.key } })
+    } else {
+        router.push({ name: 'Orders', query: { status: item.key } })
+    }
+}
 
-// Navigation
-const goLogin = () => router.push({ name: 'Login', query: { redirect: '/profile' } })
-const viewAllOrders = () => router.push({ name: 'Orders' })
-const goToOrderStatus = (key) => {
-    router.push({ name: 'Orders', query: { status: key } })
+const handleServiceClick = (item) => {
+    switch (item.action) {
+        case 'address': router.push('/address'); break;
+        case 'favorites': router.push('/favorites'); break;
+        case 'settings': router.push('/settings'); break;
+        case 'products': router.push('/post/manage'); break;
+        case 'shop-settings': router.push('/settings'); break; // Placeholder
+        default: showToast('功能开发中');
+    }
 }
-const goToAddress = () => router.push({ name: 'Address' })
-const goToFavorites = () => router.push({ name: 'Favorites' })
-const goToService = () => router.push({ name: 'ServiceCenter' })
-const goToSettings = () => router.push({ name: 'Settings' })
-const goToMyPosts = () => router.push({ name: 'PostManage' })
-const goToPublish = () => router.push({ name: 'PostCreate' })
-const handleAction = (action) => {
-    if (action === 'ship') router.push({ name: 'OrderManage', query: { status: 'toship' } })
-    else showToast('功能开发中')
-}
+
 </script>
 
 <style scoped>
-/* 
-  Theme Variables
-*/
-.theme-buyer {
-    --primary-bg: #4FA37F;
-    --primary-text: #ffffff;
-    --accent-color: #4FA37F;
-    --header-bg: #4FA37F;
-    --active-text: #4FA37F;
+/* Custom scrollbar hide if needed */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
 
-.theme-seller {
-    --primary-bg: #E88F4F;
-    --primary-text: #ffffff;
-    --accent-color: #E88F4F;
-    --header-bg: linear-gradient(135deg, #FFB300 0%, #E88F4F 100%);
-    --active-text: #E65100;
-}
-
-.profile-page {
-    --bg-page: #f7f8fa;
-    --text-main: #333;
-    --text-light: #999;
-
-    min-height: 100vh;
-    background: var(--bg-page);
-    padding-bottom: 80px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-/* Header Area */
-.profile-header {
-    background: var(--header-bg);
-    padding: 50px 20px 70px;
-    /* Reduced padding */
-    color: #fff;
-    position: relative;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
-    transition: background 0.3s ease;
-    overflow: visible;
-}
-
-.header-content {
-    position: relative;
-    z-index: 2;
-}
-
-.user-identity {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.avatar-container {
-    width: 72px;
-    /* Smaller avatar */
-    height: 72px;
-    border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.4);
-    padding: 2px;
-    position: relative;
-}
-
-.user-avatar {
-    width: 100%;
-    height: 100%;
-}
-
-.edit-badge {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-}
-
-.nickname-row {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.nickname {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* Switcher (Capsule) */
-.identity-switcher-wrapper {
-    margin-top: 12px;
-    display: flex;
-    justify-content: center;
-    width: 100%;
-}
-
-.identity-switcher {
-    width: 180px;
-    height: 32px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    border-radius: 16px;
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px;
-    backdrop-filter: blur(4px);
-}
-
-.switcher-track {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 16px;
-}
-
-.switcher-slider {
-    position: absolute;
-    top: 2px;
-    bottom: 2px;
-    width: 50%;
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    z-index: 1;
-}
-
-.switcher-item {
-    flex: 1;
-    text-align: center;
-    z-index: 2;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 28px;
-    color: rgba(255, 255, 255, 0.9);
-    transition: color 0.3s;
-}
-
-.switcher-item.active {
-    color: var(--active-text);
-    font-weight: 700;
-}
-
-/* Stats */
-.header-stats {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    margin-top: 10px;
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-divider {
-    width: 1px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: 800;
-    font-family: 'DIN Alternate', sans-serif;
-    margin-bottom: 2px;
-}
-
-.stat-value .symbol {
-    font-size: 12px;
-    margin-right: 2px;
-}
-
-.stat-label {
-    font-size: 11px;
-    opacity: 0.9;
-}
-
-/* Page Content */
-.page-content {
-    margin-top: -30px;
-    /* Pull up to overlap header */
-    padding: 0 16px;
-    position: relative;
-    z-index: 10;
-}
-
-.card-section {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #333;
-}
-
-.card-more {
-    font-size: 12px;
-    color: #999;
-    display: flex;
-    align-items: center;
-}
-
-.clickable:active {
-    opacity: 0.7;
-}
-
-.action-urgent {
-    color: #FF5722;
-    background: #FFCCBC;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-/* Grid Menu (Orders/Tools) */
-.grid-menu {
-    display: flex;
-    justify-content: space-between;
-}
-
-.grid-menu.col-4 {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-}
-
-.grid-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-}
-
-.icon-box {
-    font-size: 26px;
-    position: relative;
-}
-
-.badge {
-    position: absolute;
-    top: -5px;
-    right: -8px;
-    background: #ff4d4f;
-    color: #fff;
-    font-size: 10px;
-    padding: 0 4px;
-    border-radius: 8px;
-    min-width: 16px;
-    text-align: center;
-    border: 1px solid #fff;
-}
-
-.label {
-    font-size: 12px;
-    color: #555;
-}
-
-.buyer-icon {
-    color: #4FA37F;
-}
-
-.seller-icon {
-    color: #E88F4F;
-}
-
-/* Action Buttons (Seller) */
-.action-buttons-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-}
-
-.action-btn-item {
-    background: #f9f9f9;
-    border-radius: 8px;
-    padding: 12px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.action-btn-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.action-num {
-    font-size: 16px;
-    font-weight: 800;
-    color: #333;
-}
-
-.action-txt {
-    font-size: 11px;
-    color: #666;
-}
-
-.action-arrow {
-    font-size: 12px;
-    color: #ccc;
-}
-
-/* Analytics */
-.analytics-preview {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.analytics-data-row {
-    display: flex;
-    justify-content: space-between;
-}
-
-.data-point {
-    display: flex;
-    flex-direction: column;
-}
-
-.data-point .num {
-    font-size: 16px;
-    font-weight: 700;
-    color: #333;
-}
-
-.data-point .lbl {
-    font-size: 11px;
-    color: #999;
-}
-
-/* Recommend / Empty State */
-.recommend-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin: 20px 0 12px;
-    padding-left: 8px;
-    border-left: 4px solid var(--accent-color);
-}
-
-.recommend-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.recommend-placeholder {
-    background: #fff;
-    border-radius: 8px;
-    padding: 10px;
-    height: 180px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.ph-img {
-    background: #f0f0f0;
-    flex: 1;
-    border-radius: 4px;
-}
-
-.ph-txt {
-    height: 12px;
-    background: #f0f0f0;
-    border-radius: 2px;
-}
-
-.ph-txt.short {
-    width: 60%;
-}
-
-.empty-state-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 0;
-    gap: 12px;
-}
-
-.empty-icon {
-    font-size: 48px;
-    color: #ddd;
-}
-
-.empty-illustration-piggy {
-    font-size: 64px;
-}
-
-.empty-text {
-    font-size: 14px;
-    color: #999;
-}
-
-/* Sticky Footer */
-.sticky-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 12px 24px 24px;
-    background: #fff;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-    z-index: 100;
-}
-
-.bottom-spacer {
-    height: 20px;
-}
-
-/* Transitions */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-    transition: all 0.3s ease;
-}
-
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-    opacity: 0;
-    transform: translateY(10px);
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

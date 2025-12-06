@@ -1,561 +1,369 @@
 <template>
-    <div class="message-chat-page">
-        <!-- 安全提示 (Trust & Safety) -->
-        <div class="safety-warning">
-            温馨提示：请勿脱离平台私下转账，谨防诈骗。
-        </div>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] flex flex-col">
 
-        <!-- 悬浮商品卡片 (Sticky Product Card) -->
-        <div class="sticky-product-card" v-if="productInfo" @click="goToProduct(productInfo.id)">
-            <van-image :src="productInfo.image" class="card-thumb" fit="cover" radius="4" />
-            <div class="card-info">
-                <div class="card-title">{{ productInfo.title }}</div>
-                <div class="card-price">¥{{ productInfo.price }}</div>
+        <!-- --- Top Navigation --- -->
+        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100 flex-shrink-0">
+            <div class="max-w-6xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
+                <div class="flex items-center gap-10">
+                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
+                        <div
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
+                            T</div>
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                                class="text-[#4a8b6e]">.</span></span>
+                    </div>
+                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors"
+                            @click.prevent="router.push('/')">首页</a>
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">捡漏榜</a>
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">附近闲置</a>
+                    </div>
+                </div>
+                <div class="flex items-center gap-5">
+                    <div class="flex flex-col items-center gap-0.5 cursor-pointer text-[#4a8b6e]">
+                        <div class="i-lucide-message-circle text-[22px] stroke-[2]"></div>
+                        <span class="text-[10px] scale-90">消息</span>
+                    </div>
+                    <div
+                        class="flex flex-col items-center gap-0.5 cursor-pointer text-gray-500 hover:text-[#4a8b6e] transition-colors">
+                        <div class="i-lucide-heart text-[22px] stroke-[1.5]"></div>
+                        <span class="text-[10px] scale-90">收藏</span>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100">
+                        <img :src="currentUser.avatar" alt="Me" class="w-full h-full object-cover" />
+                    </div>
+                </div>
             </div>
-            <div class="card-actions">
-                <template v-if="isBuyer">
-                    <van-button size="small" round plain type="success" class="action-btn">发起砍价</van-button>
-                    <van-button size="small" round type="success" class="action-btn">立即购买</van-button>
-                </template>
-                <template v-else>
-                    <van-button size="small" round plain type="warning" class="action-btn">修改价格</van-button>
-                    <van-button size="small" round type="warning" class="action-btn">标记已售</van-button>
-                </template>
-            </div>
-        </div>
+        </nav>
 
-        <!-- 聊天内容区域 -->
-        <div class="chat-content" ref="chatContainer">
-            <div class="message-list">
-                <!-- 顶部系统消息示例 -->
-                <div class="system-message-item">
-                    <span>为了资金安全，请勿微信转账</span>
+        <!-- --- Main Chat Layout (Two Columns) --- -->
+        <main class="max-w-6xl mx-auto w-full flex-1 px-4 py-6 flex h-[calc(100vh-72px)] gap-4">
+
+            <!-- Left Sidebar: Chat List -->
+            <aside
+                class="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden flex-shrink-0">
+                <!-- Sidebar Header -->
+                <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-800">消息列表</h2>
+                    <div
+                        class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 cursor-pointer transition-colors">
+                        <div class="i-lucide-plus text-lg"></div>
+                    </div>
                 </div>
 
-                <div v-for="message in messageList" :key="message.id">
-                    <!-- 系统消息插值 (Mock logic: if type is system) -->
-                    <div v-if="message.type === 'system'" class="system-message-item">
-                        <span>{{ message.content }}</span>
+                <!-- Search (Optional) -->
+                <div class="px-4 py-3">
+                    <div class="relative">
+                        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <div class="i-lucide-search text-sm"></div>
+                        </div>
+                        <input type="text" placeholder="搜索联系人"
+                            class="w-full bg-gray-50 border-none rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-1 focus:ring-[#4a8b6e]/30 outline-none transition-all" />
                     </div>
+                </div>
 
-                    <!-- 常规消息 -->
-                    <div v-else :class="['message-item', message.isSelf ? 'message-self' : 'message-other']">
-                        <van-image
-                            :src="message.isSelf ? (userStore.user?.avatarUrl || userStore.user?.avatar || defaultAvatar('我')) : userInfo.avatar"
-                            class="message-avatar" round fit="cover">
-                            <template v-slot:error>
-                                <img :src="defaultAvatar(message.isSelf ? '我' : userInfo.name)"
-                                    style="width: 100%; height: 100%; object-fit: cover;" />
-                            </template>
-                        </van-image>
-                        <div class="message-content">
-                            <div v-if="message.type === 'text'" class="message-bubble">
-                                {{ message.content }}
-                            </div>
-                            <div v-else-if="message.type === 'image'" class="message-image">
-                                <van-image :src="message.content" fit="cover" @click="previewImage(message.content)" />
-                            </div>
-                            <div v-else-if="message.type === 'product'" class="message-product"
-                                @click="goToProduct(message.productId)">
-                                <van-image :src="message.productImage" class="product-image" fit="cover" />
-                                <div class="product-info">
-                                    <div class="product-title">{{ message.productTitle }}</div>
-                                    <div class="product-price">¥{{ message.productPrice }}</div>
-                                </div>
+                <!-- Chat List -->
+                <div class="flex-1 overflow-y-auto">
+                    <div v-for="chat in chatList" :key="chat.id" @click="switchChat(chat)"
+                        class="flex items-center gap-3 p-4 cursor-pointer transition-all hover:bg-gray-50 relative group"
+                        :class="activeChatId === chat.id ? 'bg-emerald-50/40' : ''">
+
+                        <!-- Avatar -->
+                        <div class="relative flex-shrink-0">
+                            <img :src="chat.avatar"
+                                class="w-12 h-12 rounded-full object-cover border border-gray-100 group-hover:scale-105 transition-transform" />
+                            <div v-if="chat.unread > 0"
+                                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                {{ chat.unread }}
                             </div>
                         </div>
+
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-baseline mb-1">
+                                <h3 class="font-bold text-gray-800 truncate text-[14px]"
+                                    :class="activeChatId === chat.id ? 'text-[#4a8b6e]' : ''">{{ chat.name }}</h3>
+                                <span class="text-[10px] text-gray-400 flex-shrink-0">{{ chat.time }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate group-hover:text-gray-700 transition-colors">{{
+                                chat.lastMessage }}</p>
+                        </div>
+
+                        <!-- Active Indicator -->
+                        <div v-if="activeChatId === chat.id"
+                            class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-[#4a8b6e] rounded-r-full"></div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </aside>
 
-        <!-- 输入区域 -->
-        <div class="chat-input-area">
-            <!-- 智能短语 Chips (Smart Replies) -->
-            <div class="smart-chips">
-                <div class="chip" v-for="phrase in smartPhrases" :key="phrase" @click="sendQuickMessage(phrase)">
-                    {{ phrase }}
+            <!-- Right Chat Window -->
+            <div
+                class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
+
+                <!-- Chat Header -->
+                <header
+                    class="h-16 border-b border-gray-50 flex items-center justify-between px-6 flex-shrink-0 bg-white z-20">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <img :src="currentChatUser.avatar" class="w-10 h-10 rounded-full object-cover" />
+                            <div
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800 flex items-center gap-2">
+                                {{ currentChatUser.name }}
+                                <span v-if="currentChatUser.credit"
+                                    class="bg-gray-100 text-gray-400 text-[10px] px-1.5 py-0.5 rounded font-normal">芝麻信用{{
+                                        currentChatUser.credit }}</span>
+                            </div>
+                            <div class="text-xs text-gray-400">活跃于 刚刚</div>
+                        </div>
+                    </div>
+
+                    <!-- Header Actions -->
+                    <div class="flex items-center gap-3">
+                        <button
+                            class="w-8 h-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-phone text-lg"></div>
+                        </button>
+                        <button
+                            class="w-8 h-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-more-vertical text-lg"></div>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Product Context Card -->
+                <div v-if="relatedProduct"
+                    class="bg-white border-b border-gray-50 p-3 px-6 flex items-center justify-between gap-4 shadow-sm z-10">
+                    <div class="flex items-center gap-3">
+                        <img :src="relatedProduct.image" class="w-10 h-10 rounded-lg object-cover bg-gray-100" />
+                        <div>
+                            <div class="text-sm font-bold text-gray-800">¥{{ relatedProduct.price }}</div>
+                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:border-[#4a8b6e] hover:text-[#4a8b6e] transition-colors bg-transparent cursor-pointer">
+                            发起砍价
+                        </button>
+                        <button
+                            class="text-xs px-3 py-1.5 rounded-full bg-[#4a8b6e] text-white hover:bg-[#3b755b] transition-colors border-none cursor-pointer">
+                            立即购买
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="chat-input-bar">
-                <van-icon name="smile-o" size="28" color="#666" class="tool-icon" @click="showEmoji" />
-                <div class="input-wrapper">
-                    <input v-model="inputMessage" type="text" placeholder="输入消息..." @keyup.enter="sendMessage" />
+                <!-- Messages Area -->
+                <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f9fafb]" ref="messagesContainer">
+
+                    <template v-for="msg in messages" :key="msg.id">
+                        <div v-if="msg.type === 'system'" class="flex justify-center mb-4">
+                            <div
+                                class="bg-[#fefce8] text-[#854d0e] text-xs px-4 py-2 rounded-full flex items-center gap-2 border border-[#fef08a] shadow-sm max-w-lg text-center">
+                                <div class="i-lucide-shield-alert text-sm flex-shrink-0"></div>
+                                {{ msg.content }}
+                            </div>
+                        </div>
+
+                        <div v-else class="flex gap-3" :class="msg.type === 'me' ? 'flex-row-reverse' : ''">
+                            <img :src="msg.type === 'me' ? currentUser.avatar : currentChatUser.avatar"
+                                class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-white shadow-sm" />
+                            <div class="max-w-[70%] space-y-1"
+                                :class="msg.type === 'me' ? 'items-end flex flex-col' : ''">
+                                <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm relative group"
+                                    :class="msg.type === 'me'
+                                        ? 'bg-[#4a8b6e] text-white rounded-tr-none'
+                                        : 'bg-white text-gray-700 border border-gray-100 rounded-tl-none'">
+                                    {{ msg.content }}
+                                </div>
+                                <span class="text-[10px] text-gray-300 px-1">{{ msg.time }}</span>
+                            </div>
+                        </div>
+                    </template>
                 </div>
-                <van-icon name="photo-o" size="28" color="#666" class="tool-icon" @click="selectImage" />
-                <div class="send-btn" :class="{ 'active': inputMessage.trim() }" @click="sendMessage">
-                    <span v-if="inputMessage.trim()">发送</span>
-                    <van-icon v-else name="plus" size="20" color="#fff" />
+
+                <!-- Input Area -->
+                <div class="bg-white border-t border-gray-100 p-4">
+
+                    <!-- Quick Replies -->
+                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+                        <button v-for="text in quickReplies" :key="text" @click="handleQuickReply(text)"
+                            class="whitespace-nowrap px-3 py-1 bg-gray-50 text-gray-500 text-xs rounded-full border border-gray-100 hover:bg-[#4a8b6e]/10 hover:text-[#4a8b6e] hover:border-[#4a8b6e]/20 transition-all cursor-pointer">
+                            {{ text }}
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button
+                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-image text-[22px]"></div>
+                        </button>
+                        <button
+                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-truck text-[22px]"></div>
+                        </button>
+
+                        <div class="flex-1 relative">
+                            <input type="text" v-model="inputText" @keydown.enter="handleSend" placeholder="输入消息..."
+                                class="w-full bg-gray-100 border-none rounded-full py-2.5 pl-4 pr-10 text-sm focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all outline-none" />
+                        </div>
+
+                        <button @click="handleSend"
+                            class="p-2.5 rounded-full transition-all border-none cursor-pointer flex items-center justify-center"
+                            :class="inputText.trim() ? 'bg-[#4a8b6e] text-white shadow-lg shadow-[#4a8b6e]/30' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                            :disabled="!inputText.trim()">
+                            <div class="i-lucide-send text-xl" :class="inputText.trim() ? 'translate-x-0.5' : ''"></div>
+                        </button>
+                    </div>
                 </div>
+
             </div>
-        </div>
-
-        <!-- 更多操作面板 -->
-        <van-action-sheet v-model:show="showActions" :actions="actionSheetActions" @select="onActionSelect"
-            cancel-text="取消" />
-
-        <!-- 图片上传 -->
-        <input ref="imageInput" type="file" accept="image/*" style="display: none" @change="onImageSelect" />
+        </main>
     </div>
 </template>
 
-<script>
-import { useMessageStore } from '@/stores/message'
-import { useUserStore } from '@/stores/user'
-import { Dialog, ImagePreview, showSuccessToast, showToast } from 'vant'
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+<script setup>
+import { nextTick, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-export default {
-    name: 'MessageChat',
-    setup() {
-        const router = useRouter()
-        const route = useRoute()
-        const messageStore = useMessageStore()
-        const userStore = useUserStore()
-        const chatContainer = ref(null)
-        const imageInput = ref(null)
+const router = useRouter()
+const inputText = ref('')
+const messagesContainer = ref(null)
 
-        const inputMessage = ref('')
-        const showActions = ref(false)
-        const isBuyer = ref(true) // Role toggle for demo
+// 模拟当前用户
+const currentUser = {
+    id: 'me',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'
+}
 
-        // Mock Product Info
-        const productInfo = ref({
-            id: 101,
-            title: 'iPhone 13 128G 国行正品 保修期内',
-            price: 4500,
-            image: 'https://img.yzcdn.cn/vant/apple-1.jpg'
-        })
+// 聊天列表数据
+const chatList = ref([
+    {
+        id: 1,
+        name: '摄影师阿杰',
+        avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100',
+        lastMessage: '什么时候方便发货？',
+        time: '昨天',
+        unread: 2,
+        credit: '极好',
+        type: 'user'
+    },
+    {
+        id: 2,
+        name: '系统通知',
+        avatar: 'https://ui-avatars.com/api/?name=System&background=ef4444&color=fff',
+        lastMessage: '您的订单已发货，点击查看物流详情',
+        time: '星期一',
+        unread: 0,
+        credit: '',
+        type: 'system'
+    },
+    {
+        id: 3,
+        name: 'Geek_Tom',
+        avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&q=80&w=100',
+        lastMessage: '好的，那我拍下了',
+        time: '12/05',
+        unread: 0,
+        credit: '优秀',
+        type: 'user'
+    }
+])
 
-        const conversationId = Number(route.params.id)
-        const userInfo = ref({})
+const activeChatId = ref(1)
+const currentChatUser = reactive({ ...chatList.value[0] })
 
-        // Smart Replies
-        const buyerPhrases = ['还在吗？', '可以刀吗？', '什么时候能发货？', '成色怎么样？', '有瑕疵吗？']
-        const sellerPhrases = ['不议价哦', '今天能发', '在这个链接拍就行', '看详情页描述', '已经是底价了']
+// 关联商品信息
+const relatedProduct = {
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=100',
+    title: 'Kindle Paperwhite 5',
+    price: '650'
+}
 
-        const smartPhrases = computed(() => isBuyer.value ? buyerPhrases : sellerPhrases)
+// 模拟当前对话内容
+const messages = ref([
+    { id: 1, type: 'system', content: '为了资金安全，请勿脱离平台私下转账，谨防诈骗。' },
+    { id: 2, type: 'other', content: '你好，还在吗？', time: '14:50' },
+    { id: 3, type: 'me', content: '在的，请问对这个 Kindle 感兴趣吗？', time: '14:51' },
+    { id: 4, type: 'other', content: '成色怎么样？屏幕有划痕吗？', time: '14:52' },
+    { id: 5, type: 'me', content: '箱说全，屏幕完美，一直贴膜用的。', time: '14:52' },
+    { id: 6, type: 'other', content: '可以刀吗？600包邮出不出？', time: '14:53' },
+])
 
-        const actionSheetActions = reactive([
-            { name: '切换角色(演示用)', value: 'switchRole' },
-            { name: '发送商品', value: 'product' },
-            { name: '举报用户', value: 'report' },
-            { name: '删除聊天', value: 'delete', color: '#ee0a24' }
-        ])
+const quickReplies = ['还在吗？', '可以刀吗？', '什么时候能发货？', '成色怎么样？', '有瑕疵吗？']
 
-        const messageList = computed(() => {
-            // Injecting mock system messages for demo if needed, or rely on store
-            return messageStore.messages
-        })
-
-        const defaultAvatar = (name) => {
-            return `https://ui-avatars.com/api/?name=${name || 'User'}&background=random&color=fff`
+const scrollToBottom = () => {
+    nextTick(() => {
+        if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
         }
+    })
+}
 
-        const scrollToBottom = () => {
-            nextTick(() => {
-                if (chatContainer.value) {
-                    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-                }
-            })
-        }
+const handleSend = () => {
+    if (!inputText.value.trim()) return
+    messages.value.push({
+        id: Date.now(),
+        type: 'me',
+        content: inputText.value,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })
+    inputText.value = ''
+    scrollToBottom()
+}
 
-        const sendMessage = () => {
-            const message = inputMessage.value.trim()
-            if (!message) return
+const handleQuickReply = (text) => {
+    messages.value.push({
+        id: Date.now(),
+        type: 'me',
+        content: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })
+    scrollToBottom()
+}
 
-            const conversation = messageStore.conversations.find(c => c.id === conversationId)
-            if (conversation) {
-                if (!conversation.otherUserId) {
-                    showToast('无法发送消息：接收者ID缺失')
-                    return
-                }
-                messageStore.sendMessage(conversation.otherUserId, message)
-                inputMessage.value = ''
-            } else {
-                showToast('无法发送消息：找不到会话')
-            }
-        }
+const switchChat = (chat) => {
+    activeChatId.value = chat.id
+    Object.assign(currentChatUser, chat)
 
-        const sendQuickMessage = (msg) => {
-            inputMessage.value = msg;
-            sendMessage();
-        }
-
-        const selectImage = () => imageInput.value?.click()
-        const onImageSelect = (event) => {
-            showToast('图片发送功能开发中')
-            event.target.value = ''
-        }
-        const previewImage = (imageUrl) => ImagePreview([imageUrl])
-        const showEmoji = () => showToast('表情功能开发中')
-        const showMoreActions = () => showActions.value = true
-
-        const onActionSelect = (action) => {
-            switch (action.value) {
-                case 'switchRole':
-                    isBuyer.value = !isBuyer.value;
-                    showToast(`已切换为${isBuyer.value ? '买家' : '卖家'}视角`)
-                    break
-                case 'product': showToast('发送商品功能开发中'); break
-                case 'report': showToast('举报功能开发中'); break
-                case 'delete':
-                    Dialog.confirm({ title: '确认删除', message: '删除后聊天记录将无法恢复' }).then(() => {
-                        showSuccessToast('聊天已删除')
-                        router.go(-1)
-                    })
-                    break
-            }
-            showActions.value = false
-        }
-
-        const goToProduct = (productId) => router.push(`/product/${productId}`)
-
-        onMounted(async () => {
-            if (!conversationId || conversationId <= 0) {
-                showToast('无效的会话')
-                router.back()
-                return
-            }
-            if (!userStore.user || !userStore.user.avatarUrl) {
-                try { await userStore.loadMe() } catch (e) { console.error(e) }
-            }
-            messageStore.connect()
-            await messageStore.fetchConversations()
-            const conversation = messageStore.conversations.find(c => c.id === conversationId)
-            if (conversation) {
-                userInfo.value = {
-                    id: conversation.otherUserId,
-                    name: conversation.otherUserName,
-                    avatar: conversation.otherUserAvatar || defaultAvatar(conversation.otherUserName)
-                }
-            }
-            await messageStore.fetchMessages(conversationId)
-            scrollToBottom()
-        })
-
-        onUnmounted(() => messageStore.clearCurrentConversation())
-        watch(() => messageStore.messages.length, () => scrollToBottom())
-
-        return {
-            chatContainer, imageInput, inputMessage, messageList, showActions, userInfo,
-            productInfo, actionSheetActions, sendMessage, sendQuickMessage, selectImage,
-            onImageSelect, previewImage, showEmoji, showMoreActions, onActionSelect,
-            goToProduct, defaultAvatar, userStore, smartPhrases, isBuyer
+    // 模拟切换聊天内容
+    if (chat.type === 'system') {
+        messages.value = [
+            { id: 1, type: 'system', content: '系统通知：您的订单 238492384 已发货。' },
+            { id: 2, type: 'other', content: '点击查看物流详情', time: '09:00' }
+        ]
+        relatedProduct.value = null
+    } else {
+        // Reset to demo conversation
+        messages.value = [
+            { id: 1, type: 'system', content: '为了资金安全，请勿脱离平台私下转账，谨防诈骗。' },
+            { id: 2, type: 'other', content: '你好，还在吗？', time: '14:50' },
+            { id: 3, type: 'me', content: '在的，请问对这个 Kindle 感兴趣吗？', time: '14:51' },
+        ]
+        relatedProduct.value = {
+            image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=100',
+            title: 'Kindle Paperwhite 5',
+            price: '650'
         }
     }
+    scrollToBottom()
 }
+
+onMounted(() => {
+    scrollToBottom()
+})
 </script>
 
 <style scoped>
-.message-chat-page {
-    position: fixed;
-    top: 72px;
-    /* Global Navbar Height */
-    left: 0;
-    right: 0;
-    bottom: 0;
-    bottom: env(safe-area-inset-bottom);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background-color: #F5F7FA;
-    --brand-green: #4FA37F;
-    z-index: 100;
-    overscroll-behavior: none;
-}
-
-.safety-warning,
-.sticky-product-card,
-.chat-input-area {
-    flex-shrink: 0;
-    touch-action: none;
-}
-
-.nav-title-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
-}
-
-.nav-name {
-    font-weight: 600;
-    font-size: 16px;
-}
-
-.nav-status {
-    font-size: 10px;
-    color: #10B981;
-}
-
-/* Safety Warning */
-.safety-warning {
-    background: #FFFBE6;
-    color: #FAAD14;
-    font-size: 12px;
-    padding: 8px 16px;
-    text-align: center;
-    z-index: 100;
-}
-
-/* Sticky Product Card */
-.sticky-product-card {
-    background: #fff;
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #f0f0f0;
-    z-index: 100;
-}
-
-.card-thumb {
-    width: 48px;
-    height: 48px;
-    border-radius: 4px;
-    margin-right: 12px;
-    border: 1px solid #f5f5f5;
-}
-
-.card-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin-right: 12px;
-    min-width: 0;
-}
-
-.card-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.card-price {
-    font-size: 16px;
-    font-weight: 700;
-    color: #E88F4F;
-    /* Seller Orange for price highlight */
-}
-
-.card-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.action-btn {
-    height: 28px;
-    padding: 0 12px;
-    font-size: 12px;
-}
-
-/* Chat Content */
-.chat-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 0;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-}
-
-.message-list {
-    padding: 0 16px;
-}
-
-/* System Message */
-.system-message-item {
-    text-align: center;
-    margin: 16px 0;
-}
-
-.system-message-item span {
-    background: rgba(0, 0, 0, 0.05);
-    color: #999;
-    font-size: 12px;
-    padding: 4px 12px;
-    border-radius: 4px;
-}
-
-/* Message Items */
-.message-item {
-    display: flex;
-    margin-bottom: 20px;
-    align-items: flex-start;
-}
-
-.message-self {
-    flex-direction: row-reverse;
-}
-
-.message-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.message-other .message-avatar {
-    margin-right: 10px;
-}
-
-.message-self .message-avatar {
-    margin-left: 10px;
-}
-
-.message-content {
-    max-width: 75%;
-    display: flex;
-    flex-direction: column;
-}
-
-.message-self .message-content {
-    align-items: flex-end;
-}
-
-/* Message Bubbles */
-.message-bubble {
-    padding: 10px 14px;
-    font-size: 15px;
-    line-height: 1.5;
-    word-break: break-word;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    position: relative;
-    min-width: 20px;
-}
-
-/* Left (Other) Bubble */
-.message-other .message-bubble {
-    background: #FFFFFF;
-    /* White */
-    color: #333;
-    border-radius: 0 12px 12px 12px;
-    border: 1px solid #E5E7EB;
-}
-
-/* Right (Self) Bubble */
-.message-self .message-bubble {
-    background: var(--brand-green);
-    /* Brand Green */
-    color: #FFFFFF;
-    border-radius: 12px 0 12px 12px;
-}
-
-.message-image {
-    border-radius: 8px;
-    overflow: hidden;
-    max-width: 200px;
-}
-
-.message-product {
-    background: #fff;
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    max-width: 260px;
-    border: 1px solid #E5E7EB;
-}
-
-/* Input Area */
-.chat-input-area {
-    background: #fff;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-.smart-chips {
-    display: flex;
-    gap: 8px;
-    padding: 10px 12px;
-    overflow-x: auto;
-    background: #F9FAFB;
-    border-bottom: 1px solid #F3F4F6;
-    scrollbar-width: none;
-}
-
-.smart-chips::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
 
-.chip {
-    background: #fff;
-    border: 1px solid #E5E7EB;
-    border-radius: 16px;
-    padding: 6px 14px;
-    font-size: 13px;
-    color: #4B5563;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.chip:active {
-    background: #F3F4F6;
-    transform: scale(0.95);
-}
-
-.chat-input-bar {
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-}
-
-.tool-icon {
-    padding: 0 8px;
-}
-
-.input-wrapper {
-    flex: 1;
-    margin: 0 8px;
-    background: #F3F4F6;
-    border-radius: 20px;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-}
-
-.input-wrapper input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-size: 15px;
-    padding: 0;
-    margin: 0;
-    outline: none;
-}
-
-.send-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #E5E7EB;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 4px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-}
-
-.send-btn.active {
-    background: var(--brand-green);
-    width: auto;
-    padding: 0 16px;
-    border-radius: 18px;
-}
-
-.send-btn span {
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

@@ -11,21 +11,28 @@
                     </div>
                     <div style="font-family: 'Poppins', sans-serif; font-size: 24px; line-height: 1;">
                         <span style="font-weight: 800; color: #1F2937;">True</span>
-                        <span style="font-weight: 400; color: #00875A;">Used</span>
+                        <span style="font-weight: 400; color: #00875A;">Used.</span>
                     </div>
+                </div>
+
+                <!-- 1.5. 导航链接 (新增) -->
+                <div class="nav-links">
+                    <router-link to="/home" class="nav-text-link"
+                        :class="{ active: topActive === 'home' }">首页</router-link>
+                    <span class="nav-text-link">捡漏榜</span>
+                    <span class="nav-text-link">附近闲置</span>
                 </div>
 
                 <!-- 2. 搜索框区域 (C位) -->
                 <div class="nav-center">
                     <div class="search-wrapper">
                         <div class="search-category">
-                            <span>全部</span>
-                            <van-icon name="arrow-down" size="12" style="margin-left: 4px; color: #999;" />
-                        </div>
-                        <input type="text" placeholder="搜索好物..." @keyup.enter="goSearch($event.target.value)" />
-                        <div class="search-btn"
-                            @click="(e) => goSearch(e.target.closest('.search-wrapper').querySelector('input').value)">
-                            <van-icon name="search" size="20" />
+                            <span>搜“iPhone 15”看看大家卖多少钱...</span>
+                            <input type="text" placeholder="" @keyup.enter="goSearch($event.target.value)" />
+                            <div class="search-btn"
+                                @click="(e) => goSearch(e.target.closest('.search-wrapper').querySelector('input').value)">
+                                <van-icon name="search" size="18" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -36,7 +43,8 @@
                     <div class="nav-icon-link" @click="goTop('messages')">
                         <div class="icon-box">
                             <van-icon name="chat-o" size="22" />
-                            <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                            <span v-if="unreadCount" class="g-badge">{{ unreadCount > 99 ? '99+' : unreadCount
+                            }}</span>
                         </div>
                         <span>消息</span>
                     </div>
@@ -67,6 +75,7 @@
 
                     <!-- 发布按钮 -->
                     <button class="post-btn-primary" @click="router.push('/post/create')">
+                        <van-icon name="plus" />
                         发布闲置
                     </button>
                 </div>
@@ -268,62 +277,78 @@ export default {
 
 /* 1. Logo 区域 */
 .nav-left {
-    width: 200px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     cursor: pointer;
+    margin-right: 32px;
+}
+
+/* 1.5 导航链接 */
+.nav-links {
+    display: flex;
+    gap: 24px;
+    margin-right: 24px;
+}
+
+.nav-text-link {
+    font-size: 16px;
+    font-weight: 500;
+    color: #4B5563;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nav-text-link:hover,
+.nav-text-link.active {
+    color: #00875A;
+    font-weight: 600;
 }
 
 /* 2. 搜索框区域 (C位) */
 .nav-center {
     flex: 1;
     display: flex;
-    justify-content: center;
-    margin: 0 40px;
-    max-width: 680px;
+    justify-content: flex-start;
+    /* 改为靠左 */
+    margin: 0 12px;
+    max-width: 500px;
 }
 
 .search-wrapper {
     width: 100%;
-    /* Capsule Container / 胶囊容器 */
-    border: none !important;
-    background-color: #F3F4F6;
-    /* Unified pale gray background */
+    border: 1px solid #E5E7EB !important;
+    /* 轻微边框 */
+    background-color: #FFFFFF;
+    /* 白色背景 */
     border-radius: 99px;
-    height: 48px;
+    height: 44px;
+    /* 稍微调小 */
     display: flex;
     align-items: center;
     padding: 4px;
-    /* Inner spacing */
     transition: all 0.3s ease;
 }
 
 .search-wrapper:focus-within {
-    background-color: #FFFFFF;
-    transform: translateY(-1px);
-    /* Green Glow Shadow */
-    box-shadow: 0 4px 20px rgba(0, 135, 90, 0.15);
+    border-color: #00875A !important;
+    box-shadow: 0 2px 12px rgba(0, 135, 90, 0.1);
 }
 
 .search-category {
     display: flex;
     align-items: center;
     padding-left: 16px;
-    padding-right: 8px;
     height: 100%;
-    background: transparent !important;
-    /* Transparent to blend with capsule */
-    border-right: none;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    cursor: pointer;
+    font-size: 14px;
+    color: #9CA3AF;
+    /* 灰色占位符文本 */
     white-space: nowrap;
-}
-
-.search-category:hover {
-    color: #00875A;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    /* 让点击穿透到input */
 }
 
 .search-wrapper input {
@@ -331,19 +356,19 @@ export default {
     height: 100%;
     border: none;
     outline: none;
-    padding: 0 12px;
+    padding: 0 8px;
     font-size: 14px;
     color: #333;
+    background: transparent;
 }
 
 .search-btn {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     margin: 2px;
-    /* Floating effect spacing */
     border-radius: 50%;
-    background: #1F2937;
-    /* Dark button for tool consistency */
+    background: #064E3B;
+    /* 深绿色图标背景 */
     color: #fff;
     display: flex;
     align-items: center;

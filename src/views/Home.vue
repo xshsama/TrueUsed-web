@@ -1,765 +1,299 @@
 <template>
-    <div class="home-page">
+    <div class="min-h-screen bg-[#F9FAFB] pb-[60px]">
+        <div class="max-w-[1200px] mx-auto p-4">
+            <!-- 1. Hero Banner (官方验货) - REDESIGNED -->
+            <section
+                class="relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-[#143d2d] via-[#1B4032] to-[#2a5e4b] text-white shadow-2xl shadow-emerald-900/20 mb-6">
 
-        <!-- Hero Banner (双入口) -->
-        <div class="hero-banner">
-            <div class="hero-split buyer-side" @click="selectCategory(0)">
-                <div class="hero-content">
-                    <div class="hero-subtitle">官方正品保障</div>
-                    <div class="hero-title-row">
-                        <span class="title-text">大牌</span>
-                        <span class="highlight-num">3</span>
-                        <span class="title-small">折起</span>
-                    </div>
-                    <div class="hero-btn">去捡漏 <van-icon name="arrow" /></div>
+                <!-- Background Decorative Elements (Trust Symbols) -->
+                <div
+                    class="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none">
                 </div>
-                <div class="hero-img-wrapper">
-                    <span class="hero-emoji">🛍️</span>
+                <div
+                    class="i-lucide-shield-check absolute -right-12 -bottom-24 w-96 h-96 text-white/[0.03] rotate-12 pointer-events-none">
                 </div>
-            </div>
-            <div class="hero-split seller-side" @click="goToSell">
-                <div class="hero-content">
-                    <div class="hero-subtitle">极速到账</div>
-                    <div class="hero-title-row">
-                        <span class="title-text">闲置</span>
-                        <span class="highlight-icon">⚡️</span>
-                        <span class="title-text">换钱</span>
-                    </div>
-                    <div class="hero-btn">去估价 <van-icon name="arrow" /></div>
-                </div>
-                <div class="hero-img-wrapper">
-                    <span class="hero-emoji">💰</span>
-                </div>
-            </div>
-        </div>
 
-        <!-- Data Ticker (战报条) -->
-        <div class="data-ticker">
-            <van-notice-bar left-icon="volume-o" :scrollable="true" background="#F9FAFB" color="#4B5563">
-                用户 @Alex 3 分钟前 <span class="ticker-highlight">¥2200</span> 出掉了 iPad Air | 用户 @Sarah 刚刚 <span
-                    class="ticker-highlight">¥850</span> 买到了 AirPods Pro | 用户 @Mike 5 分钟前 <span
-                    class="ticker-highlight">¥4500</span> 出掉了 iPhone 13
-            </van-notice-bar>
-        </div>
+                <div
+                    class="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 lg:p-16 min-h-[360px]">
 
-        <!-- 分类标签 (金刚区 - 线性图标 + 极简风格) -->
-        <div class="category-section">
-            <div class="category-container">
-                <div v-for="(category, index) in categories" :key="category.id" class="category-item"
-                    :class="{ 'first-item-gap': index === 0 }" @click="selectCategory(category.id)">
+                    <!-- Left Content -->
+                    <div class="max-w-xl space-y-6 text-center md:text-left">
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-900/40 backdrop-blur-md border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wider shadow-inner uppercase">
+                            <div class="i-lucide-check-circle-2 text-sm text-emerald-400"></div>
+                            <span>Official Check · 官方全检</span>
+                        </div>
 
-                    <!-- Icon Container with Dynamic Background -->
-                    <div class="icon-surface" :style="{ backgroundColor: category.bg || '#F5F7FA' }">
-                        <!-- Icon with Dynamic Color -->
-                        <van-icon :name="category.icon" class="surface-icon"
-                            :style="{ color: category.iconColor || category.color }" />
-                        <!-- Badge -->
-                        <div v-if="category.badge" class="cat-badge">
-                            {{ category.badge }}
+                        <h1
+                            class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight drop-shadow-sm">
+                            怕踩雷？<br />
+                            <span
+                                class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-white">先验货</span>，再发货。
+                        </h1>
+
+                        <p
+                            class="text-emerald-100/80 text-base md:text-lg max-w-md mx-auto md:mx-0 font-light leading-relaxed">
+                            TrueUsed 官方质检工程师为您层层把关，杜绝假货与隐形故障。
+                            <span class="block mt-1 text-emerald-300/60 text-sm">已累计为 12,403 位用户拦截翻新机</span>
+                        </p>
+
+                        <div class="pt-4 flex justify-center md:justify-start">
+                            <button @click="router.push('/search?q=验货')"
+                                class="group bg-white text-[#1B4032] hover:bg-emerald-50 px-8 py-3.5 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] flex items-center gap-2 text-sm md:text-base cursor-pointer border-none">
+                                浏览验货商品
+                                <div
+                                    class="i-lucide-chevron-right text-lg text-emerald-600 group-hover:translate-x-1 transition-transform">
+                                </div>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Text -->
-                    <span class="cat-text" :class="{ active: activeCategory === category.id }">
-                        {{ category.name }}
-                    </span>
+                    <!-- Right Side - CSS Constructed Illustration -->
+                    <div class="relative mt-10 md:mt-0 w-full max-w-sm flex justify-center [perspective:1000px]">
+                        <!-- Podium -->
+                        <div class="relative w-64 h-64">
+                            <!-- Glowing Platform -->
+                            <div
+                                class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-white/10 to-transparent rounded-[100%] blur-xl">
+                            </div>
+                            <div class="absolute inset-x-10 bottom-8 h-4 bg-emerald-400/20 rounded-[100%] blur-md">
+                            </div>
+
+                            <!-- Floating Elements (Composition) -->
+                            <div
+                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-tr from-white/10 to-white/5 backdrop-blur-sm rounded-2xl border border-white/10 rotate-3 shadow-2xl flex flex-col items-center justify-center gap-4 group hover:-translate-y-2 transition-transform duration-500">
+                                <div class="p-4 bg-emerald-900/50 rounded-full text-emerald-300 shadow-inner">
+                                    <div class="i-lucide-shield-check text-5xl"></div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-white">100%</div>
+                                    <div class="text-xs text-emerald-200 uppercase tracking-widest">Authentic</div>
+                                </div>
+
+                                <!-- Decorative dots -->
+                                <div class="absolute top-3 right-3 w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse">
+                                </div>
+                            </div>
+
+                            <!-- Floating Icons representing products -->
+                            <div
+                                class="absolute -left-4 top-10 p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg animate-bounce [animation-duration:3s]">
+                                <div class="i-lucide-headphones text-white text-2xl"></div>
+                            </div>
+                            <div
+                                class="absolute -right-4 bottom-10 p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg animate-bounce [animation-duration:4s]">
+                                <div class="i-lucide-mouse text-white text-2xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 急出捡漏 (Urgent Deals) -->
+            <div class="bg-white rounded-2xl p-5 mb-6 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2">
+                        <div
+                            class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-xl text-amber-500">
+                            ⚡️</div>
+                        <h2 class="text-lg font-bold text-gray-900">急出捡漏</h2>
+                        <span class="text-xs text-gray-400">低于行情 20%</span>
+                    </div>
+                    <div class="text-sm text-gray-500 cursor-pointer flex items-center hover:text-emerald-600 transition-colors"
+                        @click="router.push('/search?sort=price_asc')">
+                        更多
+                        <div class="i-lucide-chevron-right text-base"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <div v-for="item in urgentItems" :key="item.id"
+                        class="flex items-center gap-4 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+                        @click="router.push(`/product/${item.id}`)">
+                        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                            <img :src="item.image" class="w-full h-full object-cover" />
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-[15px] font-semibold text-gray-800 mb-1">{{ item.title }}</div>
+                            <div class="text-xs text-gray-400 flex items-center gap-1">
+                                <div class="i-lucide-clock text-xs"></div> {{ item.timeStr }}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-base font-bold text-red-500">¥{{ item.price }}</div>
+                            <div class="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block">⬇降 ¥{{
+                                item.saved }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 分类筛选 (Category Chips) -->
+            <div class="flex gap-3 overflow-x-auto pb-4 scrollbar-hide mb-6">
+                <div v-for="cat in categories" :key="cat.id"
+                    class="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-all hover:border-gray-300 hover:bg-gray-50"
+                    :class="{ '!bg-gray-800 !text-white !border-gray-800': activeCategory === cat.id }"
+                    @click="activeCategory = cat.id; fetchProducts()">
+                    <div :class="cat.icon" class="text-base"></div>
+                    {{ cat.name }}
+                </div>
+                <div
+                    class="bg-white border border-gray-200 px-3 py-2 rounded-xl text-gray-700 flex items-center justify-center cursor-pointer hover:bg-gray-50">
+                    <div class="i-lucide-more-horizontal text-lg"></div>
+                </div>
+            </div>
+
+            <!-- 4. 最新上架 (New Arrivals) -->
+            <div class="mb-8">
+                <div class="flex flex-col md:flex-row justify-between md:items-end mb-5 gap-3">
+                    <div class="flex items-baseline gap-2">
+                        <h2 class="text-2xl font-extrabold text-gray-900">最新上架</h2>
+                        <span class="bg-gray-200 px-2 py-0.5 rounded-full text-xs text-gray-600">{{ totalProducts
+                        }}件新商品</span>
+                    </div>
+                    <div class="flex gap-4">
+                        <span class="text-sm text-gray-900 font-semibold cursor-pointer">综合排序</span>
+                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">价格最低</span>
+                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">信用最高</span>
+                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">离我最近</span>
+                    </div>
+                </div>
+
+                <!-- Product Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    <div v-if="loading && page === 0" class="col-span-full text-center py-10">
+                        <van-loading size="24px">加载中...</van-loading>
+                    </div>
+                    <ProductCard v-for="product in productList" :key="product.id" :product="product"
+                        @click="router.push(`/product/${product.id}`)" />
+                </div>
+
+                <div v-if="productList.length > 0 && hasMore" class="mt-8 text-center">
+                    <van-button round block plain type="primary" :loading="loading"
+                        @click="fetchProducts">加载更多</van-button>
+                </div>
+                <div v-if="!hasMore && productList.length > 0" class="text-center text-gray-400 mt-8 text-sm">没有更多了
                 </div>
             </div>
         </div>
 
-        <!-- 商品列表 -->
-        <div class="product-section">
-            <div class="section-header">
-                <div class="header-left">
-                    <h2 class="section-title">{{ activeCategory === 0 ? '今日精选' : currentCategoryName }}</h2>
-                    <span class="section-subtitle">{{ subtitleText }}</span>
-                </div>
-                <div class="header-right">
-                    <span class="sort-option active">综合排序</span>
-                    <span class="sort-option">价格 <van-icon name="sort" class="sort-icon" /></span>
-                    <span class="sort-option">最新发布</span>
-                </div>
+        <!-- 5. 底部实时动态 (Ticker) -->
+        <div
+            class="fixed bottom-0 left-0 right-0 h-12 bg-white border-t border-gray-200 flex items-center px-6 z-50 md:bottom-0 bottom-[50px]">
+            <div class="flex-1 flex items-center gap-3">
+                <span class="text-xs font-bold text-emerald-700 whitespace-nowrap">实时动态</span>
+                <span class="text-gray-200">|</span>
+                <van-swipe vertical class="h-6 flex-1" :autoplay="3000" :show-indicators="false">
+                    <van-swipe-item v-for="(msg, idx) in tickerMessages" :key="idx"
+                        class="flex items-center text-xs text-gray-600">
+                        <span v-html="msg"></span>
+                    </van-swipe-item>
+                </van-swipe>
             </div>
-
-            <!-- 骨架屏 -->
-            <div v-if="isInitialLoading" class="product-grid">
-                <div v-for="i in 8" :key="i" class="product-skeleton">
-                    <van-skeleton animated :row="3" />
-                </div>
+            <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center cursor-pointer text-gray-500 hover:bg-gray-200 ml-2"
+                @click="scrollToTop">
+                <div class="i-lucide-arrow-up-to-line text-sm"></div>
             </div>
-
-            <!-- 空状态 -->
-            <van-empty v-else-if="productList.length === 0" description="暂无商品" />
-
-            <!-- 商品列表 -->
-            <div v-else class="product-grid">
-                <ProductCard v-for="product in productList" :key="product.id" :product="toCard(product)"
-                    :show-desc="true" @click="() => goToProductDetail(product.id)" />
-            </div>
-
-            <!-- 加载更多 -->
-            <div v-if="productList.length" class="load-more-area">
-                <van-loading v-if="loading" class="loading-more">加载中...</van-loading>
-                <div v-else-if="!hasMore" class="finished-text">没有更多了</div>
-                <van-button v-else size="small" round class="load-more-btn" @click="fetchProducts">
-                    加载更多
-                </van-button>
-            </div>
-        </div>
-
-        <!-- 悬浮工具栏 -->
-        <div class="fab-container">
-            <transition name="van-fade">
-                <div class="fab-item primary" v-show="isScrolled" @click="goToSell">
-                    <van-icon name="plus" />
-                    <span class="fab-text">发布</span>
-                </div>
-            </transition>
-            <div class="fab-item" @click="goToHelp">
-                <van-icon name="question-o" />
-            </div>
-            <transition name="van-fade">
-                <div class="fab-item" v-show="isScrolled" @click="scrollToTop">
-                    <van-icon name="arrow-up" />
-                </div>
-            </transition>
         </div>
     </div>
 </template>
 
-<script>
-import { getUnreadCount } from '@/api/notifications'
+<script setup>
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
-import { useUserStore } from '@/stores/user'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-export default {
-    name: 'Home',
-    components: { ProductCard },
-    setup() {
-        const router = useRouter()
-        const userStore = useUserStore()
+const router = useRouter()
+const loading = ref(false)
+const hasMore = ref(true)
+const page = ref(0)
+const size = ref(10)
+const totalProducts = ref(342) // Mock count
 
-        const activeCategory = ref(0)
-        const loading = ref(false)
-        const hasMore = ref(true)
-        const unreadCount = ref(0)
-        const isScrolled = ref(false)
+// Categories
+const activeCategory = ref(0)
+const categories = [
+    { id: 0, name: '全部', icon: 'i-lucide-layout-grid' },
+    { id: 1, name: '手机数码', icon: 'i-lucide-smartphone' },
+    { id: 2, name: '摄影摄像', icon: 'i-lucide-camera' },
+    { id: 3, name: '潮牌服饰', icon: 'i-lucide-shopping-bag' },
+    { id: 4, name: '家具家居', icon: 'i-lucide-armchair' },
+    { id: 5, name: '图书教材', icon: 'i-lucide-book' },
+    { id: 6, name: '运动户外', icon: 'i-lucide-medal' },
+]
 
-        // Search Placeholder Logic
-        const placeholders = ["搜 'MacBook' 捡漏", "搜 '考研资料' 省钱", "搜 'iPhone 15' 急售"];
-        const currentPlaceholder = ref(placeholders[0]);
-        let placeholderInterval;
+// Urgent Items (Mock)
+const urgentItems = ref([
+    { id: 101, title: 'MacBook Air M2 13寸', price: 5800, saved: 1200, timeStr: '5分钟前', image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=200&h=200&fit=crop' },
+    { id: 102, title: 'Ricoh GR3x 街拍神机', price: 6200, saved: 500, timeStr: '12分钟前', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop' },
+    { id: 103, title: '始祖鸟 Beta LT 硬壳', price: 2800, saved: 800, timeStr: '刚刚', image: 'https://images.unsplash.com/photo-1544098485-2a2a4b087033?w=200&h=200&fit=crop' },
+])
 
-        // 分类数据 (黑字 + 间距区分)
-        const categories = ref([
-            { id: 0, name: '推荐', icon: 'fire-o', bg: 'rgba(65, 179, 130, 0.1)', iconColor: '#41B382' },
-            { id: 1, name: '数码', icon: 'phone-o', bg: '#F5F5F5', iconColor: '#333333', badge: 'HOT' },
-            { id: 2, name: '服饰', icon: 'bag-o', bg: '#F5F5F5', iconColor: '#333333' },
-            { id: 3, name: '家具', icon: 'wap-home-o', bg: '#F5F5F5', iconColor: '#333333' },
-            { id: 4, name: '图书', icon: 'bookmark-o', bg: '#F5F5F5', iconColor: '#333333' },
-            { id: 5, name: '运动', icon: 'medal-o', bg: '#F5F5F5', iconColor: '#333333' },
-            { id: 6, name: '美妆', icon: 'gem-o', bg: '#F5F5F5', iconColor: '#333333', badge: 'NEW' },
-            { id: 7, name: '其他', icon: 'ellipsis', bg: '#F5F5F5', iconColor: '#333333' }
-        ])
+// Products
+const productList = ref([])
 
-        // 商品分区数据
-        const productList = ref([])
-        const page = ref(0)
-        const size = ref(10)
-        const isInitialLoading = computed(() => loading.value && page.value === 0)
-        const currentCategoryName = computed(() => {
-            return categories.value.find(c => c.id === activeCategory.value)?.name || '分类'
-        })
-        const subtitleText = computed(() => {
-            return activeCategory.value === 0 ? '编辑为您精心挑选' : `共 ${productList.value.length} 件`
-        })
-
-        // 选择分类
-        const selectCategory = (categoryId) => {
-            activeCategory.value = categoryId
-            page.value = 0
+const fetchProducts = async () => {
+    if (loading.value) return
+    loading.value = true
+    try {
+        // Reset if page 0 (category switch)
+        if (activeCategory.value !== 0 && page.value === 0) {
             productList.value = []
-            fetchProducts()
         }
 
-        // 跳转到搜索
-        const goToSearch = () => {
-            router.push('/search')
+        const params = {
+            page: page.value,
+            size: size.value,
+            sort: 'created_desc',
+            categoryId: activeCategory.value === 0 ? undefined : activeCategory.value
         }
+        const res = await listProducts(params)
+        if (page.value === 0) productList.value = []
 
-        // 跳转到商品详情
-        const goToProductDetail = (id) => {
-            router.push(`/product/${id}`)
-        }
+        // Enhance product data for UI
+        const newItems = (res.content || []).map(p => ({
+            ...p,
+            tags: ['实拍图', Math.random() > 0.5 ? '官方已验' : null].filter(Boolean),
+            timeAgo: '10分钟前', // Mock
+            saved: Math.floor(p.price * 0.3), // Mock
+            wantCount: Math.floor(Math.random() * 100),
+            seller: p.user || { nickname: 'Seller', avatar: '', credit: '信用极好' }
+        }))
 
-        const goToNotifications = () => {
-            router.push('/notifications')
-        }
-
-        const goToSell = () => {
-            router.push('/post/create')
-        }
-
-        const handleScroll = () => {
-            isScrolled.value = window.scrollY > 10
-        }
-
-        const scrollToTop = () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-        }
-
-        const goToHelp = () => {
-            router.push('/help')
-        }
-
-        const logout = async () => {
-            await userStore.logout()
-            router.push('/login')
-        }
-
-        const fetchProducts = async () => {
-            loading.value = true
-            try {
-                const params = {
-                    page: page.value,
-                    size: size.value,
-                    sort: 'created_desc',
-                    categoryId: activeCategory.value === 0 ? undefined : activeCategory.value,
-                }
-                const res = await listProducts(params)
-                const content = res?.content || []
-                if (page.value === 0) productList.value = []
-                productList.value.push(...content)
-                hasMore.value = !(res?.last || content.length < size.value)
-                page.value += 1
-            } catch (e) {
-                console.error('加载失败', e)
-            } finally {
-                loading.value = false
-            }
-        }
-
-        const toCard = (p) => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            originalPrice: p.originalPrice || p.price * 1.2, // Mock original price if not exists
-            location: p.locationText,
-            image: (p.images && p.images[0]?.url) || '',
-            condition: p.condition || 95,
-            seller: p.user || { nickname: '卖家', avatar: '' },
-            isUrgent: Math.random() > 0.7 // Mock urgency
-        })
-
-        onMounted(() => {
-            window.addEventListener('scroll', handleScroll)
-            fetchProducts()
-            // 获取未读消息数
-            if (userStore.isLoggedIn) {
-                getUnreadCount().then(res => {
-                    unreadCount.value = res
-                }).catch(e => console.error(e))
-            }
-
-            // Placeholder rotation
-            let i = 0;
-            placeholderInterval = setInterval(() => {
-                i = (i + 1) % placeholders.length;
-                currentPlaceholder.value = placeholders[i];
-            }, 3000);
-        })
-
-        onUnmounted(() => {
-            window.removeEventListener('scroll', handleScroll)
-            clearInterval(placeholderInterval);
-        })
-
-        return {
-            activeCategory,
-            loading,
-            categories,
-            productList,
-            hasMore,
-            isInitialLoading,
-            currentCategoryName,
-            subtitleText,
-            unreadCount,
-            currentPlaceholder,
-            selectCategory,
-            goToSearch,
-            goToProductDetail,
-            goToNotifications,
-            goToSell,
-            toCard,
-            fetchProducts,
-            isScrolled,
-            scrollToTop,
-            goToHelp,
-            logout,
-            userStore
-        }
+        productList.value.push(...newItems)
+        hasMore.value = !res.last
+        page.value++
+    } catch (e) {
+        console.error(e)
+    } finally {
+        loading.value = false
     }
 }
+
+// Ticker Messages
+const tickerMessages = [
+    '用户 <b>Jason</b> 1分钟前发布了 <b>MacBook Pro M1</b>',
+    '用户 <b>Amy</b> 刚刚卖出了 <b>Lululemon瑜伽裤</b>',
+    '用户 <b>Mike</b> 5分钟前 ¥4500 出掉了 <b>iPhone 13</b>'
+]
+
+const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+onMounted(() => {
+    fetchProducts()
+})
 </script>
 
 <style scoped>
-.home-page {
-    min-height: 100vh;
-    background: var(--bg-page);
-    padding-bottom: 70px;
-    padding-top: 54px;
-}
-
-.dropdown-item {
-    padding: 10px 16px;
-    font-size: 13px;
-    color: #374151;
-    transition: background 0.2s;
-}
-
-.dropdown-item:hover {
-    background: #F3F4F6;
-}
-
-.dropdown-item.logout {
-    color: #EF4444;
-    border-top: 1px solid #F3F4F6;
-    margin-top: 4px;
-}
-
-/* Hero Banner (双入口) */
-.hero-banner {
-    margin: 16px 16px 0;
-    display: flex;
-    gap: 12px;
-    height: 140px;
-    /* 进一步增加高度以容纳新布局 */
-}
-
-.hero-split {
-    flex: 1;
-    border-radius: 16px;
-    /* 更圆润 */
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 20px;
-    cursor: pointer;
-    border: none;
-}
-
-/* 弥散光感背景 */
-.buyer-side {
-    background:
-        radial-gradient(circle at 10% 10%, rgba(253, 230, 138, 0.4), transparent 40%),
-        /* 嫩黄色柔光 */
-        linear-gradient(135deg, #34D399 0%, #059669 100%);
-    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.3);
-}
-
-.seller-side {
-    background:
-        radial-gradient(circle at 10% 10%, rgba(254, 243, 199, 0.4), transparent 40%),
-        /* 淡黄色柔光 */
-        linear-gradient(135deg, #FB923C 0%, #EA580C 100%);
-    box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.3);
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    justify-content: center;
-}
-
-.hero-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 4px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-
-.hero-title-row {
-    display: flex;
-    align-items: baseline;
-    /* 基线对齐 */
-    color: #fff;
-    margin-bottom: 12px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.title-text {
-    font-size: 20px;
-    font-weight: 800;
-}
-
-.highlight-num {
-    font-size: 36px;
-    /* 巨大数字 */
-    font-family: 'Oswald', sans-serif;
-    font-weight: 700;
-    line-height: 1;
-    margin: 0 4px;
-}
-
-.highlight-icon {
-    font-size: 28px;
-    margin: 0 4px;
-}
-
-.title-small {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.hero-btn {
-    font-size: 13px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background: #FFFFFF !important;
-    padding: 0 24px;
-    /* 增加留白 */
-    height: 36px;
-    border-radius: 18px;
-    width: fit-content;
-    border: none;
-    transition: transform 0.2s;
-}
-
-.hero-btn:hover {
-    transform: translateY(-2px);
-}
-
-/* 按钮投影 (Color Shadows) */
-.buyer-side .hero-btn {
-    color: #059669;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
-}
-
-.seller-side .hero-btn {
-    color: #EA580C;
-    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
-}
-
-/* 破格插图 */
-.hero-img-wrapper {
-    position: absolute;
-    right: -20px;
-    bottom: -30px;
-    z-index: 1;
-    opacity: 0.9;
-    transform: rotate(-15deg);
-    pointer-events: none;
-}
-
-.hero-emoji {
-    font-size: 100px;
-    /* 超大图标 */
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
-}
-
-/* Data Ticker */
-.data-ticker {
-    margin: 12px 0;
-    border-top: none;
-    border-bottom: 1px solid #F3F4F6;
-    /* 极淡的分割线 */
-}
-
-/* 覆盖 Vant NoticeBar 默认样式，增加高度 */
-:deep(.van-notice-bar) {
-    height: 36px !important;
-    padding: 0 16px;
-}
-
-.ticker-highlight {
-    background: transparent !important;
-    color: #EA580C;
-    /* 改为橙色，降低视觉噪音 */
-    font-weight: 700;
-    font-family: 'DIN Condensed', sans-serif;
-    font-size: 15px;
-    padding: 0;
-    margin: 0 2px;
-}
-
-/* 分类标签 (金刚区) */
-.category-section {
-    padding: 24px 0;
-    background: #FFFFFF;
-    margin-bottom: 16px;
-    position: sticky;
-    top: 54px;
-    z-index: 99;
-    box-shadow: var(--shadow-sm);
-}
-
-.category-container {
-    display: flex;
-    padding: 0 12px;
-    overflow-x: auto;
-    /* 允许横向滚动，适应小屏 */
-    gap: 12px;
-    scrollbar-width: none;
-    /* 隐藏滚动条 */
-    align-items: flex-start;
-    /* 顶部对齐 */
-}
-
-.category-container::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
 
-.category-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    min-width: 64px;
-    flex-shrink: 0;
-    transition: transform 0.2s;
-    position: relative;
-}
-
-/* 间距控制 */
-.first-item-gap {
-    margin-right: 16px;
-    /* 增加到 16px，加上原本的 gap 12px，形成 28px 的显著间距 */
-}
-
-.category-item:hover {
-    transform: translateY(-2px);
-}
-
-/* Icon on Surface Style */
-.icon-surface {
-    width: 48px;
-    height: 48px;
-    background: #F5F7FA;
-    /* 极浅灰蓝/灰 */
-    border-radius: 50%;
-    /* 圆形 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    transition: all 0.2s;
-}
-
-.surface-icon {
-    font-size: 24px;
-    color: #333333;
-    font-weight: 600;
-    /* 增加线性图标份量 */
-}
-
-.category-item:hover .icon-surface {
-    background: #E5E7EB;
-    /* 悬停加深 */
-    transform: translateY(-2px);
-}
-
-
-/* Badges (Mini Red Dot Style) */
-.cat-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #EF4444;
-    color: #fff;
-    font-size: 10px;
-    transform: scale(0.8);
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-weight: 800;
-    border: 2px solid #fff;
-    /* 白边切割 */
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-}
-
-.cat-text {
-    font-size: 12px;
-    color: #333333;
-    font-weight: 500;
-    margin-top: 6px;
-}
-
-.cat-text.active {
-    color: #41B382;
-    font-weight: 700;
-}
-
-/* 商品区域 */
-.product-section {
-    padding: 0 16px;
-    min-height: 80vh;
-}
-
-.section-header {
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-.header-left {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-}
-
-.section-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.section-subtitle {
-    font-size: 12px;
-    color: var(--text-tertiary);
-}
-
-.header-right {
-    display: flex;
-    gap: 12px;
-    font-size: 12px;
-    color: #9CA3AF;
-}
-
-.sort-option {
-    cursor: pointer;
-    transition: color 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.sort-option.active {
-    color: #111827;
-    font-weight: 600;
-}
-
-.sort-icon {
-    transform: scale(0.8);
-}
-
-/* 商品网格 - 响应式 Grid */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    /* 手机端双列 */
-    gap: 12px;
-    padding: 12px 0;
-}
-
-@media (min-width: 768px) {
-    .product-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .product-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        padding: 20px 0;
-    }
-}
-
-@media (min-width: 1440px) {
-    .product-grid {
-        grid-template-columns: repeat(5, 1fr);
-        /* 宽屏五列 */
-    }
-}
-
-.product-skeleton {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    margin-bottom: 0;
-}
-
-/* 悬浮工具栏 */
-.fab-container {
-    position: fixed;
-    bottom: 80px;
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 99;
-}
-
-.fab-item {
-    width: 44px;
-    height: 44px;
-    background: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    color: #374151;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.fab-item:active {
-    transform: scale(0.95);
-}
-
-.fab-item.primary {
-    background: #00875A;
-    color: #fff;
-    width: auto;
-    padding: 0 16px;
-    border-radius: 22px;
-    gap: 4px;
-}
-
-.fab-text {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* 加载更多 */
-.load-more-area {
-    padding: 20px 0;
-    text-align: center;
-}
-
-.loading-more {
-    color: var(--text-tertiary);
-}
-
-.finished-text {
-    color: var(--text-tertiary);
-    font-size: 13px;
-}
-
-.load-more-btn {
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    padding: 0 32px;
-    height: 36px;
-    font-weight: 500;
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

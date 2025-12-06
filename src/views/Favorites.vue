@@ -1,484 +1,233 @@
 <template>
-    <div class="favorites-page">
-        <van-nav-bar title="我的收藏" fixed placeholder />
-        <div class="favorites-layout">
-            <div class="favorites-main">
-                <!-- 过滤与概览 -->
-                <div class="favorites-header-card">
-                    <div class="header-top-row">
-                        <div class="title-area">
-                            <h1 class="page-title">我的收藏</h1>
-                            <span class="total-count" v-if="filteredList.length">共 {{ filteredList.length }} 件</span>
-                        </div>
-                        <van-button v-if="hasInvalidItems" size="small" plain round type="danger" class="clean-btn"
-                            @click="cleanInvalid">
-                            清空失效
-                        </van-button>
-                    </div>
-                    <div class="header-filters">
-                        <van-tabs v-model:active="activeTab" @change="onTabChange" shrink line-width="20px"
-                            color="#2196F3">
-                            <van-tab :title="`全部 (${favoriteList.length})`" name="all" />
-                            <van-tab :title="`降价 (${priceDropCount})`" name="priceDrop" />
-                            <van-tab :title="`在售 (${sellingCount})`" name="selling" />
-                            <van-tab :title="`失效 (${invalidCount})`" name="invalid" />
-                        </van-tabs>
-                    </div>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50]">
+
+        <!-- --- Top Navigation (与 Profile 页面保持 100% 一致) --- -->
+
+
+        <main class="max-w-6xl mx-auto px-4 py-8">
+
+            <!-- --- Header & Tabs --- -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-bold text-[#2c3e50]">我的收藏</h1>
+                    <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs font-medium">{{
+                        favorites.length }}</span>
                 </div>
 
-                <!-- 收藏网格 -->
-                <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-                    <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
-                        <div v-if="loading && page === 0" class="fav-grid">
-                            <van-skeleton v-for="i in 6" :key="i" class="skeleton-item" title avatar :row="3" />
+                <div class="flex items-center gap-4">
+                    <!-- Filter Tabs -->
+                    <div class="bg-white p-1 rounded-full border border-gray-100 shadow-sm flex">
+                        <button v-for="tab in ['全部', '降价', '失效']" :key="tab" @click="activeTab = tab"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all border-none cursor-pointer"
+                            :class="activeTab === tab ? 'bg-[#4a8b6e] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-[#4a8b6e] hover:bg-gray-50'">
+                            {{ tab }} {{ tab === '降价' ? '(1)' : '' }} {{ tab === '失效' ? '(1)' : '' }}
+                        </button>
+                    </div>
+
+                    <!-- Batch Manage Button -->
+                    <button @click="isEditMode = !isEditMode"
+                        class="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors cursor-pointer"
+                        :class="isEditMode ? 'bg-red-50 text-red-500 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-[#4a8b6e] hover:text-[#4a8b6e]'">
+                        {{ isEditMode ? '完成管理' : '批量管理' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- --- Favorites Grid --- -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="item in filteredItems" :key="item.id"
+                    class="bg-white rounded-2xl border transition-all duration-300 group relative overflow-hidden flex flex-col"
+                    :class="[
+                        isEditMode ? 'ring-2 ring-transparent cursor-pointer hover:ring-red-400' : 'hover:border-[#4a8b6e]/30 hover:shadow-lg hover:-translate-y-1',
+                        item.status === 'invalid' ? 'opacity-75 grayscale-[0.5]' : 'border-gray-100'
+                    ]" @click="handleItemClick(item)">
+
+                    <!-- Image Section -->
+                    <div class="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                        <img :src="item.image" :alt="item.title"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+
+                        <!-- 状态遮罩 -->
+                        <div v-if="item.status === 'invalid'"
+                            class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span
+                                class="text-white font-bold bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">已失效</span>
                         </div>
-                        <div v-else-if="filteredList.length" class="fav-grid">
-                            <div v-for="item in filteredList" :key="item.id" class="fav-item-wrapper"
-                                :class="{ 'is-invalid': isInvalid(item) }" @click="goToProductDetail(item.id)">
-                                <ProductCard :product="item" :show-desc="false" :status="item.status">
-                                    <template #tags>
-                                        <div v-if="item.priceDrop > 0 && !isInvalid(item)" class="price-drop-tag">
-                                            <van-icon name="down" /> 降 ¥{{ item.priceDrop }}
-                                        </div>
-                                    </template>
-                                    <template #footer-right>
-                                        <div class="action-buttons">
-                                            <template v-if="!isInvalid(item)">
-                                                <van-button size="mini" round plain type="primary" class="action-btn"
-                                                    @click.stop="goToChat(item)">
-                                                    砍价
-                                                </van-button>
-                                                <van-button size="mini" round color="#FF5722" class="action-btn"
-                                                    @click.stop="goToProductDetail(item.id)">
-                                                    购买
-                                                </van-button>
-                                            </template>
-                                            <template v-else>
-                                                <van-button size="mini" round plain class="action-btn"
-                                                    @click.stop="findSimilar(item)">
-                                                    找相似
-                                                </van-button>
-                                            </template>
-                                            <van-button size="mini" round plain class="action-btn remove-btn"
-                                                @click.stop="removeFavorite(item.id)">
-                                                <van-icon name="delete-o" />
-                                            </van-button>
-                                        </div>
-                                    </template>
-                                </ProductCard>
-                                <!-- 失效遮罩 -->
-                                <div v-if="isInvalid(item)" class="invalid-overlay">
-                                    <span class="invalid-text">{{ getStatusText(item.status) }}</span>
+
+                        <!-- 降价提醒 Tag -->
+                        <div v-if="item.status === 'price_drop'"
+                            class="absolute bottom-2 left-2 bg-[#ff5e57] text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm">
+                            <div class="i-lucide-arrow-down-right text-xs stroke-[3]"></div>
+                            直降 ¥{{ item.priceDrop }}
+                        </div>
+
+                        <!-- Edit Mode Checkbox Placeholder -->
+                        <div v-if="isEditMode"
+                            class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center shadow-md">
+                            <div class="w-3 h-3 rounded-full bg-transparent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Content Section -->
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3
+                            class="text-[#2c3e50] font-bold text-[15px] leading-snug line-clamp-2 mb-2 group-hover:text-[#4a8b6e] transition-colors">
+                            {{ item.title }}
+                        </h3>
+
+                        <!-- Tags -->
+                        <div class="flex flex-wrap gap-1.5 mb-3">
+                            <span v-for="tag in item.tags" :key="tag"
+                                class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                {{ tag }}
+                            </span>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="mt-auto flex items-baseline gap-2 mb-3">
+                            <span class="text-lg font-bold font-mono"
+                                :class="item.status === 'price_drop' ? 'text-[#ff5e57]' : 'text-[#2c3e50]'">
+                                ¥{{ item.price }}
+                            </span>
+                            <span v-if="item.status === 'price_drop'"
+                                class="text-xs text-gray-400 line-through decoration-gray-300">¥{{ item.originalPrice
+                                }}</span>
+                        </div>
+
+                        <!-- Seller Info & Actions Divider -->
+                        <div class="border-t border-gray-50 pt-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <img :src="item.seller.avatar" class="w-6 h-6 rounded-full border border-gray-100" />
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-600 font-medium scale-95 origin-left">{{
+                                        item.seller.name }}</span>
+                                    <span class="text-[10px] text-[#4a8b6e] scale-90 origin-left">信用{{
+                                        item.seller.credit }}</span>
                                 </div>
                             </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="p-1.5 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/10 rounded-full transition-colors border-none bg-transparent cursor-pointer"
+                                    title="联系卖家" @click.stop>
+                                    <div class="i-lucide-message-square text-base"></div>
+                                </button>
+                                <button
+                                    class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border-none bg-transparent cursor-pointer"
+                                    title="删除" @click.stop>
+                                    <div class="i-lucide-trash-2 text-base"></div>
+                                </button>
+                            </div>
                         </div>
-                        <div v-else class="empty-state-wrapper">
-                            <van-empty description="暂无相关收藏">
-                                <template #image>
-                                    <van-icon name="like-o" size="64" color="#e0e0e0" />
-                                </template>
-                                <van-button type="primary" size="small" color="#2196F3"
-                                    @click="$router.push('/home')">去逛逛</van-button>
-                            </van-empty>
-                        </div>
-                    </van-list>
-                </van-pull-refresh>
+                    </div>
+
+                </div>
+
+                <!-- Empty State Mockup (Visual placeholder) -->
+                <div v-if="filteredItems.length === 0"
+                    class="col-span-full py-20 flex flex-col items-center justify-center text-gray-400">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <div class="i-lucide-heart text-[40px] text-gray-300"></div>
+                    </div>
+                    <p>暂无此类商品</p>
+                </div>
             </div>
+
+            <!-- Bottom Status -->
+            <div class="mt-12 text-center">
+                <span class="text-xs text-gray-300">没有更多了</span>
+            </div>
+
+        </main>
+
+        <!-- Floating Batch Action Bar (Only shows in Edit Mode) -->
+        <div v-if="isEditMode"
+            class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-2xl border border-gray-100 flex items-center gap-6 z-50 animate-in slide-in-from-bottom-4">
+            <div class="text-sm text-gray-600 font-medium">已选 0 件</div>
+            <div class="h-4 w-px bg-gray-200"></div>
+            <button
+                class="text-sm font-bold text-gray-500 hover:text-gray-800 border-none bg-transparent cursor-pointer">取消收藏</button>
+            <button
+                class="text-sm font-bold text-red-500 hover:text-red-600 border-none bg-transparent cursor-pointer">删除失效</button>
         </div>
+
     </div>
 </template>
 
-<script>
-import { listMyFavorites } from '@/api/favorites'
-import { getProduct } from '@/api/products'
-import ProductCard from '@/components/ProductCard.vue'
-import { useFavoritesStore } from '@/stores/favorites'
-import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant'
-import { computed, onMounted, ref } from 'vue'
+<script setup>
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-export default {
-    name: 'Favorites',
-    components: { ProductCard },
-    setup() {
-        const router = useRouter()
-        const favoritesStore = useFavoritesStore()
+const router = useRouter()
+const activeTab = ref('全部')
+const isEditMode = ref(false)
 
-        const activeTab = ref('all')
-        const refreshing = ref(false)
-        const loading = ref(false)
-        const finished = ref(false)
-        const favoriteList = ref([])
-        const keyword = ref('')
-        const debounceTimer = ref(null)
+// 模拟收藏数据
+const favorites = ref([
+    {
+        id: 1,
+        title: '99新 Kindle Paperwhite 5 (11代) / 8G 翻页快',
+        price: 650,
+        originalPrice: 899,
+        image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400',
+        seller: { name: 'Geek_Tom', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100', credit: '极好' },
+        status: 'normal',
+        tags: ['个人自用', '箱说全'],
+        priceDrop: 0
+    },
+    {
+        id: 2,
+        title: 'Sony WH-1000XM4 降噪耳机 黑色',
+        price: 1200,
+        originalPrice: 1599,
+        image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=400',
+        seller: { name: '音乐发烧友', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100', credit: '优秀' },
+        status: 'price_drop',
+        tags: ['降噪神器'],
+        priceDrop: 300 // 降价幅度
+    },
+    {
+        id: 3,
+        title: 'Fujifilm X100V 银色 / 几乎全新 仅快门500',
+        price: 9200,
+        originalPrice: 9500,
+        image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400',
+        seller: { name: '摄影师阿杰', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&q=80&w=100', credit: '极好' },
+        status: 'normal',
+        tags: ['传家宝', '女生自用'],
+        priceDrop: 0
+    },
+    {
+        id: 4,
+        title: 'IKEA 宜家 懒人沙发 / 自提',
+        price: 150,
+        originalPrice: 499,
+        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=400',
+        seller: { name: '搬家甩卖', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100', credit: '良好' },
+        status: 'invalid', // 失效
+        tags: [],
+        priceDrop: 0
+    }
+])
 
-        const sellingCount = computed(() => favoriteList.value.filter(i => i.status === 'selling').length)
-        const priceDropCount = computed(() => favoriteList.value.filter(i => i.priceDrop > 0 && i.status === 'selling').length)
-        const invalidCount = computed(() => favoriteList.value.filter(i => i.status === 'sold' || i.status === 'offline').length)
-        const hasInvalidItems = computed(() => invalidCount.value > 0)
+// 筛选逻辑
+const filteredItems = computed(() => {
+    if (activeTab.value === '全部') return favorites.value
+    if (activeTab.value === '降价') return favorites.value.filter(i => i.status === 'price_drop')
+    if (activeTab.value === '失效') return favorites.value.filter(i => i.status === 'invalid')
+    return favorites.value
+})
 
-        const isInvalid = (item) => item.status === 'sold' || item.status === 'offline'
-
-        const filteredList = computed(() => {
-            let list = favoriteList.value
-            if (activeTab.value === 'selling') {
-                list = list.filter(i => i.status === 'selling')
-            } else if (activeTab.value === 'priceDrop') {
-                list = list.filter(i => i.priceDrop > 0 && i.status === 'selling')
-            } else if (activeTab.value === 'invalid') {
-                list = list.filter(i => isInvalid(i))
-            }
-
-            const kw = keyword.value.trim().toLowerCase()
-            if (!kw) return list
-            return list.filter(item =>
-                (item.title && item.title.toLowerCase().includes(kw)) ||
-                (item.location && item.location.toLowerCase().includes(kw))
-            )
-        })
-
-        const fetchFavorites = async () => {
-            loading.value = true
-            try {
-                const res = await listMyFavorites({ page: page.value, size: size.value })
-                const favs = res?.content || []
-                // 先占位，再并行获取详情
-                const content = favs.map(f => ({
-                    id: f.productId,
-                    title: `商品 #${f.productId}`,
-                    price: '-',
-                    image: '',
-                    location: '',
-                    favoriteTime: new Date(f.createdAt).toLocaleString(),
-                    status: 'selling',
-                    priceDrop: 0
-                }))
-                if (page.value === 0) favoriteList.value = []
-                favoriteList.value.push(...content)
-                // 并行拉取产品详情，更新对应卡片
-                await Promise.all(
-                    favs.map(async (f, idx) => {
-                        try {
-                            const p = await getProduct(f.productId)
-                            const card = favoriteList.value[(page.value === 0 ? 0 : favoriteList.value.length - content.length) + idx]
-                            if (card && card.id === f.productId) {
-                                card.title = p.title
-                                card.price = p.price
-                                card.image = (p.images && p.images[0]?.url) || card.image
-                                card.location = p.locationText || ''
-                                card.status = p.status || 'selling'
-                                card.sellerId = p.sellerId // Add sellerId
-
-                                // Mock price drop logic
-                                if (card.status === 'selling' && Math.random() > 0.7) {
-                                    card.priceDrop = Math.floor(Math.random() * 500) + 50
-                                }
-                            }
-                        } catch (e) { /* ignore single item errors */ }
-                    })
-                )
-                finished.value = res?.last || content.length < size.value
-                page.value += 1
-            } catch (e) {
-                showFailToast('加载失败')
-                finished.value = true
-            } finally {
-                loading.value = false
-                refreshing.value = false
-            }
-        }
-
-        const page = ref(0)
-        const size = ref(12)
-
-        // 标签切换
-        const onTabChange = (name) => {
-            // Tab change is handled by computed filteredList
-        }
-
-        const onKeywordInput = () => {
-            if (debounceTimer.value) clearTimeout(debounceTimer.value)
-            debounceTimer.value = setTimeout(() => { }, 220) // 触发 computed
-        }
-
-        // 下拉刷新
-        const onRefresh = () => {
-            page.value = 0
-            finished.value = false
-            fetchFavorites()
-        }
-
-        // 上拉加载更多
-        const onLoad = () => {
-            if (finished.value) return
-            fetchFavorites()
-        }
-
-        // 获取状态文本
-        const getStatusText = (status) => {
-            const texts = {
-                selling: '在售',
-                sold: '已售出',
-                offline: '已失效'
-            }
-            return texts[status] || '失效'
-        }
-
-        // 取消收藏
-        const removeFavorite = (id) => {
-            showConfirmDialog({
-                title: '确认取消收藏',
-                message: '取消收藏后，该商品将从收藏列表中移除',
-            }).then(async () => {
-                try {
-                    await favoritesStore.remove(id)
-                    favoriteList.value = favoriteList.value.filter(item => item.id !== id)
-                    showSuccessToast('已取消收藏')
-                } catch (e) {
-                    showFailToast('操作失败')
-                }
-            })
-        }
-
-        const cleanInvalid = () => {
-            showConfirmDialog({
-                title: '清空失效商品',
-                message: '确定要清空所有已失效的商品吗？',
-            }).then(async () => {
-                const invalidIds = favoriteList.value.filter(isInvalid).map(i => i.id)
-                // In real app, call API to batch remove. Here we just remove locally.
-                // await favoritesStore.batchRemove(invalidIds) 
-                favoriteList.value = favoriteList.value.filter(i => !isInvalid(i))
-                showSuccessToast(`已清理 ${invalidIds.length} 个失效商品`)
-            })
-        }
-
-        const goToChat = (item) => {
-            // Assuming we have a chat route
-            router.push({ name: 'MessageChat', params: { id: item.sellerId }, query: { productId: item.id } })
-        }
-
-        const findSimilar = (item) => {
-            router.push({ name: 'Search', query: { q: item.title } })
-        }
-
-        // 跳转到商品详情
-        const goToProductDetail = (id) => {
-            router.push(`/product/${id}`)
-        }
-
-        onMounted(() => {
-            onLoad()
-        })
-
-        return {
-            activeTab,
-            refreshing,
-            loading,
-            finished,
-            favoriteList,
-            filteredList,
-            keyword,
-            onKeywordInput,
-            onTabChange,
-            onRefresh,
-            onLoad,
-            getStatusText,
-            removeFavorite,
-            goToProductDetail,
-            sellingCount,
-            priceDropCount,
-            invalidCount,
-            hasInvalidItems,
-            cleanInvalid,
-            isInvalid,
-            goToChat,
-            findSimilar,
-            page
-        }
+const handleItemClick = (item) => {
+    if (isEditMode.value) {
+        // Toggle selection logic would go here
+    } else {
+        router.push(`/product/${item.id}`)
     }
 }
 </script>
 
 <style scoped>
-.favorites-page {
-    background: #f5f7fa;
-    min-height: 100vh;
-}
-
-.favorites-layout {
-    padding-top: 12px;
-}
-
-.favorites-main {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 16px 40px;
-}
-
-/* 顶部卡片头部 */
-.favorites-header-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    margin-bottom: 16px;
-}
-
-.header-top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.title-area {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-}
-
-.page-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin: 0;
-}
-
-.total-count {
-    font-size: 12px;
-    color: #999;
-}
-
-.clean-btn {
-    height: 28px;
-    padding: 0 12px;
-    font-size: 12px;
-}
-
-.header-filters {
-    margin: 0 -8px;
-}
-
-/* Tabs 微调 */
-:deep(.van-tabs__wrap) {
-    height: 36px;
-}
-
-:deep(.van-tab) {
-    font-size: 14px;
-    color: #666;
-    padding: 0 12px;
-}
-
-:deep(.van-tab--active) {
-    color: #1a1a1a;
-    font-weight: 600;
-}
-
-/* 网格布局 */
-.fav-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
-.fav-item-wrapper {
-    position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    background: #fff;
-}
-
-.fav-item-wrapper.is-invalid {
-    filter: grayscale(1);
-    opacity: 0.8;
-}
-
-/* 降价标签 */
-.price-drop-tag {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: #ff3b30;
-    color: #fff;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    z-index: 2;
-    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
-}
-
-/* 失效遮罩 */
-.invalid-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    pointer-events: none;
-}
-
-.invalid-text {
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-/* 底部按钮组 */
-.action-buttons {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.action-btn {
-    height: 24px;
-    padding: 0 10px;
-    font-size: 12px;
-}
-
-.remove-btn {
-    padding: 0 8px;
-    color: #999;
-    border-color: #eee;
-}
-
-/* 空状态 */
-.empty-state-wrapper {
-    padding: 40px 0;
-    background: #fff;
-    border-radius: 16px;
-    margin-top: 16px;
-}
-
-/* 响应式 */
-@media (min-width: 640px) {
-    .fav-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .fav-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-    }
-}
-
-@media (min-width: 1440px) {
-    .fav-grid {
-        grid-template-columns: repeat(5, 1fr);
-    }
-}
+/* Add any custom styles if UnoCSS is not enough, but mostly relying on utility classes */
 </style>

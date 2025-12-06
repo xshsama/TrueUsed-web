@@ -71,14 +71,15 @@
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
 import { showFailToast, showSuccessToast } from 'vant'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'Search',
     components: { ProductCard },
     setup() {
         const router = useRouter()
+        const route = useRoute()
 
         const searchValue = ref('')
         const refreshing = ref(false)
@@ -216,6 +217,22 @@ export default {
         const goToProductDetail = (id) => {
             router.push(`/product/${id}`)
         }
+
+        onMounted(() => {
+            const { q, sort: sortQuery } = route.query
+            if (q) {
+                searchValue.value = q
+                onSearch()
+            } else if (sortQuery) {
+                // If come from "More" link which might not have q but has sort
+                sort.value = sortQuery
+                // If no search value, maybe we want to list all products?
+                // The current onSearch requires searchValue. But fetchList handles optional q.
+                // Let's trigger fetchList directly if sort is present but no q
+                searched.value = true
+                fetchList()
+            }
+        })
 
         return {
             searchValue,

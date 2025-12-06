@@ -10,7 +10,6 @@ import Feedback from '@/views/Feedback.vue'
 import Help from '@/views/Help.vue'
 import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
-import MessageChat from '@/views/MessageChat.vue'
 import Messages from '@/views/Messages.vue'
 import MyProducts from '@/views/MyProducts.vue'
 import OrderManage from '@/views/OrderManage.vue'
@@ -74,7 +73,7 @@ const routes = [
   {
     path: '/messages/chat/:id',
     name: 'MessageChat',
-    component: MessageChat,
+    component: Messages,
     meta: { requiresAuth: true },
   },
   {
