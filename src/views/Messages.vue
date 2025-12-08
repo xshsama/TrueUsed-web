@@ -62,7 +62,13 @@
             </aside>
 
             <!-- Right Chat Window -->
-            <div
+            <div v-if="!activeChatId"
+                class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-gray-400">
+                <div class="i-lucide-message-square text-6xl mb-4 opacity-20"></div>
+                <p>选择一个联系人开始聊天</p>
+            </div>
+
+            <div v-else
                 class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
 
                 <!-- Chat Header -->
@@ -106,7 +112,8 @@
                         <img :src="relatedProduct.image" class="w-10 h-10 rounded-lg object-cover bg-gray-100" />
                         <div>
                             <div class="text-sm font-bold text-gray-800">¥{{ relatedProduct.price }}</div>
-                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}</div>
+                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}
+                            </div>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -191,75 +198,67 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useMessageStore } from '@/stores/message'
+import { useUserStore } from '@/stores/user'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
+const messageStore = useMessageStore()
+const userStore = useUserStore()
+
 const inputText = ref('')
 const messagesContainer = ref(null)
 
-// 模拟当前用户
-const currentUser = {
+// Current User
+const currentUser = computed(() => userStore.user || {
     id: 'me',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'
-}
-
-// 聊天列表数据
-const chatList = ref([
-    {
-        id: 1,
-        name: '摄影师阿杰',
-        avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100',
-        lastMessage: '什么时候方便发货？',
-        time: '昨天',
-        unread: 2,
-        credit: '极好',
-        type: 'user'
-    },
-    {
-        id: 2,
-        name: '系统通知',
-        avatar: 'https://ui-avatars.com/api/?name=System&background=ef4444&color=fff',
-        lastMessage: '您的订单已发货，点击查看物流详情',
-        time: '星期一',
-        unread: 0,
-        credit: '',
-        type: 'system'
-    },
-    {
-        id: 3,
-        name: 'Geek_Tom',
-        avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&q=80&w=100',
-        lastMessage: '好的，那我拍下了',
-        time: '12/05',
-        unread: 0,
-        credit: '优秀',
-        type: 'user'
-    }
-])
-
-const activeChatId = ref(1)
-const currentChatUser = reactive({ ...chatList.value[0] })
-
-// 关联商品信息
-const relatedProduct = ref({
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=100',
-    title: 'Kindle Paperwhite 5',
-    price: '650'
+    avatar: 'https://via.placeholder.com/100'
 })
 
-// 模拟当前对话内容
-const messages = ref([
-    { id: 1, type: 'system', content: '为了资金安全，请勿脱离平台私下转账，谨防诈骗。' },
-    { id: 2, type: 'other', content: '你好，还在吗？', time: '14:50' },
-    { id: 3, type: 'me', content: '在的，请问对这个 Kindle 感兴趣吗？', time: '14:51' },
-    { id: 4, type: 'other', content: '成色怎么样？屏幕有划痕吗？', time: '14:52' },
-    { id: 5, type: 'me', content: '箱说全，屏幕完美，一直贴膜用的。', time: '14:52' },
-    { id: 6, type: 'other', content: '可以刀吗？600包邮出不出？', time: '14:53' },
-])
+// Chat List from Store
+const chatList = computed(() => messageStore.conversations.map(c => ({
+    id: c.id,
+    name: c.otherUser?.nickname || c.otherUser?.username || '未知用户',
+    avatar: c.otherUser?.avatarUrl || 'https://via.placeholder.com/100',
+    lastMessage: c.lastMessageContent,
+    time: formatTime(c.lastMessageTimestamp),
+    unread: c.unreadCount,
+    otherUserId: c.otherUser?.id, // Keep track of other user ID
+    type: 'user' // Assume all are user chats for now
+})))
+
+// Messages from Store
+const messages = computed(() => messageStore.messages.map(m => ({
+    id: m.id,
+    type: m.isSelf ? 'me' : 'other',
+    content: m.content,
+    time: formatTime(m.timestamp)
+})))
+
+const activeChatId = ref(null)
+const currentChatUser = ref({
+    name: '',
+    avatar: '',
+    credit: ''
+})
+
+// Related product (Mock for now as backend doesn't support it in conversation API yet)
+const relatedProduct = ref(null)
 
 const quickReplies = ['还在吗？', '可以刀吗？', '什么时候能发货？', '成色怎么样？', '有瑕疵吗？']
+
+function formatTime(timestamp) {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = now - date
+    if (diff < 86400000) { // Less than 24h
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    return date.toLocaleDateString()
+}
 
 const scrollToBottom = () => {
     nextTick(() => {
@@ -269,80 +268,70 @@ const scrollToBottom = () => {
     })
 }
 
-const handleSend = () => {
-    if (!inputText.value.trim()) return
-    messages.value.push({
-        id: Date.now(),
-        type: 'me',
-        content: inputText.value,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    })
+const handleSend = async () => {
+    if (!inputText.value.trim() || !activeChatId.value) return
+
+    // Find the other user ID
+    const chat = chatList.value.find(c => c.id === activeChatId.value)
+    if (!chat || !chat.otherUserId) return
+
+    await messageStore.sendMessage(chat.otherUserId, inputText.value)
     inputText.value = ''
     scrollToBottom()
 }
 
 const handleQuickReply = (text) => {
-    messages.value.push({
-        id: Date.now(),
-        type: 'me',
-        content: text,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    })
-    scrollToBottom()
+    inputText.value = text
+    handleSend()
 }
 
-const switchChat = (chat) => {
+const switchChat = async (chat) => {
+    if (activeChatId.value === chat.id) return
     activeChatId.value = chat.id
-    Object.assign(currentChatUser, chat)
-
-    // 模拟切换聊天内容
-    if (chat.type === 'system') {
-        messages.value = [
-            { id: 1, type: 'system', content: '系统通知：您的订单 238492384 已发货。' },
-            { id: 2, type: 'other', content: '点击查看物流详情', time: '09:00' }
-        ]
-        relatedProduct.value = null
-    } else {
-        // Reset to demo conversation
-        messages.value = [
-            { id: 1, type: 'system', content: '为了资金安全，请勿脱离平台私下转账，谨防诈骗。' },
-            { id: 2, type: 'other', content: '你好，还在吗？', time: '14:50' },
-            { id: 3, type: 'me', content: '在的，请问对这个 Kindle 感兴趣吗？', time: '14:51' },
-        ]
-        relatedProduct.value = {
-            image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=100',
-            title: 'Kindle Paperwhite 5',
-            price: '650'
-        }
+    currentChatUser.value = {
+        name: chat.name,
+        avatar: chat.avatar,
+        credit: '' // Backend doesn't return credit score in conversation list yet
     }
+
+    await messageStore.fetchMessages(chat.id)
     scrollToBottom()
 
     // Update URL without reloading
     router.replace(`/messages/chat/${chat.id}`)
 }
 
-// Watch for route changes to update active chat
-watch(() => route.params.id, (newId) => {
-    if (newId) {
-        const id = parseInt(newId)
-        if (id !== activeChatId.value) {
-            const chat = chatList.value.find(c => c.id === id)
-            if (chat) {
-                switchChat(chat)
-            }
+// Watch for store messages update to scroll
+watch(() => messageStore.messages.length, () => {
+    scrollToBottom()
+})
+
+onMounted(async () => {
+    messageStore.connect()
+    await messageStore.fetchConversations()
+
+    const paramId = route.params.id ? parseInt(route.params.id) : null
+    if (paramId) {
+        // If ID provided in URL
+        const chat = chatList.value.find(c => c.id === paramId)
+        if (chat) {
+            switchChat(chat)
+        } else {
+            // If chat not in list (new chat?), might need to fetch single conversation or handle error
+            // For now, try to fetch messages directly if we assume ID is valid
+            activeChatId.value = paramId
+            await messageStore.fetchMessages(paramId)
+            // We won't have currentChatUser info if not in list, might need extra API call
         }
+    } else if (chatList.value.length > 0) {
+        // Select first chat if no ID
+        switchChat(chatList.value[0])
     }
 })
 
-onMounted(() => {
-    if (route.params.id) {
-        const id = parseInt(route.params.id)
-        const chat = chatList.value.find(c => c.id === id)
-        if (chat) {
-            switchChat(chat)
-        }
-    }
-    scrollToBottom()
+onUnmounted(() => {
+    // Optional: messageStore.disconnect() - usually keep connected for notifications
+    messageStore.clearCurrentConversation()
 })
 </script>
 

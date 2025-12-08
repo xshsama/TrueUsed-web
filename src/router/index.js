@@ -14,15 +14,13 @@ import Messages from '@/views/Messages.vue'
 import MyProducts from '@/views/MyProducts.vue'
 import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
-// import Post from '@/views/Post.vue' // Deprecated
 import Payment from '@/views/Payment.vue'
 import PostCreate from '@/views/PostCreate.vue'
-import PostManage from '@/views/PostManage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
-import ProductManageCenter from '@/views/ProductManageCenter.vue'
 import Profile from '@/views/Profile.vue'
 import Register from '@/views/Register.vue'
 import Search from '@/views/Search.vue'
+import SellerProfile from '@/views/SellerProfile.vue'
 import ServiceCenter from '@/views/ServiceCenter.vue'
 import ServiceMessages from '@/views/ServiceMessages.vue'
 import Settings from '@/views/Settings.vue'
@@ -47,21 +45,9 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/post',
-    name: 'Post', // Replaced Post with ProductManageCenter
-    component: ProductManageCenter,
-    meta: { requiresAuth: true, hideNavbar: true },
-  },
-  {
     path: '/post/create',
     name: 'PostCreate',
     component: PostCreate,
-    meta: { requiresAuth: true, hideNavbar: true },
-  },
-  {
-    path: '/post/manage',
-    name: 'PostManage',
-    component: PostManage,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
@@ -92,6 +78,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register,
+    meta: { hideNavbar: true },
+  },
+  {
+    path: '/seller/:id',
+    name: 'SellerProfile',
+    component: SellerProfile,
     meta: { hideNavbar: true },
   },
   {
@@ -161,12 +153,6 @@ const routes = [
     path: '/order/:id',
     name: 'OrderDetail',
     component: () => import('@/views/OrderDetail.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
-  },
-  {
-    path: '/product-manage',
-    name: 'ProductManageCenter',
-    component: ProductManageCenter,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

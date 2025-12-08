@@ -69,110 +69,87 @@
     </div>
 </template>
 
-<script>
+<script setup>
 import { registerApi } from '@/api/auth';
 import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
 import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-export default {
-    name: 'Register',
-    setup() {
-        const router = useRouter()
+const router = useRouter()
 
-        const submitting = ref(false)
-        const showPassword = ref(false)
-        const showConfirm = ref(false)
-        const agreed = ref(false)
+const submitting = ref(false)
+const showPassword = ref(false)
+const showConfirm = ref(false)
+const agreed = ref(false)
 
-        const form = reactive({
-            phone: '', // 作为后端 username 使用
-            email: '',
-            password: '',
-            confirm: ''
-        })
+const form = reactive({
+    phone: '', // 作为后端 username 使用
+    email: '',
+    password: '',
+    confirm: ''
+})
 
-        const phoneRules = [
-            { required: true, message: '请输入手机号' },
-            { validator: v => /^1[3-9]\d{9}$/.test(v), message: '手机号格式不正确' }
-        ]
+const phoneRules = [
+    { required: true, message: '请输入手机号' },
+    { validator: v => /^1[3-9]\d{9}$/.test(v), message: '手机号格式不正确' }
+]
 
-        const emailRules = [
-            { required: true, message: '请输入邮箱' },
-            { validator: v => /\S+@\S+\.\S+/.test(v), message: '邮箱格式不正确' }
-        ]
+const emailRules = [
+    { required: true, message: '请输入邮箱' },
+    { validator: v => /\S+@\S+\.\S+/.test(v), message: '邮箱格式不正确' }
+]
 
-        const passwordRules = [
-            { required: true, message: '请输入密码' },
-            { validator: v => v.length >= 6 && v.length <= 100, message: '密码长度需在 6-100 位' }
-        ]
+const passwordRules = [
+    { required: true, message: '请输入密码' },
+    { validator: v => v.length >= 6 && v.length <= 100, message: '密码长度需在 6-100 位' }
+]
 
-        const confirmRules = [
-            { required: true, message: '请再次输入密码' },
-            { validator: v => v === form.password, message: '两次输入不一致' }
-        ]
+const confirmRules = [
+    { required: true, message: '请再次输入密码' },
+    { validator: v => v === form.password, message: '两次输入不一致' }
+]
 
-        const valid = computed(() =>
-            /^1[3-9]\d{9}$/.test(form.phone) &&
-            /\S+@\S+\.\S+/.test(form.email) &&
-            form.password.length >= 6 && form.password.length <= 100 &&
-            form.password === form.confirm &&
-            agreed.value
-        )
+const valid = computed(() =>
+    /^1[3-9]\d{9}$/.test(form.phone) &&
+    /\S+@\S+\.\S+/.test(form.email) &&
+    form.password.length >= 6 && form.password.length <= 100 &&
+    form.password === form.confirm &&
+    agreed.value
+)
 
-        const toggleShowPassword = () => { showPassword.value = !showPassword.value }
-        const toggleShowConfirm = () => { showConfirm.value = !showConfirm.value }
-        const toggleAgree = () => { agreed.value = !agreed.value }
+const toggleShowPassword = () => { showPassword.value = !showPassword.value }
+const toggleShowConfirm = () => { showConfirm.value = !showConfirm.value }
+const toggleAgree = () => { agreed.value = !agreed.value }
 
-        const openAgreement = (type) => {
-            showToast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
-        }
+const openAgreement = (type) => {
+    showToast(type === 'user' ? '用户协议（占位）' : '隐私政策（占位）')
+}
 
-        const onSubmit = async () => {
-            if (!valid.value) {
-                showToast('请完整填写信息并同意协议')
-                return
-            }
-            submitting.value = true
-            showLoadingToast({ message: '创建账号...', duration: 0, forbidClick: true, loadingType: 'spinner' })
-            try {
-                // 后端 RegisterRequest: { username, email, password }
-                const payload = { username: form.phone, email: form.email, password: form.password }
-                await registerApi(payload)
-                showSuccessToast('注册成功，请登录')
-                // 便捷：将手机号记住，登录页可直接使用
-                localStorage.setItem('remember_phone', form.phone)
-                router.replace({ name: 'Login' })
-            } catch (e) {
-                const msg = e?.response?.data?.message || e?.message || '注册失败，请稍后再试'
-                showFailToast(msg)
-            } finally {
-                submitting.value = false
-                closeToast()
-            }
-        }
-
-        const goLogin = () => router.push('/login')
-
-        return {
-            form,
-            phoneRules,
-            emailRules,
-            passwordRules,
-            confirmRules,
-            submitting,
-            showPassword,
-            showConfirm,
-            toggleShowPassword,
-            toggleShowConfirm,
-            agreed,
-            toggleAgree,
-            openAgreement,
-            onSubmit,
-            goLogin
-        }
+const onSubmit = async () => {
+    if (!valid.value) {
+        showToast('请完整填写信息并同意协议')
+        return
+    }
+    submitting.value = true
+    showLoadingToast({ message: '创建账号...', duration: 0, forbidClick: true, loadingType: 'spinner' })
+    try {
+        // 后端 RegisterRequest: { username, email, password }
+        const payload = { username: form.phone, email: form.email, password: form.password }
+        await registerApi(payload)
+        showSuccessToast('注册成功，请登录')
+        // 便捷：将手机号记住，登录页可直接使用
+        localStorage.setItem('remember_phone', form.phone)
+        router.replace({ name: 'Login' })
+    } catch (e) {
+        const msg = e?.response?.data?.message || e?.message || '注册失败，请稍后再试'
+        showFailToast(msg)
+    } finally {
+        submitting.value = false
+        closeToast()
     }
 }
+
+const goLogin = () => router.push('/login')
 </script>
 
 <style scoped>

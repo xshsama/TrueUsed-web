@@ -1,867 +1,483 @@
+<script setup>
+import { createConversation } from '@/api/chat';
+import { getProduct } from '@/api/products';
+import { getProductReviews } from '@/api/reviews';
+import { useAuth } from '@/composables/useAuth';
+import { useFavoritesStore } from '@/stores/favorites';
+import {
+    AlertTriangle,
+    ChevronRight,
+    FileCheck2,
+    Heart,
+    MessageCircle,
+    Search,
+    ShieldCheck
+} from 'lucide-vue-next';
+import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+const route = useRoute();
+const router = useRouter();
+const favoritesStore = useFavoritesStore();
+const { requireLogin } = useAuth();
+
+// --- State ---
+const currentImageIndex = ref(0);
+const loading = ref(true);
+const isFavorited = ref(false);
+const searchQuery = ref('');
+const newComment = ref('');
+
+const product = ref({
+    id: null,
+    title: '',
+    price: '',
+    originalPrice: '',
+    description: '',
+    tags: [],
+    images: [],
+    viewsCount: 0,
+    createdAt: '',
+    condition: '',
+    category: null,
+    address: '上海 · 徐汇区' // Placeholder
+});
+
+const seller = ref({
+    id: null,
+    name: '',
+    avatar: '',
+    productCount: 0,
+    credit: '极好'
+});
+
+const reviews = ref([]);
+const reviewCount = ref(0);
+
+// --- Computed ---
+const displayImages = computed(() => {
+    return product.value.images && product.value.images.length > 0
+        ? product.value.images
+        : ['https://via.placeholder.com/800x800?text=No+Image'];
+});
+
+// --- Methods ---
+const formatTime = (time) => {
+    if (!time) return '';
+    const date = new Date(time);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString();
+};
+
+const previewImage = (index) => {
+    ImagePreview({
+        images: displayImages.value,
+        startPosition: index,
+        onChange: (idx) => {
+            currentImageIndex.value = idx;
+        }
+    });
+};
+
+const toggleFavorite = async () => {
+    const loggedIn = await requireLogin({ message: '收藏商品需要登录，是否立即登录？' });
+    if (!loggedIn) return;
+
+    const productId = product.value.id;
+    const prev = isFavorited.value;
+    isFavorited.value = !prev; // Optimistic update
+
+    try {
+        if (prev) {
+            await favoritesStore.remove(productId);
+            showSuccessToast('已取消收藏');
+        } else {
+            await favoritesStore.add(productId);
+            showSuccessToast('已收藏');
+        }
+    } catch (e) {
+        isFavorited.value = prev; // Rollback
+        showFailToast('操作失败');
+    }
+};
+
+const handleChat = async () => {
+    const loggedIn = await requireLogin({ message: '联系卖家需要登录，是否立即登录？' });
+    if (!loggedIn) return;
+
+    if (!seller.value.id) {
+        showFailToast('卖家信息加载失败');
+        return;
+    }
+
+    try {
+        const res = await createConversation(seller.value.id);
+        if (res && res.id) {
+            router.push(`/messages/chat/${res.id}`);
+        } else {
+            showFailToast('无法启动会话');
+        }
+    } catch (e) {
+        showFailToast('启动会话失败');
+    }
+};
+
+const handleBuy = async () => {
+    const loggedIn = await requireLogin({ message: '购买商品需要登录，是否立即登录？' });
+    if (!loggedIn) return;
+
+    router.push({
+        name: 'Settlement',
+        query: {
+            productId: product.value.id,
+            title: product.value.title,
+            price: product.value.price,
+            image: displayImages.value[0] || ''
+        }
+    });
+};
+
+const handleSearch = () => {
+    if (searchQuery.value.trim()) {
+        router.push({ name: 'Search', query: { q: searchQuery.value } });
+    }
+};
+
+const handleSendComment = () => {
+    showToast('评论功能开发中');
+    newComment.value = '';
+};
+
+const loadData = async () => {
+    try {
+        loading.value = true;
+        const productId = Number(route.params.id);
+
+        // Load favorites status
+        await favoritesStore.fetchFavorites();
+        isFavorited.value = favoritesStore.isFavorited(productId);
+
+        // Load product details
+        const res = await getProduct(productId);
+        product.value = {
+            id: res.id,
+            title: res.title,
+            price: res.price,
+            originalPrice: res.originalPrice || (res.price * 1.2).toFixed(2),
+            description: res.description,
+            tags: [res.condition, res.category?.name].filter(Boolean),
+            images: (res.images || []).map(img => img.url),
+            viewsCount: res.viewsCount || 0,
+            createdAt: res.createdAt,
+            condition: res.condition,
+            category: res.category,
+            address: res.locationText || '未知地点'
+        };
+
+        if (res.seller) {
+            seller.value = {
+                id: res.seller.id,
+                name: res.seller.username || res.seller.nickname || '卖家',
+                avatar: res.seller.avatarUrl || 'https://via.placeholder.com/100',
+                productCount: res.seller.productCount || 0,
+                credit: '极好'
+            };
+        }
+
+        // Load reviews
+        try {
+            const reviewsData = await getProductReviews(productId, { page: 0, size: 5 });
+            reviews.value = reviewsData.content || [];
+            reviewCount.value = reviewsData.totalElements || 0;
+        } catch (e) {
+            console.error('Failed to load reviews', e);
+        }
+
+    } catch (e) {
+        showFailToast('加载商品失败');
+        console.error(e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+onMounted(() => {
+    loadData();
+});
+</script>
+
 <template>
-    <div class="product-detail-page">
-        <!-- 顶部导航栏 -->
-        <van-nav-bar class="nav-bar" left-arrow @click-left="$router.go(-1)" :border="false">
-            <template #right>
-                <van-icon name="share-o" size="20" @click="handleShare" />
-            </template>
-        </van-nav-bar>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
-        <div class="product-content">
-            <!-- 商品图片 / 骨架屏 -->
-            <div v-if="loading" class="product-skeleton">
-                <van-skeleton animated :row="0" class="image-skeleton" />
-                <div class="info-skeleton">
-                    <van-skeleton animated :row="3" />
+        <!-- --- Top Navigation (Desktop Standard) --- -->
+        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100">
+            <div class="max-w-6xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
+                <div class="flex items-center gap-10">
+                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
+                        <div
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
+                            T</div>
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                                class="text-[#4a8b6e]">.</span></span>
+                    </div>
+                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
+                        <a @click.prevent="router.push('/')"
+                            class="hover:text-[#4a8b6e] transition-colors cursor-pointer">首页</a>
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">捡漏榜</a>
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">附近闲置</a>
+                    </div>
+                </div>
+
+                <div class="flex-1 max-w-xl relative hidden lg:block">
+                    <input v-model="searchQuery" @keyup.enter="handleSearch" type="text"
+                        placeholder="搜“iPhone 15”看看大家卖多少钱..."
+                        class="w-full bg-[#f5f5f5] border border-transparent rounded-full py-2.5 pl-6 pr-12 focus:bg-white focus:border-[#4a8b6e]/30 focus:ring-4 focus:ring-[#4a8b6e]/10 transition-all text-sm outline-none placeholder:text-gray-400" />
+                    <div @click="handleSearch"
+                        class="absolute right-1.5 top-1.5 w-8 h-8 bg-[#2c3e50] rounded-full flex items-center justify-center text-white hover:bg-[#4a8b6e] transition-colors cursor-pointer">
+                        <Search :size="14" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-5">
+                    <div class="flex flex-col items-center gap-0.5 cursor-pointer text-gray-500 hover:text-[#4a8b6e]"
+                        @click="router.push('/messages')">
+                        <MessageCircle :size="22" :stroke-width="1.5" />
+                        <span class="text-[10px] scale-90">消息</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-0.5 cursor-pointer text-gray-500 hover:text-[#4a8b6e]"
+                        @click="router.push('/favorites')">
+                        <Heart :size="22" :stroke-width="1.5" />
+                        <span class="text-[10px] scale-90">收藏</span>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100 cursor-pointer"
+                        @click="router.push('/profile')">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                            class="w-full h-full object-cover" />
+                    </div>
                 </div>
             </div>
-            <template v-else>
-                <div class="swipe-container">
-                    <van-swipe v-if="productImages.length" class="product-swipe" :autoplay="5000" indicator-color="#fff"
-                        :show-indicators="productImages.length > 1">
-                        <van-swipe-item v-for="(image, index) in productImages" :key="index">
-                            <van-image :src="image" fit="cover" @click="previewImages(index)" class="swipe-image" />
-                        </van-swipe-item>
-                    </van-swipe>
-                    <van-empty v-else description="暂无图片" class="empty-image" />
-                    <!-- 图片计数器 -->
-                    <div v-if="productImages.length > 1" class="image-counter">
-                        {{ currentImageIndex + 1 }}/{{ productImages.length }}
-                    </div>
-                </div>
+        </nav>
 
-                <!-- 商品信息卡片 -->
-                <div class="product-info-card">
-                    <div class="price-row">
-                        <div class="product-price">
-                            <span class="currency">¥</span>
-                            <span class="price-value">{{ productInfo.price ?? '-' }}</span>
-                        </div>
-                        <div class="product-condition" v-if="productInfo.condition">
-                            <van-tag type="primary" size="medium">{{ productInfo.condition }}</van-tag>
+        <!-- --- Main Layout --- -->
+        <main v-if="!loading" class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Column: Gallery & Details (col-span-8) -->
+            <div class="lg:col-span-8 space-y-6">
+
+                <!-- 1. Image Gallery -->
+                <div class="bg-white rounded-2xl p-2 shadow-sm border border-gray-100/50">
+                    <!-- Main Image -->
+                    <div class="relative bg-gray-100 aspect-[4/3] rounded-xl overflow-hidden mb-2 group cursor-zoom-in"
+                        @click="previewImage(currentImageIndex)">
+                        <img :src="displayImages[currentImageIndex]" class="w-full h-full object-contain" />
+
+                        <!-- Verified Badge -->
+                        <div
+                            class="absolute top-4 left-4 flex items-center gap-1.5 bg-[#4a8b6e]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
+                            <ShieldCheck :size="14" />
+                            <span class="text-xs font-bold">官方已验货 · 正品保证</span>
                         </div>
                     </div>
-                    <div class="product-title">{{ productInfo.title || '商品' }}</div>
-                    <div class="product-tags" v-if="productInfo.category">
-                        <van-tag plain type="primary" size="small">{{ productInfo.category?.name }}</van-tag>
-                    </div>
-                    <div class="product-meta">
-                        <div class="meta-item">
-                            <van-icon name="eye-o" />
-                            <span>{{ productInfo.viewsCount || 0 }}次浏览</span>
-                        </div>
-                        <div class="meta-item">
-                            <van-icon name="clock-o" />
-                            <span>{{ formatTime(productInfo.createdAt) }}</span>
+
+                    <!-- Thumbnails -->
+                    <div class="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
+                        <div v-for="(img, idx) in displayImages" :key="idx" @mouseenter="currentImageIndex = idx"
+                            :class="['w-20 h-20 rounded-lg overflow-hidden cursor-pointer border-2 transition-all flex-shrink-0', currentImageIndex === idx ? 'border-[#4a8b6e]' : 'border-transparent opacity-70 hover:opacity-100']">
+                            <img :src="img" class="w-full h-full object-cover" />
                         </div>
                     </div>
                 </div>
 
-                <!-- 卖家信息卡片 -->
-                <div class="seller-card" @click="goToSellerProfile">
-                    <div class="seller-left">
-                        <van-image :src="sellerInfo.avatarUrl || defaultAvatar" class="seller-avatar" round
-                            fit="cover" />
-                        <div class="seller-info">
-                            <div class="seller-name">{{ sellerInfo.name }}</div>
-                            <div class="seller-stats">
-                                <span class="stat-item">
-                                    <van-icon name="goods-collect-o" />
-                                    在售 {{ sellerInfo.productCount || 0 }}
-                                </span>
+                <!-- 2. Product Description -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50">
+                    <h2 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <div class="w-1 h-5 bg-[#4a8b6e] rounded-full"></div>
+                        商品详情
+                    </h2>
+                    <p class="text-base text-gray-700 leading-loose whitespace-pre-line">
+                        {{ product.description || '暂无详细描述' }}
+                    </p>
+
+                    <!-- Safety Tip -->
+                    <div class="mt-8 bg-orange-50 text-orange-800 p-4 rounded-xl text-sm flex items-start gap-3">
+                        <AlertTriangle :size="18" class="mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p class="font-bold mb-1">安全提示</p>
+                            <p class="opacity-90">为了保障您的权益，请不要脱离平台进行交易。不要轻信任何要求您点击链接进行退款、支付保证金的借口。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Comments -->
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="font-bold text-lg flex items-center gap-2">
+                            <div class="w-1 h-5 bg-[#4a8b6e] rounded-full"></div>
+                            留言 ({{ reviewCount }})
+                        </h2>
+                    </div>
+                    <div class="space-y-6" v-if="reviews.length > 0">
+                        <div v-for="(review, index) in reviews" :key="review.id">
+                            <div class="flex gap-4">
+                                <img :src="review.reviewerAvatar || 'https://via.placeholder.com/50'"
+                                    class="w-10 h-10 rounded-full bg-gray-100 object-cover" />
+                                <div class="flex-1">
+                                    <div class="flex items-baseline justify-between mb-1">
+                                        <span class="text-sm font-bold text-gray-800">{{ review.isAnonymous ? '匿名用户' :
+                                            review.reviewerName }}</span>
+                                        <span class="text-xs text-gray-400">{{ formatTime(review.createdAt) }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">{{ review.content }}</p>
+                                </div>
+                            </div>
+                            <div v-if="index < reviews.length - 1" class="w-full h-px bg-gray-50 mt-6"></div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center text-gray-400 text-sm py-4">
+                        暂无留言，快来抢沙发吧~
+                    </div>
+
+                    <!-- Comment Input -->
+                    <div class="mt-6 flex gap-3">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                            class="w-10 h-10 rounded-full bg-gray-100 object-cover" />
+                        <div class="flex-1 relative">
+                            <input v-model="newComment" @keyup.enter="handleSendComment" type="text"
+                                placeholder="看对眼了就留言，问问更多细节~"
+                                class="w-full bg-gray-50 border-none rounded-full py-2.5 px-4 text-sm focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all">
+                            <button @click="handleSendComment"
+                                class="absolute right-2 top-1.5 text-[#4a8b6e] text-xs font-bold px-3 py-1 hover:bg-[#4a8b6e]/10 rounded-full transition-colors">发送</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Info & Actions (col-span-4) - Sticky -->
+            <div class="lg:col-span-4 space-y-4">
+
+                <!-- 1. Primary Info Card -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 sticky top-24">
+
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="bg-[#4a8b6e] text-white text-xs px-2 py-0.5 rounded font-bold">转卖</span>
+                        <span class="text-xs text-gray-400">发布于 {{ product.address }}</span>
+                    </div>
+
+                    <h1 class="text-xl font-bold text-[#2c3e50] leading-snug mb-4">
+                        {{ product.title }}
+                    </h1>
+
+                    <div class="flex items-baseline gap-2 mb-6">
+                        <span class="text-sm text-[#ff5e57] font-bold">¥</span>
+                        <span class="text-4xl font-bold text-[#ff5e57] font-mono tracking-tight">{{ product.price
+                            }}</span>
+                        <span class="text-sm text-gray-400 line-through ml-2">¥{{ product.originalPrice }}</span>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <div v-for="tag in product.tags" :key="tag"
+                            class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            {{ tag }}
+                        </div>
+                    </div>
+
+                    <!-- Inspection Banner -->
+                    <div
+                        class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6 cursor-pointer hover:bg-[#34495e] transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#4a8b6e]">
+                                <FileCheck2 :size="18" />
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm">官方验货报告</div>
+                                <div class="text-[10px] text-gray-300">32项检测合格 · 正品无拆修</div>
                             </div>
                         </div>
+                        <ChevronRight :size="16" class="text-gray-400" />
                     </div>
-                    <van-icon name="arrow" class="arrow-icon" />
-                </div>
 
-                <!-- 评价板块 -->
-                <div class="review-section">
-                    <div class="section-header">
-                        <div class="section-title">
-                            <span class="title-icon">💬</span>
-                            商品评价 ({{ reviewCount }})
-                        </div>
-                        <div class="more-reviews" v-if="reviewCount > 0" @click="viewAllReviews">
-                            查看全部 <van-icon name="arrow" />
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col gap-3">
+                        <button @click="handleBuy"
+                            class="w-full bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white font-bold py-3.5 rounded-full text-base shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                            立即购买
+                        </button>
+                        <div class="flex gap-3">
+                            <button @click="handleChat"
+                                class="flex-1 bg-[#4a8b6e]/10 text-[#4a8b6e] font-bold py-3 rounded-full text-sm hover:bg-[#4a8b6e]/20 transition-colors">
+                                聊一聊
+                            </button>
+                            <button @click="toggleFavorite"
+                                :class="['flex-1 font-bold py-3 rounded-full text-sm border transition-colors flex items-center justify-center gap-1', isFavorited ? 'border-[#ff5e57] text-[#ff5e57] bg-[#ff5e57]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50']">
+                                <Heart :size="16" :fill="isFavorited ? '#ff5e57' : 'none'" />
+                                {{ isFavorited ? '已收藏' : '收藏' }}
+                            </button>
                         </div>
                     </div>
-                    <div class="review-list" v-if="reviews.length > 0">
-                        <div class="review-item" v-for="review in reviews" :key="review.id">
-                            <div class="review-user">
-                                <van-image :src="review.reviewerAvatar || defaultAvatar" round class="user-avatar"
-                                    fit="cover" />
-                                <span class="user-name">{{ review.isAnonymous ? '匿名用户' : review.reviewerName }}</span>
-                                <van-rate v-model="review.rating" readonly size="12px" color="#ffd21e" void-icon="star"
-                                    void-color="#eee" />
+
+                    <!-- Seller Mini Profile (Moved inside Right Column) -->
+                    <div class="mt-8 pt-6 border-t border-gray-50">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="relative">
+                                <img :src="seller.avatar"
+                                    class="w-10 h-10 rounded-full border border-gray-100 object-cover" />
+                                <div
+                                    class="absolute -bottom-1 -right-1 bg-[#4a8b6e] text-white text-[9px] px-1.5 rounded-full border border-white">
+                                    实名</div>
                             </div>
-                            <div class="review-content">{{ review.content }}</div>
-                            <div class="review-time">{{ formatTime(review.createdAt) }}</div>
-                            <div class="seller-reply" v-if="review.replyContent">
-                                <span class="reply-label">卖家回复：</span>{{ review.replyContent }}
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-[#2c3e50] text-sm">{{ seller.name }}</span>
+                                    <span
+                                        class="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100">芝麻信用
+                                        {{ seller.credit }}</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5">回复快 · 发货快 · 评价优</div>
                             </div>
                         </div>
+                        <button @click="router.push(`/seller/${seller.id}`)"
+                            class="w-full border border-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg hover:border-[#4a8b6e] hover:text-[#4a8b6e] transition-colors">
+                            进入卖家主页
+                        </button>
                     </div>
-                    <div class="empty-reviews" v-else>
-                        暂无评价
-                    </div>
+
                 </div>
 
-                <!-- 商品详情 -->
-                <div class="detail-section">
-                    <div class="section-header">
-                        <div class="section-title">
-                            <span class="title-icon">📝</span>
-                            商品详情
-                        </div>
-                    </div>
-                    <div class="detail-content">
-                        <p v-if="productInfo.description">{{ productInfo.description }}</p>
-                        <p v-else class="empty-desc">暂无详细描述</p>
-                    </div>
-                </div>
+            </div>
 
-                <!-- 交易须知 -->
-                <div class="notice-section">
-                    <div class="section-header">
-                        <div class="section-title">
-                            <span class="title-icon">💡</span>
-                            交易须知
-                        </div>
-                    </div>
-                    <div class="notice-list">
-                        <div class="notice-item">
-                            <van-icon name="shield-o" class="notice-icon" />
-                            <span>平台担保交易，先验货后确认</span>
-                        </div>
-                        <div class="notice-item">
-                            <van-icon name="service-o" class="notice-icon" />
-                            <span>有问题请联系客服处理</span>
-                        </div>
-                        <div class="notice-item">
-                            <van-icon name="warning-o" class="notice-icon" />
-                            <span>请勿私下交易，谨防诈骗</span>
-                        </div>
-                    </div>
-                </div>
-            </template>
+        </main>
+
+        <!-- Loading State -->
+        <div v-else class="flex items-center justify-center min-h-screen">
+            <div class="animate-pulse flex flex-col items-center">
+                <div class="w-12 h-12 bg-gray-200 rounded-full mb-4"></div>
+                <div class="h-4 bg-gray-200 rounded w-32"></div>
+            </div>
         </div>
 
-        <!-- 底部操作栏 -->
-        <div class="action-bar" v-if="!loading">
-            <div class="action-left">
-                <div class="action-item" @click="toggleFavorite">
-                    <van-icon :name="isFavorited ? 'star' : 'star-o'"
-                        :class="{ 'icon-favorited': isFavorited, 'icon-animate': isAnimating }" />
-                    <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
-                </div>
-                <div class="action-item" @click="contactSeller">
-                    <van-icon name="chat-o" />
-                    <span>聊一聊</span>
-                </div>
-            </div>
-            <div class="action-right">
-                <van-button class="buy-btn" type="danger" round @click="handlePurchase">
-                    <span class="btn-text">立即购买</span>
-                    <span class="btn-price">¥{{ productInfo.price }}</span>
-                </van-button>
-            </div>
-        </div>
     </div>
 </template>
 
-<script>
-import { createConversation } from '@/api/chat'
-import { getProduct } from '@/api/products'
-import { getProductReviews } from '@/api/reviews'
-import { useAuth } from '@/composables/useAuth'
-import { useFavoritesStore } from '@/stores/favorites'
-import { ImagePreview, Rate, showFailToast, showSuccessToast, showToast } from 'vant'
-import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-
-export default {
-    name: 'ProductDetail',
-    components: {
-        [Rate.name]: Rate,
-    },
-    setup() {
-        const router = useRouter()
-        const route = useRoute()
-        const favoritesStore = useFavoritesStore()
-        const { requireLogin } = useAuth()
-
-        const isFavorited = ref(false)
-        const isAnimating = ref(false)
-        const loading = ref(true)
-        const currentImageIndex = ref(0)
-        const defaultAvatar = ''
-
-        // 商品图片
-        const productImages = ref([])
-
-        // 商品信息
-        const productInfo = ref({})
-
-        // 评价信息
-        const reviews = ref([])
-        const reviewCount = ref(0)
-
-        // 卖家信息
-        const sellerInfo = ref({
-            id: 0,
-            name: '卖家',
-            avatarUrl: '',
-            productCount: 0,
-        })
-
-        // 格式化时间
-        const formatTime = (time) => {
-            if (!time) return ''
-            const date = new Date(time)
-            const now = new Date()
-            const diff = now - date
-            const minutes = Math.floor(diff / 60000)
-            const hours = Math.floor(diff / 3600000)
-            const days = Math.floor(diff / 86400000)
-
-            if (minutes < 1) return '刚刚'
-            if (minutes < 60) return `${minutes}分钟前`
-            if (hours < 24) return `${hours}小时前`
-            if (days < 7) return `${days}天前`
-            return date.toLocaleDateString()
-        }
-
-        // 预览图片
-        const previewImages = (startPosition = 0) => {
-            ImagePreview({
-                images: productImages.value,
-                startPosition,
-                onChange: (index) => {
-                    currentImageIndex.value = index
-                }
-            })
-        }
-
-        // 切换收藏状态
-        const toggleFavorite = async () => {
-            // 检查登录状态
-            const loggedIn = await requireLogin({ message: '收藏商品需要登录，是否立即登录？' })
-            if (!loggedIn) return
-
-            const productId = Number(route.params.id)
-            const prev = isFavorited.value
-            // 乐观更新
-            isFavorited.value = !prev
-
-            if (!prev) {
-                isAnimating.value = true
-                setTimeout(() => {
-                    isAnimating.value = false
-                }, 400)
-            }
-
-            try {
-                if (prev) {
-                    await favoritesStore.remove(productId)
-                    showSuccessToast('已取消收藏')
-                } else {
-                    await favoritesStore.add(productId)
-                    showSuccessToast('已添加到收藏')
-                }
-            } catch (e) {
-                // 回滚
-                isFavorited.value = prev
-            }
-        }
-
-        // 联系卖家
-        const contactSeller = async () => {
-            // 检查登录状态
-            const loggedIn = await requireLogin({ message: '联系卖家需要登录，是否立即登录？' })
-            if (!loggedIn) return
-
-            if (!sellerInfo.value.id) {
-                showFailToast('卖家信息加载失败')
-                return
-            }
-
-            try {
-                const res = await createConversation(sellerInfo.value.id)
-                if (res && res.id) {
-                    router.push(`/messages/chat/${res.id}`)
-                } else {
-                    showFailToast('无法启动会话')
-                }
-            } catch (e) {
-                console.error(e)
-                if (e.response && e.response.data && e.response.data.message) {
-                    showFailToast(e.response.data.message)
-                } else {
-                    showFailToast('启动会话失败')
-                }
-            }
-        }
-
-        // 查看卖家主页
-        const goToSellerProfile = () => {
-            showToast('卖家主页功能开发中')
-        }
-
-        // 查看所有评价
-        const viewAllReviews = () => {
-            showToast('更多评价功能开发中')
-        }
-
-        // 分享
-        const handleShare = () => {
-            showToast('分享功能开发中')
-        }
-
-        // 购买商品
-        const handlePurchase = async () => {
-            // 检查登录状态
-            const loggedIn = await requireLogin({ message: '购买商品需要登录，是否立即登录？' })
-            if (!loggedIn) return
-
-            router.push({
-                name: 'Settlement',
-                query: {
-                    productId: productInfo.value.id,
-                    title: productInfo.value.title,
-                    price: productInfo.value.price,
-                    image: productImages.value[0] || ''
-                }
-            });
-        }
-
-        const loadDetail = async () => {
-            try {
-                const productId = Number(route.params.id)
-                await favoritesStore.fetchFavorites()
-                const res = await getProduct(productId)
-                console.log('Product Detail Response:', res) // Debug log
-                productInfo.value = res
-                productImages.value = (res.images || []).map((img) => img.url)
-                isFavorited.value = favoritesStore.isFavorited(productId)
-
-                // 获取评价
-                try {
-                    const reviewsData = await getProductReviews(productId, { page: 0, size: 3 })
-                    reviews.value = reviewsData.content || []
-                    reviewCount.value = reviewsData.totalElements || 0
-                } catch (e) {
-                    console.error('获取评价失败', e)
-                }
-
-                // 设置卖家信息
-                if (res.seller) {
-                    sellerInfo.value = {
-                        id: res.seller.id,
-                        name: res.seller.username || res.seller.nickname || '卖家',
-                        avatarUrl: res.seller.avatarUrl || '',
-                        productCount: res.seller.productCount || 0,
-                    }
-                }
-            } catch (e) {
-                showFailToast('加载失败')
-            } finally {
-                loading.value = false
-            }
-        }
-
-        onMounted(() => {
-            loadDetail()
-        })
-
-        return {
-            productImages,
-            productInfo,
-            sellerInfo,
-            isFavorited,
-            isAnimating,
-            loading,
-            currentImageIndex,
-            defaultAvatar,
-            formatTime,
-            previewImages,
-            toggleFavorite,
-            contactSeller,
-            goToSellerProfile,
-            handleShare,
-            handlePurchase,
-            reviews,
-            reviewCount,
-            viewAllReviews
-        }
-    }
-}
-</script>
-
 <style scoped>
-.product-detail-page {
-    min-height: 100vh;
-    background: linear-gradient(180deg, #f8f9fa 0%, #f0f2f5 100%);
-    padding-bottom: 80px;
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
 
-/* 导航栏 */
-.nav-bar {
-    background: transparent;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-}
-
-.nav-bar :deep(.van-nav-bar__content) {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-}
-
-/* 骨架屏 */
-.product-skeleton {
-    background: #fff;
-}
-
-.image-skeleton {
-    height: 320px;
-    background: #f5f5f5;
-}
-
-.info-skeleton {
-    padding: 16px;
-}
-
-/* 图片轮播区域 */
-.swipe-container {
-    position: relative;
-    background: #f8f9fa;
-    margin: 0 12px;
-    margin-top: 56px;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.product-swipe {
-    height: 300px;
-    border-radius: 16px;
-}
-
-.swipe-image {
-    width: 100%;
-    height: 300px;
-    border-radius: 16px;
-}
-
-.swipe-image :deep(.van-image__img) {
-    border-radius: 16px;
-}
-
-.empty-image {
-    height: 300px;
-    background: #f5f5f5;
-    border-radius: 16px;
-}
-
-.image-counter {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    backdrop-filter: blur(4px);
-}
-
-/* 商品信息卡片 */
-.product-info-card {
-    background: #fff;
-    margin: 12px;
-    border-radius: 16px;
-    padding: 20px;
-    position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.product-price {
-    color: #FF5722;
-    font-weight: 700;
-}
-
-.product-price .currency {
-    font-size: 18px;
-    font-family: var(--font-family-number);
-}
-
-.product-price .price-value {
-    font-size: 32px;
-    letter-spacing: -1px;
-    font-family: var(--font-family-number);
-    font-weight: 800;
-}
-
-.product-condition :deep(.van-tag) {
-    padding: 4px 10px;
-    border-radius: 8px;
-}
-
-.product-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
-    line-height: 1.4;
-    margin-bottom: 12px;
-}
-
-.product-tags {
-    margin-bottom: 16px;
-}
-
-.product-tags :deep(.van-tag) {
-    margin-right: 8px;
-    border-radius: 6px;
-}
-
-.product-meta {
-    display: flex;
-    gap: 20px;
-    padding-top: 12px;
-    border-top: 1px solid #f5f5f5;
-}
-
-.meta-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: #999;
-}
-
-.meta-item .van-icon {
-    font-size: 14px;
-}
-
-/* 卖家卡片 */
-.seller-card {
-    background: #fff;
-    margin: 0 12px 12px;
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.seller-card:active {
-    transform: scale(0.98);
-}
-
-/* 评价板块 */
-.review-section {
-    background: #fff;
-    margin: 0 12px 12px;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.more-reviews {
-    font-size: 12px;
-    color: #999;
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-}
-
-.review-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.review-item {
-    border-bottom: 1px solid #f5f5f5;
-    padding-bottom: 12px;
-}
-
-.review-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.review-user {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.user-avatar {
-    width: 24px;
-    height: 24px;
-}
-
-.user-name {
-    font-size: 13px;
-    color: #333;
-    margin-right: auto;
-}
-
-.review-content {
-    font-size: 14px;
-    color: #333;
-    line-height: 1.5;
-    margin-bottom: 6px;
-}
-
-.review-time {
-    font-size: 11px;
-    color: #999;
-}
-
-.seller-reply {
-    margin-top: 8px;
-    background: #f8f9fa;
-    padding: 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #666;
-    line-height: 1.4;
-}
-
-.reply-label {
-    color: #ee0a24;
-    font-weight: 500;
-}
-
-.empty-reviews {
-    text-align: center;
-    color: #999;
-    font-size: 13px;
-    padding: 20px 0;
-}
-
-.seller-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.seller-avatar {
-    width: 48px;
-    height: 48px;
-    border: 2px solid #f0f0f0;
-}
-
-.seller-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.seller-name {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1a1a1a;
-}
-
-.seller-stats {
-    display: flex;
-    gap: 12px;
-}
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #999;
-}
-
-.stat-item .van-icon {
-    font-size: 12px;
-}
-
-.arrow-icon {
-    color: #c8c9cc;
-    font-size: 16px;
-}
-
-/* 详情区块 */
-.detail-section,
-.notice-section {
-    background: #fff;
-    margin: 0 12px 12px;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.section-header {
-    margin-bottom: 12px;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.title-icon {
-    font-size: 18px;
-}
-
-.detail-content {
-    font-size: 14px;
-    color: #4a4a4a;
-    line-height: 1.8;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.detail-content p {
-    margin: 0;
-}
-
-.empty-desc {
-    color: #999;
-    font-style: italic;
-}
-
-/* 交易须知 */
-.notice-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.notice-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: #666;
-}
-
-.notice-icon {
-    font-size: 16px;
-    color: #07c160;
-}
-
-/* 底部操作栏 */
-.action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    padding: 10px 16px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
-    z-index: 100;
-}
-
-.action-left {
-    display: flex;
-    gap: 24px;
-}
-
-.action-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    font-size: 11px;
-    color: #666;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.action-item:active {
-    color: #ee0a24;
-}
-
-.action-item .van-icon {
-    font-size: 22px;
-    transition: transform 0.2s;
-}
-
-.action-item:active .van-icon {
-    transform: scale(1.15);
-}
-
-.icon-favorited {
-    color: #ee0a24 !important;
-}
-
-.icon-animate {
-    animation: favorite-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes favorite-bounce {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.5);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-.action-right {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.buy-btn {
-    min-width: 140px;
-    height: 44px;
-    font-size: 15px;
-    font-weight: 600;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0 24px;
-    background: linear-gradient(135deg, #FF7043 0%, #FF5722 100%);
-    border: none;
-    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
-}
-
-.buy-btn .btn-text {
-    font-size: 14px;
-    line-height: 1.2;
-}
-
-.buy-btn .btn-price {
-    font-size: 11px;
-    opacity: 0.9;
-    line-height: 1.2;
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

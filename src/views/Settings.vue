@@ -1,226 +1,304 @@
-<template>
-    <div class="page">
-        <van-nav-bar title="系统设置" left-arrow @click-left="$router.back()" fixed />
-        <div class="container" style="padding-top:56px;">
-            <van-cell-group inset title="通知与隐私">
-                <van-cell title="消息通知" center>
-                    <template #right-icon>
-                        <van-switch v-model="notify" size="20" />
-                    </template>
-                </van-cell>
-                <van-cell title="推送营销消息" center>
-                    <template #right-icon>
-                        <van-switch v-model="marketing" size="20" />
-                    </template>
-                </van-cell>
-                <van-cell title="个性化推荐" center>
-                    <template #right-icon>
-                        <van-switch v-model="personalized" size="20" />
-                    </template>
-                </van-cell>
-            </van-cell-group>
+<script setup>
+import { useUserStore } from '@/stores/user';
+import {
+    Bell,
+    Check,
+    ChevronRight,
+    LogOut,
+    Megaphone,
+    Moon,
+    Sparkles,
+    Trash2
+} from 'lucide-vue-next';
+import { showConfirmDialog, showSuccessToast, showToast } from 'vant';
+import { onMounted, ref, watchEffect } from 'vue';
+import { useRouter } from 'vue-router';
 
-            <van-cell-group inset title="外观">
-                <van-cell title="深色模式（占位）" value="跟随系统" is-link @click="toggleTheme" />
-            </van-cell-group>
+const router = useRouter();
+const userStore = useUserStore();
 
-            <van-cell-group inset title="缓存管理">
-                <van-cell title="清除缓存" is-link @click="clearCache">
-                    <template #value>
-                        <span class="cache-size">{{ cacheSize }}</span>
-                    </template>
-                </van-cell>
-            </van-cell-group>
+// --- State ---
+const settings = ref({
+    notifications: true,
+    marketing: false,
+    personalization: true
+});
+const cacheSize = ref('计算中...');
+const appVersion = ref('1.0.0');
+const KEY = 'tu.settings';
 
-            <van-cell-group inset title="关于">
-                <van-cell title="版本号" :value="appVersion" />
-                <van-cell title="用户协议" is-link @click="showToast('用户协议')" />
-                <van-cell title="隐私政策" is-link @click="showToast('隐私政策')" />
-            </van-cell-group>
+// --- Logic ---
+const loadSettings = () => {
+    try {
+        const v = JSON.parse(localStorage.getItem(KEY) || '{}');
+        if (typeof v.notifications === 'boolean') settings.value.notifications = v.notifications;
+        if (typeof v.marketing === 'boolean') settings.value.marketing = v.marketing;
+        if (typeof v.personalization === 'boolean') settings.value.personalization = v.personalization;
+    } catch { }
+};
 
-            <div style="padding: 24px 16px;">
-                <van-button type="danger" block round size="large" :loading="isLoggingOut" @click="handleLogout">
-                    退出登录
-                </van-button>
-            </div>
+const saveSettings = () => {
+    localStorage.setItem(KEY, JSON.stringify(settings.value));
+};
 
-            <div class="logout-tip">
-                退出后将清除本地登录状态
-            </div>
-        </div>
-    </div>
-</template>
-
-<script>
-import { useUserStore } from '@/stores/user'
-import { showConfirmDialog, showSuccessToast, showToast } from 'vant'
-import { onMounted, ref, watchEffect } from 'vue'
-import { useRouter } from 'vue-router'
-
-const KEY = 'tu.settings'
-
-export default {
-    name: 'Settings',
-    setup() {
-        const router = useRouter()
-        const userStore = useUserStore()
-        const notify = ref(true)
-        const marketing = ref(false)
-        const personalized = ref(true)
-        const isLoggingOut = ref(false)
-        const cacheSize = ref('计算中...')
-        const appVersion = ref('1.0.0')
-
-        const save = () => {
-            localStorage.setItem(KEY, JSON.stringify({
-                notify: notify.value,
-                marketing: marketing.value,
-                personalized: personalized.value
-            }))
-        }
-
-        const load = () => {
-            try {
-                const v = JSON.parse(localStorage.getItem(KEY) || '{}')
-                if (typeof v.notify === 'boolean') notify.value = v.notify
-                if (typeof v.marketing === 'boolean') marketing.value = v.marketing
-                if (typeof v.personalized === 'boolean') personalized.value = v.personalized
-            } catch { }
-        }
-
-        const calculateCacheSize = () => {
-            try {
-                let total = 0
-                for (let key in localStorage) {
-                    if (localStorage.hasOwnProperty(key)) {
-                        total += localStorage.getItem(key).length * 2 // UTF-16 编码
-                    }
-                }
-                if (total < 1024) {
-                    cacheSize.value = `${total} B`
-                } else if (total < 1024 * 1024) {
-                    cacheSize.value = `${(total / 1024).toFixed(1)} KB`
-                } else {
-                    cacheSize.value = `${(total / 1024 / 1024).toFixed(1)} MB`
-                }
-            } catch {
-                cacheSize.value = '未知'
+const calculateCacheSize = () => {
+    try {
+        let total = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                total += localStorage.getItem(key).length * 2; // UTF-16
             }
         }
-
-        const clearCache = async () => {
-            try {
-                await showConfirmDialog({
-                    title: '清除缓存',
-                    message: '将清除图片缓存和临时数据，登录状态不受影响',
-                })
-                // 清除非关键数据
-                const keysToKeep = ['token', 'token_expires_at', 'user', KEY]
-                const keysToRemove = []
-                for (let key in localStorage) {
-                    if (localStorage.hasOwnProperty(key) && !keysToKeep.includes(key)) {
-                        keysToRemove.push(key)
-                    }
-                }
-                keysToRemove.forEach(key => localStorage.removeItem(key))
-                calculateCacheSize()
-                showSuccessToast('缓存已清除')
-            } catch {
-                // 用户取消
-            }
+        if (total < 1024) {
+            cacheSize.value = `${total} B`;
+        } else if (total < 1024 * 1024) {
+            cacheSize.value = `${(total / 1024).toFixed(1)} KB`;
+        } else {
+            cacheSize.value = `${(total / 1024 / 1024).toFixed(1)} MB`;
         }
-
-        onMounted(() => {
-            load()
-            calculateCacheSize()
-        })
-
-        const toggleTheme = () => showToast('深色模式后续接入')
-
-        const handleLogout = async () => {
-            try {
-                await showConfirmDialog({
-                    title: '确认退出',
-                    message: '确定要退出登录吗？',
-                    confirmButtonText: '退出',
-                    confirmButtonColor: '#ee0a24',
-                })
-
-                isLoggingOut.value = true
-
-                // 调用 store 的 logout 方法
-                await userStore.logout()
-
-                showSuccessToast('已退出登录')
-
-                // 延迟跳转，让用户看到提示
-                setTimeout(() => {
-                    router.replace({ name: 'Home' })
-                }, 500)
-
-            } catch (error) {
-                // 用户点击取消
-                if (error !== 'cancel' && error?.message !== 'cancel') {
-                    console.error('Logout error:', error)
-                }
-            } finally {
-                isLoggingOut.value = false
-            }
-        }
-
-        // 持久化设置
-        watchEffect(save)
-
-        return {
-            notify,
-            marketing,
-            personalized,
-            isLoggingOut,
-            cacheSize,
-            appVersion,
-            toggleTheme,
-            clearCache,
-            handleLogout,
-            showToast
-        }
+    } catch {
+        cacheSize.value = '未知';
     }
-}
+};
+
+const clearCache = () => {
+    if (!cacheSize.value || cacheSize.value === '0 B') return;
+
+    showConfirmDialog({
+        title: '清除缓存',
+        message: '确定要清除本地缓存吗？这将清除图片缓存和临时数据。',
+    })
+        .then(() => {
+            // Keep critical keys
+            const keysToKeep = ['token', 'token_expires_at', 'user', KEY];
+            const keysToRemove = [];
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key) && !keysToKeep.includes(key)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            calculateCacheSize();
+            showSuccessToast('缓存已清除');
+        })
+        .catch(() => { });
+};
+
+const logout = () => {
+    showConfirmDialog({
+        title: '退出登录',
+        message: '确定要退出登录吗？',
+        confirmButtonColor: '#ff5e57',
+    })
+        .then(async () => {
+            await userStore.logout();
+            showSuccessToast('已退出');
+            router.push('/login');
+        })
+        .catch(() => { });
+};
+
+const toggleTheme = () => {
+    showToast('深色模式后续接入');
+};
+
+onMounted(() => {
+    loadSettings();
+    calculateCacheSize();
+});
+
+watchEffect(saveSettings);
 </script>
 
-<style scoped>
-.cache-size {
-    color: #969799;
-    font-size: 14px;
-}
+<template>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
-.logout-tip {
-    text-align: center;
-    font-size: 12px;
-    color: #969799;
-    margin-top: -8px;
-}
+        <!-- --- Top Navigation --- -->
+        <nav class="bg-white sticky top-0 z-40 border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
+                <div class="flex items-center gap-10">
+                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
+                        <div
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
+                            T</div>
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                                class="text-[#4a8b6e]">.</span></span>
+                    </div>
+                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
+                        <a @click.prevent="router.push('/')"
+                            class="hover:text-[#4a8b6e] transition-colors cursor-pointer">首页</a>
+                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">捡漏榜</a>
+                        <a @click.prevent="router.push('/profile')"
+                            class="text-[#4a8b6e] font-bold cursor-pointer">个人中心</a>
+                    </div>
+                </div>
+                <div class="flex items-center gap-5">
+                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer"
+                        @click="router.push('/profile')">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                            alt="Avatar" class="w-full h-full object-cover" />
+                    </div>
+                </div>
+            </div>
+        </nav>
 
-/* 开关未选中状态背景色 */
-:deep(.van-switch) {
-    background-color: #EEEEEE;
-}
+        <main class="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
-:deep(.van-switch--on) {
-    background-color: var(--primary-color);
-}
+            <!-- --- Header --- -->
+            <div class="mb-2">
+                <h1 class="text-2xl font-bold text-[#2c3e50]">系统设置</h1>
+            </div>
 
-/* 页面布局调整 */
-.page {
-    min-height: 100vh;
-    background: var(--bg-page);
-}
+            <!-- --- Group 1: Notifications & Privacy --- -->
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">通知与隐私</h2>
+                </div>
 
-.container {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    padding-top: 56px !important;
-    box-sizing: border-box;
-}
-</style>
+                <div class="divide-y divide-gray-50">
+                    <!-- Item -->
+                    <div class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                                <Bell :size="16" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">消息通知</span>
+                        </div>
+                        <!-- Custom Switch Component -->
+                        <div @click="settings.notifications = !settings.notifications"
+                            :class="['w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300', settings.notifications ? 'bg-[#4a8b6e]' : 'bg-gray-200']">
+                            <div
+                                :class="['bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300', settings.notifications ? 'translate-x-5' : 'translate-x-0']">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item -->
+                    <div class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                                <Megaphone :size="16" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">推送营销消息</span>
+                        </div>
+                        <div @click="settings.marketing = !settings.marketing"
+                            :class="['w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300', settings.marketing ? 'bg-[#4a8b6e]' : 'bg-gray-200']">
+                            <div
+                                :class="['bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300', settings.marketing ? 'translate-x-5' : 'translate-x-0']">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item -->
+                    <div class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center">
+                                <Sparkles :size="16" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">个性化推荐</span>
+                        </div>
+                        <div @click="settings.personalization = !settings.personalization"
+                            :class="['w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300', settings.personalization ? 'bg-[#4a8b6e]' : 'bg-gray-200']">
+                            <div
+                                :class="['bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300', settings.personalization ? 'translate-x-5' : 'translate-x-0']">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- --- Group 2: Appearance & Cache --- -->
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">通用</h2>
+                </div>
+
+                <div class="divide-y divide-gray-50">
+                    <!-- Appearance -->
+                    <div @click="toggleTheme"
+                        class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                                <Moon :size="16" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">深色模式</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">跟随系统</span>
+                            <ChevronRight :size="16"
+                                class="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                        </div>
+                    </div>
+
+                    <!-- Clear Cache -->
+                    <div @click="clearCache"
+                        class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+                                <Trash2 :size="16" />
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">清除缓存</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span v-if="cacheSize && cacheSize !== '0 B'"
+                                class="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{{ cacheSize
+                                }}</span>
+                            <span v-else class="text-xs text-[#4a8b6e] font-medium flex items-center gap-1">
+                                <Check :size="12" /> 已清理
+                            </span>
+                            <ChevronRight :size="16"
+                                class="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- --- Group 3: About --- -->
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">关于</h2>
+                </div>
+
+                <div class="divide-y divide-gray-50">
+                    <!-- Version -->
+                    <div class="flex items-center justify-between px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-gray-700">版本号</span>
+                        </div>
+                        <span class="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">v{{ appVersion
+                            }}</span>
+                    </div>
+
+                    <!-- User Agreement -->
+                    <div
+                        class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <span class="text-sm font-medium text-gray-700">用户协议</span>
+                        <ChevronRight :size="16" class="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    </div>
+
+                    <!-- Privacy Policy -->
+                    <div
+                        class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <span class="text-sm font-medium text-gray-700">隐私政策</span>
+                        <ChevronRight :size="16" class="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    </div>
+                </div>
+            </section>
+
+            <!-- --- Logout Button --- -->
+            <div class="pt-4 pb-8">
+                <button @click="logout"
+                    class="w-full bg-white border border-gray-200 text-[#ff5e57] hover:bg-[#ff5e57] hover:text-white hover:border-[#ff5e57] py-3.5 rounded-xl font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <LogOut :size="18" /> 退出登录
+                </button>
+                <p class="text-center text-[10px] text-gray-300 mt-4">TrueUsed Inc. All rights reserved.</p>
+            </div>
+
+        </main>
+
+    </div>
+</template>

@@ -89,44 +89,6 @@
                 </div>
             </section>
 
-            <!-- 2. 急出捡漏 (Urgent Deals) -->
-            <div class="bg-white rounded-2xl p-5 mb-6 shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <div
-                            class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-xl text-amber-500">
-                            ⚡️</div>
-                        <h2 class="text-lg font-bold text-gray-900">急出捡漏</h2>
-                        <span class="text-xs text-gray-400">低于行情 20%</span>
-                    </div>
-                    <div class="text-sm text-gray-500 cursor-pointer flex items-center hover:text-emerald-600 transition-colors"
-                        @click="router.push('/search?sort=price_asc')">
-                        更多
-                        <div class="i-lucide-chevron-right text-base"></div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <div v-for="item in urgentItems" :key="item.id"
-                        class="flex items-center gap-4 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-                        @click="router.push(`/product/${item.id}`)">
-                        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <img :src="item.image" class="w-full h-full object-cover" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-[15px] font-semibold text-gray-800 mb-1">{{ item.title }}</div>
-                            <div class="text-xs text-gray-400 flex items-center gap-1">
-                                <div class="i-lucide-clock text-xs"></div> {{ item.timeStr }}
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-base font-bold text-red-500">¥{{ item.price }}</div>
-                            <div class="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block">⬇降 ¥{{
-                                item.saved }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 3. 分类筛选 (Category Chips) -->
             <div class="flex gap-3 overflow-x-auto pb-4 scrollbar-hide mb-6">
@@ -177,28 +139,18 @@
             </div>
         </div>
 
-        <!-- 5. 底部实时动态 (Ticker) -->
-        <div
-            class="fixed bottom-0 left-0 right-0 h-12 bg-white border-t border-gray-200 flex items-center px-6 z-50 md:bottom-0 bottom-[50px]">
-            <div class="flex-1 flex items-center gap-3">
-                <span class="text-xs font-bold text-emerald-700 whitespace-nowrap">实时动态</span>
-                <span class="text-gray-200">|</span>
-                <van-swipe vertical class="h-6 flex-1" :autoplay="3000" :show-indicators="false">
-                    <van-swipe-item v-for="(msg, idx) in tickerMessages" :key="idx"
-                        class="flex items-center text-xs text-gray-600">
-                        <span v-html="msg"></span>
-                    </van-swipe-item>
-                </van-swipe>
-            </div>
-            <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center cursor-pointer text-gray-500 hover:bg-gray-200 ml-2"
+        <!-- 5. 底部滚动 (To Top Only) -->
+        <div class="fixed bottom-0 right-0 p-6 z-50 md:bottom-0 bottom-[50px]">
+            <div class="w-10 h-10 bg-white border border-gray-200 shadow-lg rounded-full flex items-center justify-center cursor-pointer text-gray-500 hover:text-emerald-600 hover:border-emerald-600 transition-all"
                 @click="scrollToTop">
-                <div class="i-lucide-arrow-up-to-line text-sm"></div>
+                <div class="i-lucide-arrow-up-to-line text-lg"></div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
+import { listCategories } from '@/api/categories'
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
 import { onMounted, ref } from 'vue'
@@ -209,26 +161,28 @@ const loading = ref(false)
 const hasMore = ref(true)
 const page = ref(0)
 const size = ref(10)
-const totalProducts = ref(342) // Mock count
+const totalProducts = ref(0)
 
 // Categories
 const activeCategory = ref(0)
-const categories = [
-    { id: 0, name: '全部', icon: 'i-lucide-layout-grid' },
-    { id: 1, name: '手机数码', icon: 'i-lucide-smartphone' },
-    { id: 2, name: '摄影摄像', icon: 'i-lucide-camera' },
-    { id: 3, name: '潮牌服饰', icon: 'i-lucide-shopping-bag' },
-    { id: 4, name: '家具家居', icon: 'i-lucide-armchair' },
-    { id: 5, name: '图书教材', icon: 'i-lucide-book' },
-    { id: 6, name: '运动户外', icon: 'i-lucide-medal' },
-]
-
-// Urgent Items (Mock)
-const urgentItems = ref([
-    { id: 101, title: 'MacBook Air M2 13寸', price: 5800, saved: 1200, timeStr: '5分钟前', image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=200&h=200&fit=crop' },
-    { id: 102, title: 'Ricoh GR3x 街拍神机', price: 6200, saved: 500, timeStr: '12分钟前', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&h=200&fit=crop' },
-    { id: 103, title: '始祖鸟 Beta LT 硬壳', price: 2800, saved: 800, timeStr: '刚刚', image: 'https://images.unsplash.com/photo-1544098485-2a2a4b087033?w=200&h=200&fit=crop' },
+const categories = ref([
+    { id: 0, name: '全部', icon: 'i-lucide-layout-grid' }
 ])
+
+const fetchCategories = async () => {
+    try {
+        const res = await listCategories()
+        // Append to '全部'
+        const fetched = (res || []).map(c => ({
+            id: c.id,
+            name: c.name,
+            icon: 'i-lucide-package' // Default icon
+        }))
+        categories.value = [{ id: 0, name: '全部', icon: 'i-lucide-layout-grid' }, ...fetched]
+    } catch (e) {
+        console.error('Failed to fetch categories', e)
+    }
+}
 
 // Products
 const productList = ref([])
@@ -250,39 +204,25 @@ const fetchProducts = async () => {
         }
         const res = await listProducts(params)
         if (page.value === 0) productList.value = []
+        totalProducts.value = res.totalElements || 0
 
-        // Enhance product data for UI
-        const newItems = (res.content || []).map(p => ({
-            ...p,
-            tags: ['实拍图', Math.random() > 0.5 ? '官方已验' : null].filter(Boolean),
-            timeAgo: '10分钟前', // Mock
-            saved: Math.floor(p.price * 0.3), // Mock
-            wantCount: Math.floor(Math.random() * 100),
-            seller: p.user || { nickname: 'Seller', avatar: '', credit: '信用极好' }
-        }))
-
+        const newItems = res.content || []
         productList.value.push(...newItems)
         hasMore.value = !res.last
         page.value++
     } catch (e) {
         console.error(e)
     } finally {
-        loading.value = false
+        loading.value = false;
     }
 }
-
-// Ticker Messages
-const tickerMessages = [
-    '用户 <b>Jason</b> 1分钟前发布了 <b>MacBook Pro M1</b>',
-    '用户 <b>Amy</b> 刚刚卖出了 <b>Lululemon瑜伽裤</b>',
-    '用户 <b>Mike</b> 5分钟前 ¥4500 出掉了 <b>iPhone 13</b>'
-]
 
 const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 onMounted(() => {
+    fetchCategories()
     fetchProducts()
 })
 </script>

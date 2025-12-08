@@ -14,6 +14,22 @@ body {
   overscroll-behavior-y: none; /* Prevent bounce/rubber-banding globally */
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--primary-color);
+}
+
+button {
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
 /* 设计 Tokens */
 :root {
   /* 统一主题 */
@@ -175,15 +191,23 @@ body {
   border: 1px solid var(--border-color);
 }
 
-.btn-primary {
+.btn-primary, .van-button--primary {
   color: #fff !important;
   background: var(--primary-color) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
 }
 
-.btn-primary:active {
+.btn-primary:active, .van-button--primary:active {
   background: var(--primary-dark) !important;
+}
+
+/* Remove default borders if any */
+.van-button {
+  border: 1px solid transparent;
+}
+.van-button--plain {
+  border-color: #ebedf0;
 }
 
 /* 统一表单字段高度与圆角 */

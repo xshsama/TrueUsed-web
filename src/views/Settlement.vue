@@ -1,231 +1,351 @@
-<template>
-    <div class="page">
-        <van-nav-bar title="确认订单" left-arrow @click-left="$router.back()" fixed />
-        <div class="container" style="padding-top: 56px;">
-            <div class="address-card shadow-soft-lg" @click="handleAddressClick">
-                <div v-if="selectedAddress">
-                    <div class="recipient">{{ selectedAddress.recipientName }} {{ selectedAddress.phone }}</div>
-                    <div class="address-line">{{ selectedAddress.province }} {{ selectedAddress.city }} {{
-                        selectedAddress.district }}</div>
-                    <div class="address-line">{{ selectedAddress.detailedAddress }}</div>
-                </div>
-                <div v-else class="add-address-prompt">
-                    请选择或添加收货地址
-                </div>
-            </div>
-
-            <div class="product-card shadow-soft-lg">
-                <van-image :src="product.image" width="80" height="80" radius="8" fit="cover" />
-                <div class="info">
-                    <div class="title">{{ product.title }}</div>
-                    <div class="price">￥{{ product.price }}</div>
-                </div>
-            </div>
-
-            <div class="summary-card shadow-soft-lg">
-                <van-cell title="商品总价" :value="`￥${product.price}`" />
-                <van-cell title="运费" value="免运费" />
-                <div class="total">
-                    合计：<span class="amount">￥{{ product.price }}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="action-bar">
-            <div class="total-display">
-                合计：<span class="amount">￥{{ product.price }}</span>
-            </div>
-            <van-button type="danger" @click="handleConfirm" :loading="isSubmitting">提交订单</van-button>
-        </div>
-
-        <van-popup v-model:show="showAddressPicker" position="bottom" round>
-            <van-address-list v-model="chosenAddressId" :list="addressList" @select="onAddressSelect"
-                @add="onAddAddress" />
-        </van-popup>
-    </div>
-</template>
-
-<script>
+<script setup>
 import { getAddresses } from '@/api/address';
 import { createOrder } from '@/api/orders';
+import { getProduct } from '@/api/products';
+import { ChevronRight, FileCheck, MapPin, ShieldCheck } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast, showToast } from 'vant';
-import 'vant/es/toast/style';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-export default {
-    name: 'Settlement',
-    setup() {
-        const route = useRoute();
-        const router = useRouter();
-        const isSubmitting = ref(false);
-        const addresses = ref([]);
-        const selectedAddress = ref(null);
-        const showAddressPicker = ref(false);
-        const chosenAddressId = ref(null);
+const route = useRoute();
+const router = useRouter();
 
-        const product = ref({
-            id: null,
-            title: '',
-            price: 0,
-            image: '',
-        });
+// --- State ---
+const loading = ref(false);
+const isSubmitting = ref(false);
+const address = ref(null); // Selected address
+const addressList = ref([]); // All addresses
 
-        const addressList = computed(() => addresses.value.map(a => ({
-            id: a.id,
-            name: a.recipientName,
-            tel: a.phone,
-            address: `${a.province}${a.city}${a.district}${a.detailedAddress}`,
-            isDefault: a.isDefault,
-        })));
+const product = ref({
+    id: null,
+    title: '',
+    price: 0,
+    image: '',
+    tags: [],
+});
 
-        const loadAddresses = async () => {
-            try {
-                addresses.value = await getAddresses();
-                const defaultAddress = addresses.value.find(a => a.isDefault);
-                selectedAddress.value = defaultAddress || (addresses.value.length > 0 ? addresses.value[0] : null);
-                if (selectedAddress.value) {
-                    chosenAddressId.value = selectedAddress.value.id;
-                }
-            } catch (error) {
-                showFailToast('加载地址失败');
-            }
-        };
+const seller = ref({
+    name: '卖家',
+    avatar: 'https://via.placeholder.com/100'
+});
 
-        onMounted(() => {
-            product.value.id = route.query.productId;
-            product.value.title = route.query.title;
-            product.value.price = route.query.price;
-            product.value.image = route.query.image;
-            loadAddresses();
-        });
+const deliveryType = ref('express');
+const coupon = ref(0); // Mock coupon
+const remark = ref('');
 
-        const handleConfirm = async () => {
-            if (!selectedAddress.value) {
-                showToast('请选择收货地址');
-                return;
-            }
-            isSubmitting.value = true;
-            try {
-                const orderRequest = {
-                    productId: product.value.id,
-                    addressId: selectedAddress.value.id,
-                };
-                const createdOrder = await createOrder(orderRequest);
-                showSuccessToast('订单已提交');
-                // 跳转到独立的支付页面
-                router.replace({ name: 'Payment', params: { id: createdOrder.id } });
-            } catch (error) {
-                showToast('下单失败');
-            } finally {
-                isSubmitting.value = false;
-            }
-        };
+// --- Computed ---
+const freight = computed(() => deliveryType.value === 'express' ? 0 : 0);
 
-        const onAddressSelect = (item) => {
-            selectedAddress.value = addresses.value.find(a => a.id === item.id);
-            showAddressPicker.value = false;
-        };
+const finalPrice = computed(() => {
+    const p = Number(product.value.price) || 0;
+    const f = freight.value;
+    const c = coupon.value;
+    return (p + f - c).toFixed(2);
+});
 
-        const onAddAddress = () => {
-            router.push('/address');
-        };
+const savedAmount = computed(() => {
+    return (coupon.value).toFixed(2);
+});
 
-        const handleAddressClick = () => {
-            if (addresses.value.length === 0) {
-                router.push('/address');
-            } else {
-                showAddressPicker.value = true;
-            }
-        };
-
-        return {
-            product,
-            isSubmitting,
-            handleConfirm,
-            addresses,
-            selectedAddress,
-            showAddressPicker,
-            addressList,
-            chosenAddressId,
-            onAddressSelect,
-            onAddAddress,
-            handleAddressClick,
-        };
-    },
+// --- Methods ---
+const formatPhone = (phone) => {
+    if (!phone) return '';
+    return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
 };
+
+const loadData = async () => {
+    loading.value = true;
+    try {
+        // 1. Load Product & Seller Info
+        const productId = route.query.productId;
+        if (productId) {
+            try {
+                const res = await getProduct(productId);
+                product.value = {
+                    id: res.id,
+                    title: res.title,
+                    price: res.price,
+                    image: res.images?.[0]?.url || route.query.image || '',
+                    tags: [res.condition, res.category?.name].filter(Boolean)
+                };
+                if (res.seller) {
+                    seller.value = {
+                        name: res.seller.username || res.seller.nickname || '卖家',
+                        avatar: res.seller.avatarUrl || 'https://via.placeholder.com/100'
+                    };
+                }
+            } catch (e) {
+                // Fallback to query params if API fails
+                product.value = {
+                    id: route.query.productId,
+                    title: route.query.title,
+                    price: route.query.price,
+                    image: route.query.image,
+                    tags: []
+                };
+            }
+        }
+
+        // 2. Load Addresses
+        const addresses = await getAddresses();
+        addressList.value = addresses;
+        const defaultAddress = addresses.find(a => a.isDefault);
+        address.value = defaultAddress || (addresses.length > 0 ? addresses[0] : null);
+
+    } catch (error) {
+        showFailToast('加载信息失败');
+        console.error(error);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const handleAddressClick = () => {
+    // Simple navigation to address list for now. 
+    // In a real app, we might want a picker or pass a "select mode" flag.
+    // For simplicity, we just go to address management. 
+    // Ideally, Address page should support "selection" mode.
+    router.push('/address');
+};
+
+const handleSubmit = async () => {
+    if (!address.value) {
+        showToast('请选择收货地址');
+        return;
+    }
+    isSubmitting.value = true;
+    try {
+        const orderRequest = {
+            productId: product.value.id,
+            addressId: address.value.id,
+            remark: remark.value // Backend might need to support this field
+        };
+        const createdOrder = await createOrder(orderRequest);
+        showSuccessToast('订单已提交');
+        router.replace({ name: 'Payment', params: { id: createdOrder.id } });
+    } catch (error) {
+        showToast('下单失败');
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+onMounted(() => {
+    loadData();
+});
 </script>
 
+<template>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-24">
+
+        <!-- --- Top Navigation --- -->
+        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
+                <div class="flex items-center gap-10">
+                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
+                        <div
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
+                            T</div>
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                                class="text-[#4a8b6e]">.</span></span>
+                    </div>
+                    <div class="hidden md:block text-lg font-bold text-gray-700 pl-4 border-l border-gray-200">
+                        确认订单
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <div class="flex items-center gap-1">
+                        <ShieldCheck :size="16" class="text-[#4a8b6e]" />
+                        <span>担保交易</span>
+                    </div>
+                    <div class="w-px h-3 bg-gray-300 mx-1"></div>
+                    <div class="flex items-center gap-1">
+                        <FileCheck :size="16" class="text-[#4a8b6e]" />
+                        <span>官方验货</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+            <!-- 1. Address Card -->
+            <section
+                class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden cursor-pointer group hover:border-[#4a8b6e]/30 transition-all relative"
+                @click="handleAddressClick">
+                <div class="address-stripe"></div>
+                <div class="p-6 flex items-center justify-between">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-[#4a8b6e]/10 flex items-center justify-center text-[#4a8b6e] flex-shrink-0">
+                            <MapPin :size="20" />
+                        </div>
+
+                        <div v-if="address">
+                            <div class="flex items-center gap-3 mb-1">
+                                <span class="text-lg font-bold text-[#2c3e50]">{{ address.recipientName }}</span>
+                                <span class="text-base text-gray-500 font-medium">{{ formatPhone(address.phone)
+                                }}</span>
+                                <span v-if="address.isDefault"
+                                    class="text-[10px] text-[#4a8b6e] bg-[#4a8b6e]/10 px-1.5 py-0.5 rounded border border-[#4a8b6e]/20">默认</span>
+                            </div>
+                            <div class="text-sm text-gray-600 leading-relaxed">
+                                {{ address.province }} {{ address.city }} {{ address.district }} {{
+                                    address.detailedAddress }}
+                            </div>
+                        </div>
+                        <div v-else class="py-2">
+                            <span class="text-gray-400 font-medium">您还没有收货地址，点击添加</span>
+                        </div>
+                    </div>
+
+                    <ChevronRight :size="20" class="text-gray-300 group-hover:text-[#4a8b6e] transition-colors" />
+                </div>
+            </section>
+
+            <!-- 2. Order Items -->
+            <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden">
+                <!-- Seller Header -->
+                <div class="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
+                    <img :src="seller.avatar" class="w-6 h-6 rounded-full border border-gray-100 object-cover">
+                    <span class="font-bold text-sm text-[#2c3e50]">{{ seller.name }}</span>
+                    <ChevronRight :size="14" class="text-gray-300" />
+                </div>
+
+                <!-- Product -->
+                <div class="p-6 flex gap-4 border-b border-gray-50">
+                    <div class="w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100">
+                        <img :src="product.image" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-4">
+                                <h3 class="font-bold text-[#2c3e50] line-clamp-2">{{ product.title }}</h3>
+                                <span class="font-bold text-[#2c3e50]">¥{{ product.price }}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <span v-for="tag in product.tags" :key="tag"
+                                    class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                    {{ tag }}
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center gap-1 text-xs text-[#4a8b6e] bg-[#4a8b6e]/5 w-fit px-2 py-1 rounded">
+                            <ShieldCheck :size="12" />
+                            <span>官方验货 · 正品保证</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Options -->
+                <div class="px-6 py-4 space-y-6">
+
+                    <!-- Delivery Method -->
+                    <div class="flex items-center justify-between">
+                        <label class="font-medium text-gray-700">配送方式</label>
+                        <div class="flex bg-gray-50 p-1 rounded-lg">
+                            <button @click="deliveryType = 'express'"
+                                :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'express' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                                快递配送
+                            </button>
+                            <button @click="deliveryType = 'meetup'"
+                                :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'meetup' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                                线下自提
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Freight Insurance -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-gray-700">运费险</span>
+                            <span class="text-[10px] text-[#4a8b6e] border border-[#4a8b6e]/30 px-1 rounded">卖家赠送</span>
+                        </div>
+                        <span class="text-sm font-bold text-[#2c3e50]">¥0.00</span>
+                    </div>
+
+                    <!-- Coupon -->
+                    <div class="flex items-center justify-between cursor-pointer group">
+                        <span class="font-medium text-gray-700">优惠券</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-[#ff5e57] bg-[#ff5e57]/10 px-2 py-0.5 rounded font-bold"
+                                v-if="coupon > 0">- ¥{{ coupon }}</span>
+                            <span class="text-sm text-gray-400 group-hover:text-gray-600 transition-colors"
+                                v-else>无可用</span>
+                            <ChevronRight :size="16" class="text-gray-300" />
+                        </div>
+                    </div>
+
+                    <!-- Remark -->
+                    <div class="flex items-center gap-4">
+                        <label class="font-medium text-gray-700 flex-shrink-0">买家留言</label>
+                        <input type="text" v-model="remark" placeholder="建议留言前先与卖家沟通确认"
+                            class="flex-1 bg-gray-50 border-none rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-[#4a8b6e] outline-none transition-all placeholder:text-gray-300 text-right" />
+                    </div>
+
+                </div>
+
+                <!-- Subtotal -->
+                <div class="px-6 py-4 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-1 text-sm">
+                    <span class="text-gray-500">共 1 件，</span>
+                    <span class="text-gray-900">小计：</span>
+                    <span class="font-bold text-[#ff5e57] text-lg leading-none">¥{{ finalPrice }}</span>
+                </div>
+            </section>
+
+            <!-- 3. Payment Method (Simplified) -->
+            <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-6 space-y-4">
+                <h2 class="font-bold text-gray-800 text-sm mb-2">支付方式</h2>
+
+                <div class="flex items-center justify-between cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-[#1677ff] flex items-center justify-center text-white">
+                            <span class="font-bold text-xs">支</span>
+                        </div>
+                        <span class="text-sm text-gray-700">支付宝</span>
+                    </div>
+                    <div class="w-5 h-5 rounded-full border-[5px] border-[#4a8b6e] bg-white"></div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- --- Bottom Bar --- -->
+        <div class="fixed bottom-0 w-full bg-white border-t border-gray-100 p-4 z-50">
+            <div class="max-w-4xl mx-auto flex items-center justify-end gap-4">
+                <div class="flex flex-col items-end">
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-sm text-gray-500">合计:</span>
+                        <span class="text-2xl font-bold text-[#ff5e57] font-mono">¥{{ finalPrice }}</span>
+                    </div>
+                    <span class="text-[10px] text-[#4a8b6e] bg-[#4a8b6e]/5 px-1.5 rounded" v-if="savedAmount > 0">已优惠
+                        ¥{{ savedAmount }}</span>
+                </div>
+
+                <button @click="handleSubmit" :disabled="isSubmitting"
+                    class="bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white px-8 py-3 rounded-full font-bold text-base shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {{ isSubmitting ? '提交中...' : '提交订单' }}
+                </button>
+            </div>
+        </div>
+
+    </div>
+</template>
+
 <style scoped>
-@import '@/styles/order-card.css';
-
-.address-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-}
-
-.recipient {
-    font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-
-.address-line {
-    font-size: 14px;
-    color: #646566;
-    line-height: 1.5;
-}
-
-.add-address-prompt {
-    text-align: center;
-    color: #1989fa;
-    padding: 16px 0;
-}
-
-.product-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.price {
-    color: #ee0a24;
-    margin-top: 8px;
-}
-
-.summary-card {
-    background: #fff;
-    border-radius: 16px;
-    margin: 10px 0;
-    overflow: hidden;
-}
-
-.total {
-    text-align: right;
-    padding: 12px;
-    font-size: 14px;
-}
-
-.amount {
-    font-weight: 600;
-    font-size: 16px;
-    color: #ee0a24;
-}
-
-.action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #ebedf0;
-    padding: 8px 16px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
+/* 地址彩条装饰 */
+.address-stripe {
+    height: 4px;
+    background-image: repeating-linear-gradient(-45deg,
+            #ff6c6c,
+            #ff6c6c 12px,
+            transparent 12px,
+            transparent 24px,
+            #4a8b6e 24px,
+            #4a8b6e 36px,
+            transparent 36px,
+            transparent 48px);
 }
 </style>

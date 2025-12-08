@@ -92,7 +92,7 @@
                             </h2>
                             <a href="#"
                                 class="text-xs text-gray-400 flex items-center hover:text-[#4a8b6e] transition-colors group"
-                                @click.prevent="router.push('/orders')">
+                                @click.prevent="router.push(isSellerMode ? '/order-manage' : '/orders')">
                                 全部订单 <div
                                     class="i-lucide-chevron-right text-sm group-hover:translate-x-0.5 transition-transform">
                                 </div>
@@ -382,7 +382,9 @@ const handleServiceClick = (item) => {
         case 'address': router.push('/address'); break;
         case 'favorites': router.push('/favorites'); break;
         case 'settings': router.push('/settings'); break;
-        case 'products': router.push('/post/manage'); break;
+        case 'products': router.push('/my-products'); break;
+        case 'help': router.push('/help'); break;
+        case 'check': router.push('/service'); break;
         case 'shop-settings': router.push('/settings'); break; // Placeholder
         default: showToast('功能开发中');
     }
