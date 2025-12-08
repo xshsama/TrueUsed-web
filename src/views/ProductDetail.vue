@@ -1,7 +1,8 @@
 <script setup>
 import { createConversation } from '@/api/chat';
 import { getProduct } from '@/api/products';
-import { getProductReviews } from '@/api/reviews';
+import { createProductComment, getProductComments } from '@/api/reviews';
+import TopNavbar from '@/components/TopNavbar.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useFavoritesStore } from '@/stores/favorites';
 import {
@@ -9,11 +10,9 @@ import {
     ChevronRight,
     FileCheck2,
     Heart,
-    MessageCircle,
-    Search,
     ShieldCheck
 } from 'lucide-vue-next';
-import { ImagePreview, showFailToast, showSuccessToast, showToast } from 'vant';
+import { ImagePreview, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -153,9 +152,32 @@ const handleSearch = () => {
     }
 };
 
-const handleSendComment = () => {
-    showToast('评论功能开发中');
-    newComment.value = '';
+const handleSendComment = async () => {
+    if (!newComment.value.trim()) return;
+
+    const loggedIn = await requireLogin({ message: '留言需要登录，是否立即登录？' });
+    if (!loggedIn) return;
+
+    try {
+        const newCommentRes = await createProductComment({
+            productId: product.value.id,
+            content: newComment.value
+        });
+        showSuccessToast('留言成功');
+        // Add to list
+        reviews.value.unshift({
+            id: newCommentRes.id,
+            reviewerName: newCommentRes.user?.nickname || newCommentRes.user?.username || '我',
+            reviewerAvatar: newCommentRes.user?.avatarUrl || 'https://via.placeholder.com/50',
+            content: newCommentRes.content,
+            createdAt: newCommentRes.createdAt,
+            isAnonymous: false
+        });
+        reviewCount.value++;
+        newComment.value = '';
+    } catch (e) {
+        showFailToast('留言失败');
+    }
 };
 
 const loadData = async () => {
@@ -194,13 +216,20 @@ const loadData = async () => {
             };
         }
 
-        // Load reviews
+        // Load comments
         try {
-            const reviewsData = await getProductReviews(productId, { page: 0, size: 5 });
-            reviews.value = reviewsData.content || [];
-            reviewCount.value = reviewsData.totalElements || 0;
+            const commentsData = await getProductComments(productId, { page: 0, size: 5 });
+            reviews.value = (commentsData.content || []).map(c => ({
+                id: c.id,
+                reviewerName: c.user?.nickname || c.user?.username || '匿名用户',
+                reviewerAvatar: c.user?.avatarUrl || 'https://via.placeholder.com/50',
+                content: c.content,
+                createdAt: c.createdAt,
+                isAnonymous: false
+            }));
+            reviewCount.value = commentsData.totalElements || 0;
         } catch (e) {
-            console.error('Failed to load reviews', e);
+            console.error('Failed to load comments', e);
         }
 
     } catch (e) {
@@ -219,54 +248,8 @@ onMounted(() => {
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
-        <!-- --- Top Navigation (Desktop Standard) --- -->
-        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100">
-            <div class="max-w-6xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
-                <div class="flex items-center gap-10">
-                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
-                        <div
-                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
-                            T</div>
-                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
-                                class="text-[#4a8b6e]">.</span></span>
-                    </div>
-                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
-                        <a @click.prevent="router.push('/')"
-                            class="hover:text-[#4a8b6e] transition-colors cursor-pointer">首页</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">捡漏榜</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">附近闲置</a>
-                    </div>
-                </div>
-
-                <div class="flex-1 max-w-xl relative hidden lg:block">
-                    <input v-model="searchQuery" @keyup.enter="handleSearch" type="text"
-                        placeholder="搜“iPhone 15”看看大家卖多少钱..."
-                        class="w-full bg-[#f5f5f5] border border-transparent rounded-full py-2.5 pl-6 pr-12 focus:bg-white focus:border-[#4a8b6e]/30 focus:ring-4 focus:ring-[#4a8b6e]/10 transition-all text-sm outline-none placeholder:text-gray-400" />
-                    <div @click="handleSearch"
-                        class="absolute right-1.5 top-1.5 w-8 h-8 bg-[#2c3e50] rounded-full flex items-center justify-center text-white hover:bg-[#4a8b6e] transition-colors cursor-pointer">
-                        <Search :size="14" />
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-5">
-                    <div class="flex flex-col items-center gap-0.5 cursor-pointer text-gray-500 hover:text-[#4a8b6e]"
-                        @click="router.push('/messages')">
-                        <MessageCircle :size="22" :stroke-width="1.5" />
-                        <span class="text-[10px] scale-90">消息</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-0.5 cursor-pointer text-gray-500 hover:text-[#4a8b6e]"
-                        @click="router.push('/favorites')">
-                        <Heart :size="22" :stroke-width="1.5" />
-                        <span class="text-[10px] scale-90">收藏</span>
-                    </div>
-                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100 cursor-pointer"
-                        @click="router.push('/profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
-                            class="w-full h-full object-cover" />
-                    </div>
-                </div>
-            </div>
-        </nav>
+        <!-- --- Top Navigation --- -->
+        <TopNavbar mode="buyer" />
 
         <!-- --- Main Layout --- -->
         <main v-if="!loading" class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -381,7 +364,7 @@ onMounted(() => {
                     <div class="flex items-baseline gap-2 mb-6">
                         <span class="text-sm text-[#ff5e57] font-bold">¥</span>
                         <span class="text-4xl font-bold text-[#ff5e57] font-mono tracking-tight">{{ product.price
-                            }}</span>
+                        }}</span>
                         <span class="text-sm text-gray-400 line-through ml-2">¥{{ product.originalPrice }}</span>
                     </div>
 

@@ -47,3 +47,41 @@ export function replyReview(reviewId, replyContent) {
     data: { replyContent },
   })
 }
+
+/**
+ * 获取卖家的评价列表
+ * @param {number} sellerId 卖家ID
+ * @param {object} params { page, size, sort }
+ */
+export function getSellerReviews(sellerId, params) {
+  return request({
+    url: `/reviews/sellers/${sellerId}`,
+    method: 'get',
+    params,
+  })
+}
+
+/**
+ * 获取商品下的留言/咨询
+ * @param {number} productId 商品ID
+ * @param {object} params { page, size }
+ */
+export function getProductComments(productId, params) {
+  return request({
+    url: `/comments/products/${productId}`,
+    method: 'get',
+    params,
+  })
+}
+
+/**
+ * 发布商品留言/咨询
+ * @param {object} data { productId, content, parentId }
+ */
+export function createProductComment(data) {
+  return request({
+    url: '/comments',
+    method: 'post',
+    data,
+  })
+}

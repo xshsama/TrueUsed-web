@@ -1,5 +1,6 @@
 <script setup>
 import { deleteAddress as apiDeleteAddress, createAddress, getAddresses, updateAddress } from '@/api/address';
+import TopNavbar from '@/components/TopNavbar.vue';
 import { areaList } from '@vant/area-data';
 import {
     Check,
@@ -167,33 +168,7 @@ onMounted(() => {
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12 relative overflow-x-hidden">
 
         <!-- --- Top Navigation --- -->
-        <nav class="bg-white sticky top-0 z-40 border-b border-gray-100">
-            <div class="max-w-4xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
-                <div class="flex items-center gap-10">
-                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
-                        <div
-                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
-                            T</div>
-                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
-                                class="text-[#4a8b6e]">.</span></span>
-                    </div>
-                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
-                        <a @click.prevent="router.push('/')"
-                            class="hover:text-[#4a8b6e] transition-colors cursor-pointer">首页</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">捡漏榜</a>
-                        <a @click.prevent="router.push('/profile')"
-                            class="text-[#4a8b6e] font-bold cursor-pointer">个人中心</a>
-                    </div>
-                </div>
-                <div class="flex items-center gap-5">
-                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer"
-                        @click="router.push('/profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
-                            alt="Avatar" class="w-full h-full object-cover" />
-                    </div>
-                </div>
-            </div>
-        </nav>
+        <TopNavbar mode="buyer" />
 
         <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
@@ -231,7 +206,7 @@ onMounted(() => {
                                 <span class="text-lg font-bold text-[#2c3e50]">{{ addr.recipientName }}</span>
                                 <span v-if="addr.tag"
                                     class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">{{
-                                    addr.tag }}</span>
+                                        addr.tag }}</span>
                             </div>
                             <div class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-1">
                                 {{ formatPhone(addr.phone) }}

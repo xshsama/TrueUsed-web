@@ -362,11 +362,12 @@ watch(() => route.query.status, (newStatus) => {
                             </span>
                         </button>
                     </div>
-                    <div class="relative w-full md:w-72">
+                    <div class="relative w-full md:w-72 group">
                         <input type="text" v-model="searchQuery" placeholder="搜索订单号 / 买家昵称..."
-                            class="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none transition-all" />
-                        <div class="absolute left-3.5 top-3 text-gray-400">
-                            <Search :size="16" />
+                            class="w-full bg-gray-100/80 border-none rounded-full h-10 pl-4 pr-10 text-sm text-gray-700 placeholder-gray-400 focus:bg-white focus:ring-1 focus:ring-[#4a8b6e]/30 transition-all outline-none" />
+                        <div
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-[#4a8b6e] transition-colors">
+                            <Search :size="18" />
                         </div>
                     </div>
                 </div>

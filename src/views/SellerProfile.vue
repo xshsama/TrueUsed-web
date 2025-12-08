@@ -71,8 +71,10 @@
 </template>
 
 <script setup>
+import { getSellerReviews } from '@/api/reviews';
 import ProductCard from '@/components/ProductCard.vue';
-import { showSuccessToast } from 'vant';
+import request from '@/utils/request';
+import { showFailToast, showSuccessToast } from 'vant';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -85,38 +87,53 @@ const seller = ref({
     avatar: '',
     sellingCount: 0,
     soldCount: 0,
-    joinDate: '2023-01-01',
+    joinDate: '',
     bio: ''
 });
 
 const sellingList = ref([]);
 const reviews = ref([]);
+const loading = ref(false);
 
-// Mock Data Load
 const loadSellerInfo = async () => {
-    // 模拟数据，后续替换为真实 API
-    // const res = await getSellerInfo(sellerId);
-    setTimeout(() => {
+    loading.value = true;
+    try {
+        // 1. 获取卖家基本信息
+        const profileRes = await request.get(`/users/${sellerId}/public-profile`);
         seller.value = {
-            nickname: '数码达人_Alex',
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-            sellingCount: 12,
-            soldCount: 45,
-            joinDate: '2023-05-12',
-            bio: '专注二手苹果设备，原装正品，诚信交易！'
+            nickname: profileRes.nickname || profileRes.username || '未知用户',
+            avatar: profileRes.avatarUrl || 'https://via.placeholder.com/100',
+            sellingCount: profileRes.sellingCount || 0,
+            soldCount: profileRes.soldCount || 0,
+            joinDate: profileRes.createdAt ? new Date(profileRes.createdAt).toLocaleDateString() : '未知',
+            bio: profileRes.bio || '这位卖家很懒，什么都没写~'
         };
 
-        sellingList.value = [
-            { id: 1, title: 'iPhone 14 Pro Max 256G 暗夜紫', price: 6800, image: 'https://images.unsplash.com/photo-1678685888221-c48879df0d69?w=400', condition: '99新' },
-            { id: 2, title: 'AirPods Pro 2', price: 1200, image: 'https://images.unsplash.com/photo-1603351154351-5cfb3e19ef0f?w=400', condition: '95新' },
-            { id: 3, title: 'iPad Air 5 64G', price: 3200, image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400', condition: '9成新' },
-        ];
+        // 2. 获取在售商品
+        const productsRes = await request.get('/products', {
+            params: { sellerId: sellerId, status: 'AVAILABLE', page: 0, size: 20 }
+        });
+        sellingList.value = productsRes.content || [];
 
-        reviews.value = [
-            { id: 101, username: '买家小王', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1', content: '成色很新，发货快，老板人不错！', date: '2023-10-20', productName: 'iPhone 13', productImage: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100' },
-            { id: 102, username: 'Alice', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2', content: '交易愉快，推荐推荐。', date: '2023-09-15', productName: 'MacBook Air M1', productImage: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=100' },
-        ];
-    }, 500);
+        // 3. 获取评价列表
+        const reviewsRes = await getSellerReviews(sellerId, { page: 0, size: 20 });
+        reviews.value = (reviewsRes.content || []).map(r => ({
+            id: r.id,
+            username: r.isAnonymous ? '匿名用户' : (r.buyer?.nickname || r.buyer?.username || '买家'),
+            avatar: r.isAnonymous ? 'https://via.placeholder.com/50' : (r.buyer?.avatarUrl || 'https://via.placeholder.com/50'),
+            content: r.content,
+            date: new Date(r.createdAt).toLocaleDateString(),
+            productName: r.product?.title || '未知商品',
+            productImage: (r.product?.images && r.product.images.length > 0) ? r.product.images[0].url : '',
+            rating: r.rating
+        }));
+
+    } catch (e) {
+        console.error(e);
+        showFailToast('加载卖家信息失败');
+    } finally {
+        loading.value = false;
+    }
 };
 
 const handleFollow = () => {

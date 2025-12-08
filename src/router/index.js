@@ -39,6 +39,11 @@ const routes = [
     component: Home,
   },
   {
+    path: '/ranking',
+    name: 'Ranking',
+    component: () => import('@/views/Ranking.vue'),
+  },
+  {
     path: '/favorites',
     name: 'Favorites',
     component: Favorites,
@@ -201,6 +206,12 @@ const routes = [
     path: '/my-reviews',
     name: 'MyReviews',
     component: () => import('@/views/MyReviews.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/history',
+    name: 'BrowsingHistory',
+    component: () => import('@/views/BrowsingHistory.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

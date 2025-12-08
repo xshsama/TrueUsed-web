@@ -19,9 +19,20 @@
                         <a href="#" class="hover:text-[#4a8b6e] transition-colors">消息通知</a>
                     </template>
                     <template v-else>
-                        <router-link to="/home" class="hover:text-[#4a8b6e] transition-colors"
-                            :class="{ 'text-[#4a8b6e] font-bold': route.path === '/home' }">首页</router-link>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">捡漏榜</a>
+                        <router-link to="/home" class="relative transition-colors"
+                            :class="[route.path === '/home' ? 'text-[#4a8b6e] font-bold' : 'hover:text-[#4a8b6e]']">
+                            首页
+                            <div v-if="route.path === '/home'"
+                                class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
+                            </div>
+                        </router-link>
+                        <router-link to="/ranking" class="relative transition-colors"
+                            :class="[route.path === '/ranking' ? 'text-[#4a8b6e] font-bold' : 'hover:text-[#4a8b6e]']">
+                            捡漏榜
+                            <div v-if="route.path === '/ranking'"
+                                class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
+                            </div>
+                        </router-link>
                         <a href="#" class="hover:text-[#4a8b6e] transition-colors">附近闲置</a>
                     </template>
                 </div>
@@ -29,13 +40,13 @@
 
             <!-- 2. Center: Search (Buyer Only) -->
             <div v-if="mode === 'buyer'" class="flex-1 max-w-lg hidden md:flex justify-center mx-4">
-                <div class="w-full relative group">
+                <div class="w-full relative group flex items-center">
                     <input type="text" placeholder="搜“iPhone 15”看看大家卖多少钱..."
-                        class="w-full bg-white border border-gray-200 rounded-full h-11 pl-5 pr-12 text-sm focus:border-[#4a8b6e] focus:ring-4 focus:ring-[#4a8b6e]/10 transition-all outline-none"
+                        class="w-full bg-gray-100/80 border-none rounded-full h-10 pl-5 pr-12 text-sm text-gray-700 placeholder-gray-400 focus:bg-white focus:ring-1 focus:ring-[#4a8b6e]/30 transition-all outline-none"
                         @keyup.enter="goSearch($event.target.value)" />
-                    <div class="absolute right-1 top-1 w-9 h-9 bg-[#064E3B] rounded-full flex items-center justify-center text-white cursor-pointer hover:bg-black transition-colors"
+                    <div class="absolute right-1 top-1 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#4a8b6e] cursor-pointer transition-colors"
                         @click="(e) => goSearch(e.target.parentElement.querySelector('input').value)">
-                        <div class="i-lucide-search text-sm"></div>
+                        <div class="i-lucide-search text-lg"></div>
                     </div>
                 </div>
             </div>
@@ -126,8 +137,7 @@ const userStore = useUserStore();
 const messageStore = useMessageStore();
 
 const unreadCount = computed(() => messageStore.unreadCount);
-const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
-const avatarSrc = computed(() => userStore.user?.avatarUrl || defaultAvatar);
+const avatarSrc = computed(() => userStore.user?.avatarUrl);
 
 const goHome = () => {
     router.push('/');

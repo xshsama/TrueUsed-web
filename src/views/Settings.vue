@@ -1,4 +1,5 @@
 <script setup>
+import TopNavbar from '@/components/TopNavbar.vue';
 import { useUserStore } from '@/stores/user';
 import {
     Bell,
@@ -114,33 +115,7 @@ watchEffect(saveSettings);
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
         <!-- --- Top Navigation --- -->
-        <nav class="bg-white sticky top-0 z-40 border-b border-gray-100">
-            <div class="max-w-4xl mx-auto px-4 h-[72px] flex items-center justify-between gap-4">
-                <div class="flex items-center gap-10">
-                    <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
-                        <div
-                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
-                            T</div>
-                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
-                                class="text-[#4a8b6e]">.</span></span>
-                    </div>
-                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
-                        <a @click.prevent="router.push('/')"
-                            class="hover:text-[#4a8b6e] transition-colors cursor-pointer">首页</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors cursor-pointer">捡漏榜</a>
-                        <a @click.prevent="router.push('/profile')"
-                            class="text-[#4a8b6e] font-bold cursor-pointer">个人中心</a>
-                    </div>
-                </div>
-                <div class="flex items-center gap-5">
-                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer"
-                        @click="router.push('/profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
-                            alt="Avatar" class="w-full h-full object-cover" />
-                    </div>
-                </div>
-            </div>
-        </nav>
+        <TopNavbar mode="buyer" />
 
         <main class="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
@@ -270,7 +245,7 @@ watchEffect(saveSettings);
                             <span class="text-sm font-medium text-gray-700">版本号</span>
                         </div>
                         <span class="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">v{{ appVersion
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- User Agreement -->

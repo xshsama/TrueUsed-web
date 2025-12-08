@@ -127,29 +127,54 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <div v-for="item in [1, 2]" :key="item"
-                                class="bg-white rounded-xl p-3 shadow-sm hover:shadow-md border border-gray-100 hover:border-[#4a8b6e]/30 transition-all cursor-pointer group">
-                                <div class="aspect-[4/3] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
-                                    <img :src="`https://images.unsplash.com/photo-${item === 1 ? '1517336714731-489689fd1ca4' : '1516035069371-29a1b244cc32'}?auto=format&fit=crop&q=80&w=400`"
-                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    <div v-if="isSellerMode"
-                                        class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
-                                        32人浏览</div>
-                                    <div v-else
-                                        class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
-                                        刚刚看过</div>
+                            <!-- Buyer Mode: Real History -->
+                            <template v-if="!isSellerMode">
+                                <div v-for="item in recentHistory" :key="item.id"
+                                    @click="router.push(`/product/${item.id}`)"
+                                    class="bg-white rounded-xl p-3 shadow-sm hover:shadow-md border border-gray-100 hover:border-[#4a8b6e]/30 transition-all cursor-pointer group">
+                                    <div class="aspect-[4/3] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
+                                        <img :src="item.image"
+                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <div
+                                            class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
+                                            刚刚看过</div>
+                                    </div>
+                                    <h3
+                                        class="text-sm font-bold text-[#2c3e50] line-clamp-1 group-hover:text-[#4a8b6e] transition-colors">
+                                        {{ item.title }}</h3>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <span class="text-[#e74c3c] font-bold text-base">¥{{ item.price }}</span>
+                                        <span
+                                            class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">降价提醒</span>
+                                    </div>
                                 </div>
-                                <h3
-                                    class="text-sm font-bold text-[#2c3e50] line-clamp-1 group-hover:text-[#4a8b6e] transition-colors">
-                                    99新 MacBook Pro M1 / 个人自用</h3>
-                                <div class="flex items-center justify-between mt-2">
-                                    <span class="text-[#e74c3c] font-bold text-base">¥8,500</span>
-                                    <span v-if="isSellerMode"
-                                        class="text-[10px] text-[#4a8b6e] bg-[#f0fdf7] px-1.5 py-0.5 rounded">曝光率高</span>
-                                    <span v-else
-                                        class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">降价提醒</span>
+                                <div v-if="recentHistory.length === 0"
+                                    class="col-span-2 text-center py-8 text-gray-400 text-sm">
+                                    暂无浏览记录
                                 </div>
-                            </div>
+                            </template>
+
+                            <!-- Seller Mode: Mock Data -->
+                            <template v-else>
+                                <div v-for="item in [1, 2]" :key="item"
+                                    class="bg-white rounded-xl p-3 shadow-sm hover:shadow-md border border-gray-100 hover:border-[#4a8b6e]/30 transition-all cursor-pointer group">
+                                    <div class="aspect-[4/3] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
+                                        <img :src="`https://images.unsplash.com/photo-${item === 1 ? '1517336714731-489689fd1ca4' : '1516035069371-29a1b244cc32'}?auto=format&fit=crop&q=80&w=400`"
+                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <div
+                                            class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
+                                            32人浏览</div>
+                                    </div>
+                                    <h3
+                                        class="text-sm font-bold text-[#2c3e50] line-clamp-1 group-hover:text-[#4a8b6e] transition-colors">
+                                        99新 MacBook Pro M1 / 个人自用</h3>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <span class="text-[#e74c3c] font-bold text-base">¥8,500</span>
+                                        <span
+                                            class="text-[10px] text-[#4a8b6e] bg-[#f0fdf7] px-1.5 py-0.5 rounded">曝光率高</span>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </section>
 
@@ -231,6 +256,7 @@
 </template>
 
 <script setup>
+import { getBrowsingHistory } from '@/api/history'
 import defaultAvatarUrl from '@/assets/icons/user.svg'
 import ImageUpload from '@/components/ImageUpload.vue'
 import { useUserStore } from '@/stores/user'
@@ -246,6 +272,7 @@ const isSellerMode = ref(false)
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.user || {})
 const avatarSrc = ref(defaultAvatarUrl)
+const recentHistory = ref([])
 
 // --- Data Definitions ---
 
@@ -296,7 +323,7 @@ const buyerServices = [
 const sellerServices = [
     { label: '商品管理', icon: 'i-lucide-archive', action: 'products' },
     { label: '数据中心', icon: 'i-lucide-bar-chart-3', action: 'data' },
-    { label: '客户管理', icon: 'i-lucide-users', action: 'customers' },
+    { label: '订单管理', icon: 'i-lucide-clipboard-list', action: 'order-manage' },
     { label: '验货报告', icon: 'i-lucide-shield-check', action: 'check' },
     { label: '帮助中心', icon: 'i-lucide-message-circle', action: 'help' },
     { label: '店铺设置', icon: 'i-lucide-settings', action: 'shop-settings' },
@@ -306,14 +333,39 @@ const currentServices = computed(() => isSellerMode.value ? sellerServices : buy
 
 // --- Logic ---
 
+const fetchRecentHistory = async () => {
+    if (!isLoggedIn.value) return
+    try {
+        const res = await getBrowsingHistory({ page: 0, size: 4 })
+        recentHistory.value = (res.content || []).map(item => ({
+            id: item.product.id,
+            title: item.product.title,
+            price: item.product.price,
+            image: item.product.images?.[0]?.url || '',
+            originalPrice: item.product.originalPrice
+        }))
+    } catch (error) {
+        console.error('Failed to fetch history', error)
+    }
+}
+
 onMounted(async () => {
     if (route.query.tab === 'seller') {
         isSellerMode.value = true
     }
     if (isLoggedIn.value) {
         await userStore.loadMe()
+        if (!isSellerMode.value) {
+            fetchRecentHistory()
+        }
     }
     updateAvatar()
+})
+
+watch(() => isSellerMode.value, (newVal) => {
+    if (!newVal && isLoggedIn.value) {
+        fetchRecentHistory()
+    }
 })
 
 watch(() => userInfo.value, updateAvatar, { deep: true })
@@ -385,6 +437,8 @@ const handleServiceClick = (item) => {
         case 'products': router.push('/my-products'); break;
         case 'help': router.push('/help'); break;
         case 'check': router.push('/service'); break;
+        case 'history': router.push('/history'); break;
+        case 'order-manage': router.push('/order-manage'); break;
         case 'shop-settings': router.push('/settings'); break; // Placeholder
         default: showToast('功能开发中');
     }
