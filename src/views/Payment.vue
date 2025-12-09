@@ -1,5 +1,6 @@
 <script setup>
 import { getOrderById, payOrder } from '@/api/orders';
+import { createPayment } from '@/api/payments';
 import { Check, Clock, CreditCard, Loader2, Lock, ShieldCheck } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -79,11 +80,20 @@ const handlePayment = async () => {
 
     isProcessing.value = true;
     try {
-        // Simulate network delay for better UX
-        await new Promise(resolve => setTimeout(resolve, 800));
+        if (selectedMethod.value === 'alipay') {
+            await createPayment({
+                outTradeNo: String(order.value.id),
+                totalAmount: order.value.price.toFixed(2),
+                subject: `TrueUsed Order ${order.value.id}`,
+                body: 'TrueUsed Transaction'
+            });
+        } else {
+            // Simulate network delay for better UX
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-        await payOrder(order.value.id);
-        showSuccess.value = true;
+            await payOrder(order.value.id);
+            showSuccess.value = true;
+        }
     } catch (error) {
         console.error('Payment failed', error);
         // You might want to show a toast here

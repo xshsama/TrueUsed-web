@@ -1,11 +1,10 @@
 <script setup>
 import { cancelOrder, confirmDelivery, getMyOrders } from '@/api/orders';
-import TopNavbar from '@/components/TopNavbar.vue';
+import SearchBar from '@/components/SearchBar.vue';
 import {
     ChevronRight,
     Clock,
     Package,
-    Search,
     Truck
 } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
@@ -191,20 +190,13 @@ onMounted(() => {
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
-
         <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
 
             <!-- --- Header & Search --- -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-[#2c3e50]">我的订单</h1>
                 <div class="relative w-full md:w-80">
-                    <input type="text" v-model="searchQuery" placeholder="搜索商品名称 / 订单号"
-                        class="w-full bg-white border border-gray-200 rounded-full py-2.5 pl-10 pr-4 text-sm focus:border-[#4a8b6e] focus:ring-4 focus:ring-[#4a8b6e]/10 transition-all outline-none" />
-                    <div class="absolute left-3.5 top-3 text-gray-400">
-                        <Search :size="16" />
-                    </div>
+                    <SearchBar v-model="searchQuery" placeholder="搜索商品名称 / 订单号" />
                 </div>
             </div>
 

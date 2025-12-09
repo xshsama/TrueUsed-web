@@ -15,6 +15,7 @@ import MyProducts from '@/views/MyProducts.vue'
 import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
 import Payment from '@/views/Payment.vue'
+import PaymentSuccess from '@/views/PaymentSuccess.vue'
 import PostCreate from '@/views/PostCreate.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
@@ -107,7 +108,7 @@ const routes = [
     path: '/orders',
     name: 'Orders',
     component: Orders,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true },
   },
   {
     path: '/address',
@@ -176,6 +177,12 @@ const routes = [
     path: '/service-messages',
     name: 'ServiceMessages',
     component: ServiceMessages,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/payment/success',
+    name: 'PaymentSuccess',
+    component: PaymentSuccess,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

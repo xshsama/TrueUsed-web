@@ -18,13 +18,7 @@
 
                 <!-- Search (Optional) -->
                 <div class="px-4 py-3">
-                    <div class="relative">
-                        <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <div class="i-lucide-search text-sm"></div>
-                        </div>
-                        <input type="text" placeholder="搜索联系人"
-                            class="w-full bg-gray-50 border-none rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-1 focus:ring-[#4a8b6e]/30 outline-none transition-all" />
-                    </div>
+                    <SearchBar v-model="searchQuery" placeholder="搜索联系人" />
                 </div>
 
                 <!-- Chat List -->
@@ -198,6 +192,7 @@
 </template>
 
 <script setup>
+import SearchBar from '@/components/SearchBar.vue'
 import { useMessageStore } from '@/stores/message'
 import { useUserStore } from '@/stores/user'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -209,6 +204,7 @@ const messageStore = useMessageStore()
 const userStore = useUserStore()
 
 const inputText = ref('')
+const searchQuery = ref('')
 const messagesContainer = ref(null)
 
 // Current User

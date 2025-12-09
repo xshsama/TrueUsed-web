@@ -45,12 +45,26 @@ const statusDesc = computed(() => {
     return map[order.value.status] || '';
 });
 
+const steps = [
+    { label: '买家付款', status: 'PENDING' },
+    { label: '卖家发货', status: 'PAID' },
+    { label: '平台验货', status: 'SHIPPED' },
+    { label: '发往收货地', status: 'DELIVERED' },
+    { label: '交易成功', status: 'COMPLETED' }
+];
+
 const currentStep = computed(() => {
     if (!order.value) return 0;
     const s = order.value.status;
+    
+    // Handle non-happy paths
+    if (['CANCELLED', 'REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED'].includes(s)) {
+        return -1; // Special state
+    }
+
     if (s === 'PENDING') return 1;
     if (s === 'PAID') return 2;
-    if (s === 'SHIPPED') return 3; // Assuming platform inspection is part of shipping or separate step
+    if (s === 'SHIPPED') return 3;
     if (s === 'DELIVERED') return 4;
     if (s === 'COMPLETED') return 5;
     return 0;
@@ -209,7 +223,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Right: Stepper (Simplified Visual) -->
-                <div class="w-full max-w-2xl relative z-10 hidden md:block">
+                <div class="w-full max-w-2xl relative z-10 hidden md:block" v-if="currentStep > 0">
                     <div class="relative flex justify-between items-center w-full">
                         <!-- Progress Line Background -->
                         <div class="absolute top-1/2 left-0 w-full h-1 bg-gray-600 rounded-full -z-10"></div>
@@ -218,25 +232,31 @@ onMounted(() => {
                             :style="{ width: (currentStep - 1) * 25 + '%' }"></div>
 
                         <!-- Steps -->
-                        <div v-for="step in 5" :key="step" class="flex flex-col items-center gap-2">
+                        <div v-for="(step, index) in steps" :key="index" class="flex flex-col items-center gap-2">
                             <div :class="['w-8 h-8 rounded-full flex items-center justify-center border-4',
-                                step < currentStep ? 'bg-[#4a8b6e] border-[#2c3e50]' :
-                                    step === currentStep ? 'bg-[#f7f9fa] border-[#4a8b6e] w-10 h-10 shadow-[0_0_15px_rgba(74,139,110,0.6)]' :
+                                (index + 1) < currentStep ? 'bg-[#4a8b6e] border-[#2c3e50]' :
+                                    (index + 1) === currentStep ? 'bg-[#f7f9fa] border-[#4a8b6e] w-10 h-10 shadow-[0_0_15px_rgba(74,139,110,0.6)]' :
                                         'bg-gray-600 border-[#2c3e50]']">
-                                <Check v-if="step < currentStep" :size="14" class="text-white" />
-                                <span v-else-if="step === currentStep" class="text-[#4a8b6e] font-bold text-xs">{{ step
+                                <Check v-if="(index + 1) < currentStep" :size="14" class="text-white" />
+                                <span v-else-if="(index + 1) === currentStep" class="text-[#4a8b6e] font-bold text-xs">{{ index + 1
                                 }}</span>
-                                <span v-else class="text-gray-400 text-xs font-bold">{{ step }}</span>
+                                <span v-else class="text-gray-400 text-xs font-bold">{{ index + 1 }}</span>
                             </div>
                         </div>
                     </div>
                     <div class="flex justify-between text-xs text-gray-400 mt-2 px-2">
-                        <span>买家付款</span>
-                        <span>卖家发货</span>
-                        <span>平台验货</span>
-                        <span>发往收货地</span>
-                        <span>交易成功</span>
+                        <span v-for="(step, index) in steps" :key="index" :class="{ 'text-[#4a8b6e] font-bold': (index + 1) === currentStep }">
+                            {{ step.label }}
+                        </span>
                     </div>
+                </div>
+                
+                <!-- Cancelled/Refund State Visual -->
+                <div class="w-full max-w-2xl relative z-10 hidden md:flex items-center justify-center" v-else-if="currentStep === -1">
+                     <div class="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
+                        <span class="font-bold text-white tracking-wide">当前订单处于特殊状态（取消/退款），流程已终止</span>
+                     </div>
                 </div>
             </section>
 
