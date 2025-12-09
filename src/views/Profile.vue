@@ -336,8 +336,9 @@ const currentServices = computed(() => isSellerMode.value ? sellerServices : buy
 const fetchRecentHistory = async () => {
     if (!isLoggedIn.value) return
     try {
-        const res = await getBrowsingHistory({ page: 0, size: 4 })
-        recentHistory.value = (res.content || []).map(item => ({
+        const res = await getBrowsingHistory({ page: 0, size: 20 })
+        const filteredList = (res.content || []).filter(item => item.product.status === 'AVAILABLE')
+        recentHistory.value = filteredList.slice(0, 4).map(item => ({
             id: item.product.id,
             title: item.product.title,
             price: item.product.price,

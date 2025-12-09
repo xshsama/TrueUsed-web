@@ -1,5 +1,7 @@
 <script setup>
+import { receivePackage } from '@/api/inspection';
 import { cancelOrder, confirmDelivery, getOrderById, getOrderShipping, shipOrder } from '@/api/orders';
+import InspectionTimeline from '@/components/InspectionTimeline.vue';
 import { useUserStore } from '@/stores/user';
 import { Check, ChevronRight, Copy, MapPin, PackageSearch, Store, Truck } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
@@ -14,6 +16,7 @@ const userStore = useUserStore();
 const loading = ref(true);
 const order = ref(null);
 const shippingInfo = ref(null);
+const inspectionTimelineRef = ref(null);
 
 // --- Computed ---
 const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
@@ -56,7 +59,7 @@ const steps = [
 const currentStep = computed(() => {
     if (!order.value) return 0;
     const s = order.value.status;
-    
+
     // Handle non-happy paths
     if (['CANCELLED', 'REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED'].includes(s)) {
         return -1; // Special state
@@ -120,6 +123,16 @@ const handleUpdateStatus = (action) => {
                 showFailToast('操作失败');
             }
         });
+};
+
+const handleStartInspection = async () => {
+    try {
+        await receivePackage(order.value.id);
+        showSuccessToast('已开始验货流程');
+        inspectionTimelineRef.value?.fetchInspectionData();
+    } catch (error) {
+        showFailToast('触发验货失败');
+    }
 };
 
 const copyToClipboard = (text) => {
@@ -219,6 +232,12 @@ onMounted(() => {
                                 确认发货
                             </button>
                         </template>
+
+                        <!-- Demo: Start Inspection Button (Visible for testing) -->
+                        <button v-if="order.status === 'SHIPPED'" @click="handleStartInspection"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95 ml-2">
+                            [Demo] 开始验货
+                        </button>
                     </div>
                 </div>
 
@@ -238,25 +257,29 @@ onMounted(() => {
                                     (index + 1) === currentStep ? 'bg-[#f7f9fa] border-[#4a8b6e] w-10 h-10 shadow-[0_0_15px_rgba(74,139,110,0.6)]' :
                                         'bg-gray-600 border-[#2c3e50]']">
                                 <Check v-if="(index + 1) < currentStep" :size="14" class="text-white" />
-                                <span v-else-if="(index + 1) === currentStep" class="text-[#4a8b6e] font-bold text-xs">{{ index + 1
-                                }}</span>
+                                <span v-else-if="(index + 1) === currentStep"
+                                    class="text-[#4a8b6e] font-bold text-xs">{{ index + 1
+                                    }}</span>
                                 <span v-else class="text-gray-400 text-xs font-bold">{{ index + 1 }}</span>
                             </div>
                         </div>
                     </div>
                     <div class="flex justify-between text-xs text-gray-400 mt-2 px-2">
-                        <span v-for="(step, index) in steps" :key="index" :class="{ 'text-[#4a8b6e] font-bold': (index + 1) === currentStep }">
+                        <span v-for="(step, index) in steps" :key="index"
+                            :class="{ 'text-[#4a8b6e] font-bold': (index + 1) === currentStep }">
                             {{ step.label }}
                         </span>
                     </div>
                 </div>
-                
+
                 <!-- Cancelled/Refund State Visual -->
-                <div class="w-full max-w-2xl relative z-10 hidden md:flex items-center justify-center" v-else-if="currentStep === -1">
-                     <div class="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 flex items-center gap-3">
+                <div class="w-full max-w-2xl relative z-10 hidden md:flex items-center justify-center"
+                    v-else-if="currentStep === -1">
+                    <div
+                        class="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 flex items-center gap-3">
                         <div class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
                         <span class="font-bold text-white tracking-wide">当前订单处于特殊状态（取消/退款），流程已终止</span>
-                     </div>
+                    </div>
                 </div>
             </section>
 
@@ -289,6 +312,12 @@ onMounted(() => {
                         </div>
                     </section>
 
+                    <!-- Inspection Timeline -->
+                    <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden"
+                        v-if="order.status !== 'PENDING' && order.status !== 'PAID'">
+                        <InspectionTimeline :orderId="order.id" ref="inspectionTimelineRef" />
+                    </section>
+
                     <!-- 3. Product List -->
                     <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
@@ -311,9 +340,9 @@ onMounted(() => {
                                 <div>
                                     <div class="flex justify-between items-start gap-4">
                                         <h3 class="font-bold text-[#2c3e50] text-lg line-clamp-1">{{ order.product.title
-                                        }}</h3>
+                                            }}</h3>
                                         <span class="font-bold text-[#2c3e50] text-lg font-mono">¥{{ order.price
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2 mt-2">
                                         <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">官方验货</span>

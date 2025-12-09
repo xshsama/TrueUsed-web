@@ -1,0 +1,16 @@
+import request from '@/utils/request'
+
+export function receivePackage(orderId) {
+  return request({
+    url: '/platform/receive_package',
+    method: 'post',
+    params: { orderId },
+  })
+}
+
+export function getInspectionFlow(orderId) {
+  return request({
+    url: `/inspections/${orderId}/flow`,
+    method: 'get',
+  })
+}
