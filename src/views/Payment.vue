@@ -62,7 +62,7 @@ const loadOrder = async () => {
         const res = await getOrderById(orderId);
         order.value = res;
 
-        if (res.status === 'PENDING') {
+        if (res.status === 'PENDING_PAYMENT') {
             startCountdown(res.createdAt);
         } else if (res.status === 'PAID') {
             // If already paid, redirect or show success

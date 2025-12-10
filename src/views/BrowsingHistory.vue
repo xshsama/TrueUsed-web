@@ -96,7 +96,7 @@
                                     <div class="flex justify-between items-start mb-1">
                                         <span
                                             :class="['font-bold', item.status === 'sold' ? 'text-gray-400' : 'text-[#ff5e57]']">¥{{
-                                            item.price }}</span>
+                                                item.price }}</span>
                                         <span class="text-[10px] text-gray-400">{{ item.time }}</span>
                                     </div>
                                     <h3
@@ -153,7 +153,7 @@
                                     <div class="flex justify-between items-start mb-1">
                                         <span
                                             :class="['font-bold', item.status === 'sold' ? 'text-gray-400' : 'text-[#ff5e57]']">¥{{
-                                            item.price }}</span>
+                                                item.price }}</span>
                                         <span class="text-[10px] text-gray-400">{{ item.time }}</span>
                                     </div>
                                     <h3
@@ -210,7 +210,7 @@
                                     <div class="flex justify-between items-start mb-1">
                                         <span
                                             :class="['font-bold', item.status === 'sold' ? 'text-gray-400' : 'text-[#ff5e57]']">¥{{
-                                            item.price }}</span>
+                                                item.price }}</span>
                                         <span class="text-[10px] text-gray-400">{{ item.time }}</span>
                                     </div>
                                     <h3
@@ -339,7 +339,7 @@ const fetchHistory = async () => {
                 sellerName: product.seller ? product.seller.nickname : 'Unknown',
                 sellerAvatar: product.seller ? product.seller.avatarUrl : '',
                 isCollected: false, // TODO: check if collected
-                status: product.status === 'SOLD' ? 'sold' : 'active'
+                status: product.status === 'SOLD_OUT' ? 'sold' : 'active'
             };
         });
     } catch (error) {

@@ -25,12 +25,13 @@ const isCurrentUserSeller = computed(() => userStore.userInfo && order.value?.se
 const statusText = computed(() => {
     if (!order.value) return '';
     const map = {
-        PENDING: '待付款',
+        PENDING_PAYMENT: '待付款',
         PAID: '待发货',
-        SHIPPED: '待收货',
+        SHIPPED: '已发货',
         COMPLETED: '已完成',
         CANCELLED: '已取消',
-        DELIVERED: '已送达',
+        REFUNDING: '售后中',
+        REFUNDED: '已退款'
     };
     return map[order.value.status] || order.value.status;
 });
@@ -38,21 +39,21 @@ const statusText = computed(() => {
 const statusDesc = computed(() => {
     if (!order.value) return '';
     const map = {
-        PENDING: '请尽快完成支付',
+        PENDING_PAYMENT: '请尽快完成支付',
         PAID: '等待卖家发货',
         SHIPPED: '商品正在运输中',
         COMPLETED: '交易已完成',
         CANCELLED: '订单已取消',
-        DELIVERED: '商品已送达',
+        REFUNDING: '正在处理退款',
+        REFUNDED: '退款已完成'
     };
     return map[order.value.status] || '';
 });
 
 const steps = [
-    { label: '买家付款', status: 'PENDING' },
+    { label: '买家付款', status: 'PENDING_PAYMENT' },
     { label: '卖家发货', status: 'PAID' },
-    { label: '平台验货', status: 'SHIPPED' },
-    { label: '发往收货地', status: 'DELIVERED' },
+    { label: '确认收货', status: 'SHIPPED' },
     { label: '交易成功', status: 'COMPLETED' }
 ];
 
@@ -61,15 +62,14 @@ const currentStep = computed(() => {
     const s = order.value.status;
 
     // Handle non-happy paths
-    if (['CANCELLED', 'REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED'].includes(s)) {
+    if (['CANCELLED', 'REFUNDING', 'REFUNDED'].includes(s)) {
         return -1; // Special state
     }
 
-    if (s === 'PENDING') return 1;
+    if (s === 'PENDING_PAYMENT') return 1;
     if (s === 'PAID') return 2;
     if (s === 'SHIPPED') return 3;
-    if (s === 'DELIVERED') return 4;
-    if (s === 'COMPLETED') return 5;
+    if (s === 'COMPLETED') return 4;
     return 0;
 });
 
@@ -205,7 +205,8 @@ onMounted(() => {
                     <div class="mt-6 flex gap-3 justify-center lg:justify-start">
                         <!-- Buyer Actions -->
                         <template v-if="isCurrentUserBuyer">
-                            <button v-if="order.status === 'PENDING'" @click="router.push(`/payment/${order.id}`)"
+                            <button v-if="order.status === 'PENDING_PAYMENT'"
+                                @click="router.push(`/payment/${order.id}`)"
                                 class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95">
                                 去支付
                             </button>
@@ -314,7 +315,7 @@ onMounted(() => {
 
                     <!-- Inspection Timeline -->
                     <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden"
-                        v-if="order.status !== 'PENDING' && order.status !== 'PAID'">
+                        v-if="order.status !== 'PENDING_PAYMENT' && order.status !== 'PAID'">
                         <InspectionTimeline :orderId="order.id" ref="inspectionTimelineRef" />
                     </section>
 
@@ -340,9 +341,9 @@ onMounted(() => {
                                 <div>
                                     <div class="flex justify-between items-start gap-4">
                                         <h3 class="font-bold text-[#2c3e50] text-lg line-clamp-1">{{ order.product.title
-                                            }}</h3>
+                                        }}</h3>
                                         <span class="font-bold text-[#2c3e50] text-lg font-mono">¥{{ order.price
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2 mt-2">
                                         <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">官方验货</span>

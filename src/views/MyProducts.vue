@@ -110,10 +110,10 @@ const loadProducts = async () => {
 };
 
 const mapBackendStatus = (status) => {
-    if (status === 'AVAILABLE') return 'active';
-    if (status === 'SOLD') return 'sold';
-    if (status === 'HIDDEN') return 'off';
-    if (status === 'PENDING_REVIEW') return 'audit';
+    if (status === 'ON_SALE') return 'active';
+    if (status === 'SOLD_OUT') return 'sold';
+    if (status === 'CANCELLED' || status === 'REJECTED' || status === 'RETURNED') return 'off';
+    if (status === 'CREATED' || status === 'SHIPPED' || status === 'RECEIVED' || status === 'INSPECTING' || status === 'WAREHOUSED' || status === 'LOCKED') return 'audit';
     return 'off';
 };
 
@@ -343,7 +343,7 @@ onMounted(() => {
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
                                                 <span class="font-bold text-[#ff5e57] text-lg">¥{{ product.price
-                                                }}</span>
+                                                    }}</span>
                                                 <span class="text-xs text-gray-400 line-through">¥{{
                                                     product.originalPrice }}</span>
                                             </div>

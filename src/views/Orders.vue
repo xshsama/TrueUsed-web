@@ -27,19 +27,19 @@ const tabs = ['全部', '待付款', '待发货', '待收货', '售后/退款'];
 // --- Status Mapping ---
 const statusMap = {
     '全部': 'all',
-    '待付款': 'PENDING',
+    '待付款': 'PENDING_PAYMENT',
     '待发货': 'PAID',
     '待收货': 'SHIPPED',
     '售后/退款': 'afterSale'
 };
 
 const reverseStatusMap = {
-    'PENDING': '待付款',
+    'PENDING_PAYMENT': '待付款',
     'PAID': '待发货',
     'SHIPPED': '待收货',
     'COMPLETED': '已完成',
     'CANCELLED': '已取消',
-    'REFUND_PENDING': '售后中',
+    'REFUNDING': '售后中',
     'REFUNDED': '已退款'
 };
 
@@ -49,7 +49,7 @@ const getStatusText = (status) => {
 
 const getStatusColor = (status) => {
     switch (status) {
-        case 'PENDING': return 'text-[#ff5e57]';
+        case 'PENDING_PAYMENT': return 'text-[#ff5e57]';
         case 'SHIPPED': return 'text-[#4a8b6e]';
         case 'COMPLETED': return 'text-gray-500';
         case 'CANCELLED': return 'text-gray-400';
@@ -88,7 +88,7 @@ const filteredOrders = computed(() => {
     if (activeTab.value !== '全部') {
         const targetStatus = statusMap[activeTab.value];
         if (targetStatus === 'afterSale') {
-            const refundStatuses = ['REFUND_PENDING', 'REFUND_APPROVED', 'RETURN_PENDING', 'REFUNDED', 'REFUND_REJECTED'];
+            const refundStatuses = ['REFUNDING', 'REFUNDED'];
             result = result.filter(o => refundStatuses.includes(o.status));
         } else {
             result = result.filter(o => o.status === targetStatus);
@@ -235,7 +235,7 @@ onMounted(() => {
                                 <ChevronRight :size="14" class="text-gray-300" />
                             </div>
                             <div class="flex items-center gap-2">
-                                <span v-if="order.status === 'PENDING'"
+                                <span v-if="order.status === 'PENDING_PAYMENT'"
                                     class="text-xs text-[#ff5e57] flex items-center gap-1">
                                     <Clock :size="12" /> 剩余 14:59
                                 </span>
@@ -293,11 +293,11 @@ onMounted(() => {
                             <div class="text-xs text-gray-500">
                                 实付 <span class="text-base font-bold text-[#2c3e50] font-mono">¥{{ order.price }}</span>
                                 <span v-if="order.freight > 0" class="ml-1 text-[10px]">(含运费 ¥{{ order.freight
-                                }})</span>
+                                    }})</span>
                             </div>
 
                             <div class="flex items-center gap-3">
-                                <template v-if="order.status === 'PENDING'">
+                                <template v-if="order.status === 'PENDING_PAYMENT'">
                                     <button @click="cancel(order)"
                                         class="px-3 py-1.5 rounded-full border border-gray-200 text-xs text-gray-500 hover:border-gray-300 transition-colors">取消订单</button>
                                     <button @click="pay(order)"

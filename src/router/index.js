@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import About from '@/views/About.vue'
 import Address from '@/views/Address.vue'
 import AddressEdit from '@/views/AddressEdit.vue'
+import Consignment from '@/views/Consignment.vue'
 import Favorites from '@/views/Favorites.vue'
 import Feedback from '@/views/Feedback.vue'
 import Help from '@/views/Help.vue'
@@ -16,7 +17,6 @@ import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
 import Payment from '@/views/Payment.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
-import PostCreate from '@/views/PostCreate.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
 import Register from '@/views/Register.vue'
@@ -53,7 +53,7 @@ const routes = [
   {
     path: '/post/create',
     name: 'PostCreate',
-    component: PostCreate,
+    component: Consignment,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
@@ -149,6 +149,7 @@ const routes = [
     component: MyProducts,
     meta: { requiresAuth: true, hideNavbar: true },
   },
+
   {
     path: '/sold-products',
     name: 'SoldProducts',

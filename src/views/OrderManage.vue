@@ -52,7 +52,7 @@ const tabs = [
     { name: '全部', key: 'all' },
     { name: '待发货', key: 'PAID' },
     { name: '已发货', key: 'SHIPPED' },
-    { name: '售后/退款', key: 'REFUND_PENDING' }, // Simplified mapping
+    { name: '售后/退款', key: 'REFUNDING' }, // Simplified mapping
     { name: '已完成', key: 'COMPLETED' },
 ];
 
@@ -63,12 +63,12 @@ const expressCompanies = [
 
 // --- Status Mapping ---
 const statusMap = {
-    'PENDING': '待付款',
+    'PENDING_PAYMENT': '待付款',
     'PAID': '待发货',
     'SHIPPED': '已发货',
     'COMPLETED': '已完成',
     'CANCELLED': '已取消',
-    'REFUND_PENDING': '售后中',
+    'REFUNDING': '售后中',
     'REFUNDED': '已退款'
 };
 
@@ -76,10 +76,10 @@ const getStatusText = (status) => statusMap[status] || status;
 
 const getStatusColor = (status) => {
     switch (status) {
-        case 'PENDING': return 'text-[#ff5e57]';
+        case 'PENDING_PAYMENT': return 'text-[#ff5e57]';
         case 'PAID': return 'text-[#1989fa]';
         case 'SHIPPED': return 'text-[#4a8b6e]';
-        case 'REFUND_PENDING': return 'text-orange-500';
+        case 'REFUNDING': return 'text-orange-500';
         case 'COMPLETED': return 'text-gray-500';
         default: return 'text-gray-500';
     }
@@ -88,7 +88,7 @@ const getStatusColor = (status) => {
 // --- Computed Stats ---
 const stats = computed(() => {
     const paid = orders.value.filter(o => o.status === 'PAID').length;
-    const refund = orders.value.filter(o => ['REFUND_PENDING', 'REFUNDED'].includes(o.status)).length;
+    const refund = orders.value.filter(o => ['REFUNDING', 'REFUNDED'].includes(o.status)).length;
     const completed = orders.value.filter(o => o.status === 'COMPLETED').length;
     const totalAmount = orders.value
         .filter(o => ['PAID', 'SHIPPED', 'COMPLETED'].includes(o.status))

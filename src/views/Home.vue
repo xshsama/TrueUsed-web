@@ -95,7 +95,7 @@
                 <div v-for="cat in categories" :key="cat.id"
                     class="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-all hover:border-gray-300 hover:bg-gray-50"
                     :class="{ '!bg-gray-800 !text-white !border-gray-800': activeCategory === cat.id }"
-                    @click="activeCategory = cat.id; fetchProducts()">
+                    @click="handleCategoryChange(cat.id)">
                     <div :class="cat.icon" class="text-base"></div>
                     {{ cat.name }}
                 </div>
@@ -122,13 +122,21 @@
                 </div>
 
                 <!-- Product Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                    <div v-if="loading && page === 0" class="col-span-full text-center py-10">
-                        <van-loading size="24px">加载中...</van-loading>
+                <TransitionGroup name="product-list" tag="div"
+                    class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 relative min-h-[200px]">
+                    <div v-if="loading && page === 0" key="loading-spinner"
+                        class="col-span-full absolute inset-0 flex items-center justify-center bg-white/50 z-10 backdrop-blur-sm rounded-xl">
+                        <van-loading vertical color="#10B981">
+                            <template #icon>
+                                <div class="i-lucide-loader-2 animate-spin text-3xl text-emerald-600"></div>
+                            </template>
+                            <span class="text-emerald-600 mt-2 font-medium">加载好物中...</span>
+                        </van-loading>
                     </div>
+
                     <ProductCard v-for="product in productList" :key="product.id" :product="product"
                         @click="router.push(`/product/${product.id}`)" />
-                </div>
+                </TransitionGroup>
 
                 <div v-if="productList.length > 0 && hasMore" class="mt-8 text-center">
                     <van-button round block plain type="primary" :loading="loading"
@@ -150,7 +158,7 @@
 </template>
 
 <script setup>
-import { listCategories } from '@/api/categories'
+import { listRootCategories } from '@/api/categories'
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
 import { onMounted, ref } from 'vue'
@@ -169,14 +177,37 @@ const categories = ref([
     { id: 0, name: '全部', icon: 'i-lucide-layout-grid' }
 ])
 
+const handleCategoryChange = (id) => {
+    if (activeCategory.value === id) return
+    activeCategory.value = id
+    page.value = 0
+    // Don't clear list immediately to avoid flickering. 
+    // The list will be cleared in fetchProducts when data arrives.
+    // productList.value = [] 
+    hasMore.value = true
+    fetchProducts()
+}
+
 const fetchCategories = async () => {
     try {
-        const res = await listCategories()
+        const res = await listRootCategories()
+        // Map icons based on category ID or name for a better visual
+        const getIcon = (id) => {
+            const icons = {
+                1: 'i-lucide-smartphone', // 数码
+                2: 'i-lucide-shirt',      // 服装
+                3: 'i-lucide-armchair',   // 家居
+                4: 'i-lucide-book',       // 书籍
+                5: 'i-lucide-dumbbell'    // 运动
+            }
+            return icons[id] || 'i-lucide-package'
+        }
+
         // Append to '全部'
         const fetched = (res || []).map(c => ({
             id: c.id,
             name: c.name,
-            icon: 'i-lucide-package' // Default icon
+            icon: getIcon(c.id)
         }))
         categories.value = [{ id: 0, name: '全部', icon: 'i-lucide-layout-grid' }, ...fetched]
     } catch (e) {
@@ -191,11 +222,6 @@ const fetchProducts = async () => {
     if (loading.value) return
     loading.value = true
     try {
-        // Reset if page 0 (category switch)
-        if (activeCategory.value !== 0 && page.value === 0) {
-            productList.value = []
-        }
-
         const params = {
             page: page.value,
             size: size.value,
@@ -235,5 +261,37 @@ onMounted(() => {
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Product List Transitions */
+.product-list-move,
+.product-list-enter-active,
+.product-list-leave-active {
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.product-list-enter-from,
+.product-list-leave-to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+.product-list-leave-active {
+    position: absolute;
+    width: calc((100% - 1.25rem) / 2);
+    /* Adjust for grid gap */
+}
+
+/* Specific adjustments for leave-active in grid */
+@media (min-width: 768px) {
+    .product-list-leave-active {
+        width: calc((100% - 2.5rem) / 3);
+    }
+}
+
+@media (min-width: 1024px) {
+    .product-list-leave-active {
+        width: calc((100% - 3.75rem) / 4);
+    }
 }
 </style>
