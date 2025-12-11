@@ -1,55 +1,73 @@
 <script setup>
 import { listCategories } from '@/api/categories';
 import { getCloudinarySignature } from '@/api/cloudinary';
+import { createConsignment } from '@/api/consignment';
 import { createProduct } from '@/api/products';
+import { useAuth } from '@/composables/useAuth';
 import axios from 'axios';
 import {
+    ArrowRight,
     Camera,
+    CheckCircle2,
     ChevronRight,
-    Info,
+    HelpCircle,
     MapPin,
-    Sparkles,
+    Package,
+    PackageCheck,
     Truck,
+    UserCheck,
     Users,
     X
 } from 'lucide-vue-next';
-import { closeToast, showConfirmDialog, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
-import { onMounted, ref } from 'vue';
+import { closeToast, showFailToast, showLoadingToast, showSuccessToast, showToast } from 'vant';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+const { user } = useAuth();
 
 // --- 状态管理 ---
-const images = ref([]);
-const title = ref('');
-const description = ref('');
-const price = ref('');
-const originalPrice = ref('');
-const condition = ref('99新');
-const deliveryMethods = ref(['express']); // express, meetup
-const categoryId = ref(null);
-const categoryName = ref('');
-const location = ref('上海市');
+const saleMode = ref('consignment'); // 'consignment' or 'direct'
+
+// Form Data structure matching the example, plus internal needs
+const form = ref({
+    title: '',
+    description: '',
+    price: '',
+    images: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca4?auto=format&fit=crop&q=80&w=300'],
+    freight: 'seller', // 'seller' (包邮) or 'buyer' (到付)
+    location: '上海市',
+    categoryId: null,
+    categoryName: '',
+    condition: '99新', // Default condition as it's removed from UI
+    originalPrice: '',
+    isMeetup: false
+});
 
 // --- 图片上传 ---
 const fileInput = ref(null);
 const isUploading = ref(false);
 
 const handleAddImage = () => {
-    if (images.value.length < 9) {
+    if (form.value.images.length < 9) {
         fileInput.value.click();
     }
 };
 
 const removeImage = (index) => {
-    images.value.splice(index, 1);
+    form.value.images.splice(index, 1);
 };
 
 const handleFileChange = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
 
-    const remainingSlots = 9 - images.value.length;
+    // If the first image is the default placeholder, remove it when user uploads real images
+    if (form.value.images.length === 1 && form.value.images[0].includes('unsplash.com')) {
+        form.value.images = [];
+    }
+
+    const remainingSlots = 9 - form.value.images.length;
     const filesToUpload = files.slice(0, remainingSlots);
 
     if (!filesToUpload.length) return;
@@ -86,7 +104,7 @@ const handleFileChange = async (event) => {
 
         const results = await Promise.all(uploadPromises);
         const uploadedUrls = results.map(res => res.data.secure_url);
-        images.value.push(...uploadedUrls);
+        form.value.images.push(...uploadedUrls);
         closeToast();
     } catch (err) {
         console.error('Upload failed:', err);
@@ -103,21 +121,40 @@ const showCategoryPicker = ref(false);
 const categoryOptions = ref([]);
 
 const buildTree = (flat) => {
+    if (!Array.isArray(flat)) return [];
+
     const nodes = new Map();
+    // First pass: Create node objects
     flat.forEach((c) => {
         const id = String(c.id);
-        const parentId = c.parentId ? String(c.parentId) : null;
-        nodes.set(id, { text: c.name, value: c.id, parentId, children: [] });
+        nodes.set(id, { text: c.name, value: c.id, children: [] });
     });
 
     const roots = [];
-    nodes.forEach((node) => {
-        if (node.parentId && nodes.has(node.parentId)) {
-            nodes.get(node.parentId).children.push(node);
+    // Second pass: Link children to parents
+    flat.forEach((c) => {
+        const node = nodes.get(String(c.id));
+        const parentId = c.parentId ? String(c.parentId) : null;
+
+        if (parentId && nodes.has(parentId)) {
+            nodes.get(parentId).children.push(node);
         } else {
             roots.push(node);
         }
     });
+
+    // Third pass: Remove empty children arrays to make them leaf nodes
+    const prune = (list) => {
+        list.forEach((node) => {
+            if (node.children.length === 0) {
+                delete node.children;
+            } else {
+                prune(node.children);
+            }
+        });
+    };
+    prune(roots);
+
     return roots;
 };
 
@@ -132,8 +169,8 @@ const loadCategories = async () => {
 
 const onCategoryFinish = ({ selectedOptions }) => {
     const lastOption = selectedOptions[selectedOptions.length - 1];
-    categoryId.value = lastOption.value;
-    categoryName.value = selectedOptions.map(o => o.text).join(' / ');
+    form.value.categoryId = lastOption.value;
+    form.value.categoryName = selectedOptions.map(o => o.text).join(' / ');
     showCategoryPicker.value = false;
 };
 
@@ -149,7 +186,7 @@ const locationColumns = [
 ];
 
 const onLocationConfirm = ({ selectedOptions }) => {
-    location.value = selectedOptions[0].text;
+    form.value.location = selectedOptions[0].text;
     showLocationPicker.value = false;
 };
 
@@ -171,24 +208,25 @@ const mapCondition = (text) => {
 const onSubmit = async () => {
     if (isSubmitting.value) return;
 
-    if (images.value.length === 0) {
+    if (form.value.images.length === 0) {
         showToast('请至少上传一张图片');
         return;
     }
-    if (!title.value) {
+    if (!form.value.title) {
         showToast('请输入标题');
         return;
     }
-    if (!description.value) {
+    if (!form.value.description) {
         showToast('请输入描述');
         return;
     }
-    if (!price.value) {
+    if (!form.value.price) {
         showToast('请输入价格');
         return;
     }
-    if (!categoryId.value) {
-        showToast('请选择分类');
+    if (!form.value.categoryId) {
+        showToast('请补充商品分类信息');
+        showCategoryPicker.value = true;
         return;
     }
 
@@ -196,23 +234,47 @@ const onSubmit = async () => {
     showLoadingToast({ message: '发布中...', duration: 0, forbidClick: true });
 
     try {
-        const payload = {
-            title: title.value,
-            description: description.value,
-            price: Number(price.value),
-            originalPrice: originalPrice.value ? Number(originalPrice.value) : undefined,
-            currency: 'CNY',
-            condition: mapCondition(condition.value),
-            categoryId: categoryId.value,
-            locationText: location.value,
-            imageUrls: images.value,
-            tradeTypes: deliveryMethods.value
-        };
+        if (saleMode.value === 'consignment') {
+            const payload = {
+                title: form.value.title,
+                description: form.value.description,
+                expectedPrice: Number(form.value.price),
+                categoryId: form.value.categoryId,
+                shippingMethod: 'express', // Default
+                trackingNoInbound: '' // Initial submission might not have tracking
+            };
+            await createConsignment(payload);
+        } else {
+            let finalTradeTypes = ['EXPRESS']; // Default
+            if (form.value.isMeetup) {
+                finalTradeTypes.push('MEETUP');
+            }
 
-        await createProduct(payload);
+            // Construct payload
+            const payload = {
+                title: form.value.title,
+                description: form.value.description,
+                price: Number(form.value.price),
+                originalPrice: form.value.originalPrice ? Number(form.value.originalPrice) : undefined,
+                currency: 'CNY',
+                condition: mapCondition(form.value.condition),
+                categoryId: form.value.categoryId,
+                locationText: form.value.location,
+                imageUrls: form.value.images,
+                shippingPayer: form.value.freight === 'seller' ? 'SELLER' : 'BUYER',
+                tradeTypes: finalTradeTypes.join(',')
+            };
+
+            await createProduct(payload);
+        }
+
         closeToast();
         showSuccessToast('发布成功');
-        router.replace('/post');
+        if (saleMode.value === 'consignment') {
+            router.replace('/my-products?tab=consignments');
+        } else {
+            router.replace('/my-products');
+        }
     } catch (e) {
         closeToast();
         showFailToast('发布失败');
@@ -222,29 +284,28 @@ const onSubmit = async () => {
     }
 };
 
-const onCancel = () => {
-    showConfirmDialog({
-        title: '确认取消',
-        message: '取消后已填写的内容将不会保存',
-    }).then(() => {
-        router.back();
-    }).catch(() => { });
-};
-
 const onSaveDraft = () => {
     showToast('草稿功能开发中');
 };
 
-// --- 辅助方法 ---
-const toggleDeliveryMethod = (method) => {
-    if (deliveryMethods.value.includes(method)) {
-        deliveryMethods.value = deliveryMethods.value.filter(m => m !== method);
+// --- Computed ---
+const estimatedIncome = computed(() => {
+    const p = parseFloat(form.value.price) || 0;
+    if (saleMode.value === 'consignment') {
+        return (p * 0.97).toFixed(2);
     } else {
-        deliveryMethods.value.push(method);
+        return (p * 0.99).toFixed(2);
     }
-};
+});
 
-const conditions = ['全新', '99新', '95新', '9成新', '8成新', '战损版'];
+const serviceFee = computed(() => {
+    const p = parseFloat(form.value.price) || 0;
+    if (saleMode.value === 'consignment') {
+        return (p * 0.03).toFixed(2);
+    } else {
+        return (p * 0.01).toFixed(2);
+    }
+});
 
 onMounted(() => {
     loadCategories();
@@ -252,202 +313,292 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-24">
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-28">
 
         <!-- --- Top Navigation --- -->
         <nav class="bg-white sticky top-0 z-50 border-b border-gray-100">
-            <div class="max-w-4xl mx-auto px-4 h-[56px] flex items-center justify-between gap-4">
+            <div class="max-w-5xl mx-auto px-6 h-[72px] flex items-center justify-between gap-4">
                 <div class="flex items-center gap-10">
                     <div class="flex items-center gap-1.5 cursor-pointer" @click="router.push('/')">
                         <div
-                            class="w-8 h-8 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-lg italic shadow-sm">
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
                             T</div>
-                        <span class="text-xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
                                 class="text-[#4a8b6e]">.</span></span>
                     </div>
+                    <div class="hidden md:flex items-center gap-2 text-lg font-bold text-gray-700">
+                        发布闲置
+                    </div>
                 </div>
-                <div class="flex items-center gap-5">
-                    <button @click="onCancel" class="text-gray-500 hover:text-[#4a8b6e] font-medium text-sm">取消</button>
-                    <button @click="onSaveDraft" class="text-[#4a8b6e] font-bold text-sm">存草稿</button>
+
+                <div class="flex items-center gap-4">
+                    <button @click="onSaveDraft"
+                        class="text-gray-500 hover:text-[#4a8b6e] font-medium text-sm px-4 py-2 rounded-full hover:bg-gray-50 transition-colors">
+                        存草稿
+                    </button>
+                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100">
+                        <img :src="user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'"
+                            class="w-full h-full object-cover" />
+                    </div>
                 </div>
             </div>
         </nav>
 
         <!-- --- Main Content --- -->
-        <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <main class="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
-            <h1 class="text-2xl font-bold text-[#2c3e50] px-1">发布闲置</h1>
+            <!-- 1. Sale Mode Selection -->
+            <section class="space-y-3">
+                <h2 class="font-bold text-lg text-[#2c3e50] px-1">选择售卖模式</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <!-- 1. Image Upload Section -->
-            <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold text-lg flex items-center gap-2">
-                        商品图片
-                        <span class="text-xs font-normal text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">最多9张</span>
-                    </h2>
-                    <button
-                        class="text-xs text-[#4a8b6e] flex items-center gap-1 hover:bg-[#4a8b6e]/10 px-2 py-1 rounded transition-colors">
-                        <Sparkles :size="12" /> AI 智能修图
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                    <div v-for="(img, idx) in images" :key="idx"
-                        class="aspect-square rounded-xl overflow-hidden relative group border border-gray-100">
-                        <img :src="img" alt="upload" class="w-full h-full object-cover" />
-                        <button @click="removeImage(idx)"
-                            class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X :size="12" />
-                        </button>
-                        <div v-if="idx === 0"
-                            class="absolute bottom-0 left-0 right-0 bg-[#4a8b6e]/90 text-white text-[10px] text-center py-0.5">
-                            封面图</div>
-                    </div>
-
-                    <button v-if="images.length < 9" @click="handleAddImage"
-                        class="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-[#4a8b6e] hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 transition-all group">
-                        <div class="bg-gray-100 p-3 rounded-full group-hover:bg-[#4a8b6e]/20 transition-colors">
-                            <Camera :size="24" />
+                    <!-- Mode A: Consignment -->
+                    <div @click="saleMode = 'consignment'" :class="[
+                        'p-5 rounded-2xl border-2 cursor-pointer transition-all relative overflow-hidden',
+                        saleMode === 'consignment' ? 'mode-card-selected shadow-md' : 'mode-card-default shadow-sm'
+                    ]">
+                        <div v-if="saleMode === 'consignment'"
+                            class="absolute top-0 right-0 bg-[#4a8b6e] text-white text-[10px] px-2 py-1 rounded-bl-lg font-bold">
+                            已选择</div>
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="icon-box w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 transition-colors">
+                                <PackageCheck :size="20" />
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base mb-1">官方寄售 (推荐)</h3>
+                                <p class="text-xs opacity-80 leading-relaxed mb-2">寄给平台验货，省心极速卖。</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="text-[10px] border border-current px-1.5 rounded opacity-70">流量扶持</span>
+                                    <span
+                                        class="text-[10px] border border-current px-1.5 rounded opacity-70">坏账包赔</span>
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-xs font-medium">添加图片</span>
-                    </button>
-                </div>
-                <p class="text-xs text-gray-400 mt-4 flex items-center gap-1">
-                    <Info :size="12" /> 首张图将作为封面，清晰的图片能让浏览量提升 40%
-                </p>
-            </section>
-
-            <!-- 2. Basic Info Section -->
-            <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 space-y-6">
-
-                <!-- Title -->
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <label class="font-bold text-gray-700">标题</label>
-                        <span class="text-xs text-gray-400">{{ title.length }}/30</span>
                     </div>
-                    <input type="text" v-model="title" maxlength="30" placeholder="品牌型号，宝贝特点（例如：99新 iPhone 13 128G 国行）"
-                        class="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all font-medium outline-none" />
-                </div>
 
-                <!-- Description -->
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <label class="font-bold text-gray-700">描述</label>
-                        <button class="text-xs text-[#4a8b6e] flex items-center gap-1">
-                            <Sparkles :size="12" /> 帮我润色
-                        </button>
+                    <!-- Mode B: Direct Sell -->
+                    <div @click="saleMode = 'direct'" :class="[
+                        'p-5 rounded-2xl border-2 cursor-pointer transition-all relative overflow-hidden',
+                        saleMode === 'direct' ? 'mode-card-selected shadow-md' : 'mode-card-default shadow-sm'
+                    ]">
+                        <div v-if="saleMode === 'direct'"
+                            class="absolute top-0 right-0 bg-[#4a8b6e] text-white text-[10px] px-2 py-1 rounded-bl-lg font-bold">
+                            已选择</div>
+                        <div class="flex items-start gap-4">
+                            <div
+                                class="icon-box w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 transition-colors">
+                                <UserCheck :size="20" />
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base mb-1">自主售卖</h3>
+                                <p class="text-xs opacity-80 leading-relaxed mb-2">自己在平台发布，直接发货给买家。</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="text-[10px] border border-current px-1.5 rounded opacity-70">自由定价</span>
+                                    <span
+                                        class="text-[10px] border border-current px-1.5 rounded opacity-70">支持面交</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <textarea v-model="description" placeholder="描述一下宝贝的转手原因、入手渠道和使用感受吧~ (支持 #话题)"
-                        class="w-full h-32 bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all resize-none outline-none"></textarea>
+
                 </div>
             </section>
 
-            <!-- 3. Price & Attributes -->
-            <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 space-y-6">
-                <h2 class="font-bold text-lg">价格与属性</h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Price Input -->
-                    <div class="relative">
-                        <label class="text-xs text-gray-500 mb-1 block">出售价格</label>
-                        <div class="relative">
-                            <span
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">¥</span>
-                            <input type="number" v-model="price" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-3 bg-gray-50 rounded-xl border-none font-bold text-xl text-[#ff5e57] focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white outline-none" />
-                        </div>
-                    </div>
-
-                    <!-- Original Price -->
-                    <div class="relative">
-                        <label class="text-xs text-gray-500 mb-1 block">入手原价 (选填)</label>
-                        <div class="relative">
-                            <span
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">¥</span>
-                            <input type="number" v-model="originalPrice" placeholder="0.00"
-                                class="w-full pl-8 pr-4 py-3 bg-gray-50 rounded-xl border-none font-bold text-gray-600 focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white outline-none" />
-                        </div>
-                    </div>
+            <!-- 2. Product Info (Common) -->
+            <section class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50 space-y-6">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-bold text-lg text-[#2c3e50]">商品信息</h2>
+                    <!-- Category Selection Trigger (Small) -->
+                    <button @click="showCategoryPicker = true"
+                        class="text-sm text-[#4a8b6e] font-medium flex items-center gap-1">
+                        {{ form.categoryName || '选择分类' }}
+                        <ChevronRight :size="14" />
+                    </button>
                 </div>
 
-                <div class="border-t border-gray-50 pt-4 space-y-4">
-                    <!-- Category -->
-                    <div @click="showCategoryPicker = true"
-                        class="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                        <span class="font-medium text-gray-700">分类</span>
-                        <div class="flex items-center gap-2 text-gray-400 text-sm">
-                            <span :class="{ 'text-gray-800': categoryName }">{{ categoryName || '请选择分类' }}</span>
-                            <ChevronRight :size="16" />
-                        </div>
-                    </div>
+                <div class="space-y-4">
+                    <input type="text" v-model="form.title" placeholder="品牌型号，宝贝特点"
+                        class="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none font-bold placeholder:font-normal" />
 
-                    <!-- Condition - Chips Style -->
-                    <div>
-                        <label class="text-sm font-medium text-gray-700 mb-2 block">成色</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button v-for="c in conditions" :key="c" @click="condition = c" :class="[
-                                'px-4 py-1.5 rounded-full text-sm font-medium transition-all',
-                                condition === c
-                                    ? 'bg-[#4a8b6e] text-white shadow-md shadow-[#4a8b6e]/20'
-                                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                            ]">
-                                {{ c }}
+                    <div class="grid grid-cols-4 sm:grid-cols-5 gap-4">
+                        <div v-for="(img, idx) in form.images" :key="idx"
+                            class="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
+                            <img :src="img" class="w-full h-full object-cover" />
+                            <button @click="removeImage(idx)"
+                                class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <X :size="12" />
                             </button>
                         </div>
+                        <div v-if="form.images.length < 9" @click="handleAddImage"
+                            class="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-[#4a8b6e] hover:bg-[#4a8b6e]/5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all text-gray-400 hover:text-[#4a8b6e]">
+                            <Camera :size="20" />
+                            <span class="text-xs font-medium">添加</span>
+                        </div>
+                    </div>
+
+                    <textarea v-model="form.description" placeholder="描述一下宝贝的使用情况..."
+                        class="w-full h-24 bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none resize-none text-sm"></textarea>
+                </div>
+            </section>
+
+            <!-- 3. Price & Fees (Dynamic based on Mode) -->
+            <section class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50 space-y-6">
+                <h2 class="font-bold text-lg text-[#2c3e50]">价格设置</h2>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <label class="text-sm font-bold text-gray-600">期望售价</label>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">¥</span>
+                        <input type="number" v-model="form.price" placeholder="0.00"
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none font-bold text-2xl text-[#2c3e50] focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none" />
                     </div>
                 </div>
+
+                <!-- Consignment Fee Mode -->
+                <transition name="fade" mode="out-in">
+                    <div v-if="saleMode === 'consignment'"
+                        class="bg-[#4a8b6e]/5 rounded-xl p-4 text-sm space-y-2 border border-[#4a8b6e]/10">
+                        <div class="flex justify-between text-gray-500">
+                            <span>技术服务费 (3%)</span>
+                            <span>- ¥{{ serviceFee }}</span>
+                        </div>
+                        <div class="flex justify-between text-gray-500">
+                            <span class="flex items-center gap-1">官方验货费
+                                <HelpCircle :size="12" />
+                            </span>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[#4a8b6e] font-bold">限时免除</span>
+                                <span class="text-xs text-gray-300 line-through">¥ 29.00</span>
+                            </div>
+                        </div>
+                        <div class="border-t border-[#4a8b6e]/10 pt-2 flex justify-between items-center">
+                            <span class="font-bold text-gray-700">寄售预计到手</span>
+                            <span class="font-bold text-xl text-[#ff5e57]">¥{{ estimatedIncome }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Direct Sell Mode -->
+                    <div v-else class="bg-gray-50 rounded-xl p-4 text-sm space-y-2 border border-gray-100">
+                        <div class="flex justify-between text-gray-500">
+                            <span>技术服务费 (1% 仅成交后收取)</span>
+                            <span>- ¥{{ serviceFee }}</span>
+                        </div>
+                        <div class="border-t border-gray-200 pt-2 flex justify-between items-center">
+                            <span class="font-bold text-gray-700">自售预计到手</span>
+                            <span class="font-bold text-xl text-[#ff5e57]">¥{{ estimatedIncome }}</span>
+                        </div>
+                    </div>
+                </transition>
             </section>
 
-            <!-- 4. Transaction Info -->
-            <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 space-y-4">
-                <h2 class="font-bold text-lg">交易信息</h2>
+            <!-- 4. Logistics (Dynamic based on Mode) -->
+            <transition name="fade" mode="out-in">
 
-                <!-- Delivery Methods - Big Cards -->
-                <div class="grid grid-cols-2 gap-4">
-                    <button @click="toggleDeliveryMethod('meetup')" :class="[
-                        'p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all',
-                        deliveryMethods.includes('meetup')
-                            ? 'border-[#4a8b6e] bg-[#4a8b6e]/5 text-[#4a8b6e]'
-                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
-                    ]">
-                        <Users :size="24" />
-                        <span class="font-bold text-sm">支持面交</span>
-                    </button>
+                <!-- Mode A: Consignment Logistics -->
+                <section v-if="saleMode === 'consignment'"
+                    class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50 space-y-4">
+                    <h2 class="font-bold text-lg text-[#2c3e50] flex items-center gap-2">
+                        入仓方式
+                        <span class="text-xs font-normal bg-[#4a8b6e]/10 text-[#4a8b6e] px-2 py-0.5 rounded">发往
+                            TrueUsed 上海仓</span>
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div
+                            class="p-4 rounded-xl border-2 border-[#4a8b6e] bg-[#4a8b6e]/5 text-[#4a8b6e] cursor-pointer flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                                <Truck :size="18" />
+                                <span class="font-bold text-sm">预约顺丰上门</span>
+                            </div>
+                            <p class="text-xs opacity-80">运费到付，验货通过后由买家承担</p>
+                        </div>
+                        <div
+                            class="p-4 rounded-xl border-2 border-gray-100 text-gray-500 hover:border-gray-200 cursor-pointer flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                                <Package :size="18" />
+                                <span class="font-bold text-sm">自行寄送</span>
+                            </div>
+                            <p class="text-xs opacity-80">提交后获得仓库地址及入仓码</p>
+                        </div>
+                    </div>
+                </section>
 
-                    <button @click="toggleDeliveryMethod('express')" :class="[
-                        'p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all',
-                        deliveryMethods.includes('express')
-                            ? 'border-[#4a8b6e] bg-[#4a8b6e]/5 text-[#4a8b6e]'
-                            : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
-                    ]">
-                        <Truck :size="24" />
-                        <span class="font-bold text-sm">邮寄/快递</span>
-                    </button>
-                </div>
+                <!-- Mode B: Direct Sell Logistics -->
+                <section v-else class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50 space-y-4">
+                    <h2 class="font-bold text-lg text-[#2c3e50]">交易与发货</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="bg-gray-100 p-2 rounded-full">
+                                    <Truck :size="16" />
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">快递发货</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" value="seller" v-model="form.freight" class="accent-[#4a8b6e]">
+                                    <span class="text-sm text-gray-600">包邮</span>
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" value="buyer" v-model="form.freight" class="accent-[#4a8b6e]">
+                                    <span class="text-sm text-gray-600">到付</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="bg-gray-100 p-2 rounded-full">
+                                    <Users :size="16" />
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">支持面交</span>
+                            </div>
+                            <!-- Mock Toggle -->
+                            <div
+                                class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="toggle" v-model="form.isMeetup"
+                                    class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                                <label for="toggle"
+                                    class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-gray-100">
+                            <div class="flex items-center gap-2 text-sm text-gray-500">
+                                <MapPin :size="16" class="text-[#4a8b6e]" />
+                                <span>发货地：</span>
+                                <span class="font-bold text-gray-800" @click="showLocationPicker = true">{{
+                                    form.location
+                                    }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-                <!-- Location -->
-                <div class="flex items-center gap-3 text-sm text-gray-500 mt-2 bg-gray-50 p-3 rounded-xl w-fit">
-                    <MapPin :size="16" class="text-[#4a8b6e]" />
-                    <span>发货地：</span>
-                    <span class="font-bold text-gray-800">{{ location }}</span>
-                    <span class="text-xs text-[#4a8b6e] cursor-pointer" @click="showLocationPicker = true">修改</span>
-                </div>
-            </section>
+            </transition>
 
         </main>
 
-        <!-- --- Sticky Bottom Bar --- -->
+        <!-- --- Sticky Footer --- -->
         <div
-            class="fixed bottom-0 w-full bg-white border-t border-gray-100 p-4 pb-8 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
-            <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            class="fixed bottom-0 w-full bg-white border-t border-gray-100 p-4 pb-8 z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
+            <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
                 <div class="flex flex-col">
-                    <span class="text-xs text-gray-400">预估收入</span>
-                    <span class="text-xl font-bold text-[#ff5e57]">¥{{ price || '0.00' }}</span>
+                    <div class="flex items-center gap-2 text-xs text-gray-400 mb-0.5">
+                        <CheckCircle2 :size="12" class="text-[#4a8b6e]" />
+                        <span v-if="saleMode === 'consignment'">同意《寄售服务协议》</span>
+                        <span v-else>同意《平台交易规则》</span>
+                    </div>
                 </div>
-                <button @click="onSubmit" :disabled="isSubmitting"
-                    class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-12 py-3 rounded-full font-bold text-lg shadow-lg shadow-[#4a8b6e]/20 transition-all transform active:scale-95 flex-1 md:flex-none disabled:opacity-50 disabled:cursor-not-allowed">
-                    {{ isSubmitting ? '发布中...' : '立即发布' }}
+                <button @click="onSubmit" :disabled="isSubmitting" :class="[
+                    'text-white px-8 py-3 rounded-full font-bold text-base shadow-lg transition-all transform active:scale-95 flex-1 md:flex-none md:w-64 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed',
+                    saleMode === 'consignment' ? 'bg-[#4a8b6e] hover:bg-[#3b755b] shadow-[#4a8b6e]/20' : 'bg-[#2c3e50] hover:bg-[#1a252f] shadow-gray-300'
+                ]">
+                    <span v-if="saleMode === 'consignment'">{{ isSubmitting ? '提交中...' : '提交并获取入仓码' }}</span>
+                    <span v-else>{{ isSubmitting ? '发布中...' : '立即发布' }}</span>
+                    <ArrowRight :size="16" />
                 </button>
             </div>
         </div>
@@ -457,7 +608,7 @@ onMounted(() => {
 
         <!-- Popups -->
         <van-popup v-model:show="showCategoryPicker" round position="bottom">
-            <van-cascader v-model="categoryId" title="选择分类" :options="categoryOptions"
+            <van-cascader v-model="form.categoryId" title="选择分类" :options="categoryOptions"
                 :field-names="{ text: 'text', value: 'value', children: 'children' }"
                 @close="showCategoryPicker = false" @finish="onCategoryFinish" />
         </van-popup>
@@ -472,5 +623,67 @@ onMounted(() => {
 <style scoped>
 .hidden {
     display: none;
+}
+
+/* 模式选择卡片选中态 */
+.mode-card-selected {
+    border-color: #4a8b6e;
+    background-color: #f0fdf4;
+    /* bg-emerald-50 */
+    color: #064e3b;
+    /* text-emerald-900 */
+}
+
+.mode-card-selected .icon-box {
+    background-color: #4a8b6e;
+    color: white;
+}
+
+.mode-card-default {
+    border-color: #f3f4f6;
+    /* border-gray-100 */
+    background-color: white;
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.mode-card-default:hover {
+    border-color: #d1fae5;
+    /* hover:border-emerald-100 */
+}
+
+/* 切换动画 */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+/* Toggle Checkbox */
+.toggle-checkbox:checked {
+    @apply: right-0 border-green-400;
+    right: 0;
+    border-color: #4a8b6e;
+}
+
+.toggle-checkbox:checked+.toggle-label {
+    @apply: bg-green-400;
+    background-color: #4a8b6e;
+}
+
+.toggle-checkbox {
+    right: 0;
+    z-index: 1;
+    border-color: white;
+    transition: all 0.2s;
+}
+
+.toggle-label {
+    width: 2.5rem;
 }
 </style>

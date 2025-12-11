@@ -1,6 +1,7 @@
 <script setup>
 import { getSoldOrders, shipOrder } from '@/api/orders';
 import SearchBar from '@/components/SearchBar.vue';
+import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
 import {
     AlertCircle,
@@ -9,9 +10,6 @@ import {
     Copy,
     MessageCircle,
     Package,
-    Settings,
-    ShoppingBag,
-    Star,
     Truck,
     Wallet,
     X
@@ -24,7 +22,6 @@ const router = useRouter();
 const route = useRoute();
 
 // --- State ---
-const activeMenu = ref('订单管理');
 const activeTab = ref('all');
 const searchQuery = ref('');
 const orders = ref([]);
@@ -40,13 +37,6 @@ const shipForm = ref({
     trackingCompany: '顺丰速运',
     senderCity: '',
 });
-
-const menuItems = [
-    { name: '商品管理', icon: Package, route: '/my-products' },
-    { name: '订单管理', icon: ShoppingBag, route: '/order-manage' },
-    { name: '评价管理', icon: Star, route: '/my-reviews' },
-    { name: '店铺设置', icon: Settings, route: '/settings' },
-];
 
 const tabs = [
     { name: '全部', key: 'all' },
@@ -210,12 +200,6 @@ const copyInfo = (text) => {
     });
 };
 
-const handleMenuClick = (item) => {
-    if (item.route) {
-        router.push(item.route);
-    }
-};
-
 // --- Helpers ---
 const getProductImage = (product) => {
     if (!product) return '';
@@ -258,29 +242,7 @@ watch(() => route.query.status, (newStatus) => {
         <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             <!-- Left Sidebar -->
-            <aside class="hidden lg:block lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-4 sticky top-24">
-                    <div class="flex items-center gap-3 mb-6 px-2">
-                        <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
-                                class="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                            <div class="font-bold text-sm text-[#2c3e50]">卖家中心</div>
-                            <div class="text-xs text-gray-400">个人卖家</div>
-                        </div>
-                    </div>
-
-                    <nav class="space-y-1">
-                        <a v-for="item in menuItems" :key="item.name" href="#"
-                            :class="['flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all', activeMenu === item.name ? 'bg-[#4a8b6e]/10 text-[#4a8b6e]' : 'text-gray-600 hover:bg-gray-50']"
-                            @click.prevent="handleMenuClick(item); activeMenu = item.name">
-                            <component :is="item.icon" :size="18" />
-                            {{ item.name }}
-                        </a>
-                    </nav>
-                </div>
-            </aside>
+            <SellerSidebar active-menu="订单管理" />
 
             <!-- Right Main Content -->
             <div class="lg:col-span-10 space-y-6">

@@ -1,7 +1,5 @@
 <script setup>
-import { receivePackage } from '@/api/inspection';
 import { cancelOrder, confirmDelivery, getOrderById, getOrderShipping, shipOrder } from '@/api/orders';
-import InspectionTimeline from '@/components/InspectionTimeline.vue';
 import { useUserStore } from '@/stores/user';
 import { Check, ChevronRight, Copy, MapPin, PackageSearch, Store, Truck } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
@@ -16,7 +14,6 @@ const userStore = useUserStore();
 const loading = ref(true);
 const order = ref(null);
 const shippingInfo = ref(null);
-const inspectionTimelineRef = ref(null);
 
 // --- Computed ---
 const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
@@ -125,16 +122,6 @@ const handleUpdateStatus = (action) => {
         });
 };
 
-const handleStartInspection = async () => {
-    try {
-        await receivePackage(order.value.id);
-        showSuccessToast('已开始验货流程');
-        inspectionTimelineRef.value?.fetchInspectionData();
-    } catch (error) {
-        showFailToast('触发验货失败');
-    }
-};
-
 const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
         showSuccessToast('复制成功');
@@ -233,12 +220,6 @@ onMounted(() => {
                                 确认发货
                             </button>
                         </template>
-
-                        <!-- Demo: Start Inspection Button (Visible for testing) -->
-                        <button v-if="order.status === 'SHIPPED'" @click="handleStartInspection"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95 ml-2">
-                            [Demo] 开始验货
-                        </button>
                     </div>
                 </div>
 
@@ -311,12 +292,6 @@ onMounted(() => {
                                 </p>
                             </div>
                         </div>
-                    </section>
-
-                    <!-- Inspection Timeline -->
-                    <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden"
-                        v-if="order.status !== 'PENDING_PAYMENT' && order.status !== 'PAID'">
-                        <InspectionTimeline :orderId="order.id" ref="inspectionTimelineRef" />
                     </section>
 
                     <!-- 3. Product List -->

@@ -5,11 +5,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import About from '@/views/About.vue'
 import Address from '@/views/Address.vue'
 import AddressEdit from '@/views/AddressEdit.vue'
-import Consignment from '@/views/Consignment.vue'
+import CouponCenter from '@/views/CouponCenter.vue'
 import Favorites from '@/views/Favorites.vue'
 import Feedback from '@/views/Feedback.vue'
 import Help from '@/views/Help.vue'
 import Home from '@/views/Home.vue'
+import InspectionReport from '@/views/InspectionReport.vue'
 import Login from '@/views/Login.vue'
 import Messages from '@/views/Messages.vue'
 import MyProducts from '@/views/MyProducts.vue'
@@ -17,6 +18,7 @@ import OrderManage from '@/views/OrderManage.vue'
 import Orders from '@/views/Orders.vue'
 import Payment from '@/views/Payment.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
+import PostCreate from '@/views/PostCreate.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
 import Register from '@/views/Register.vue'
@@ -33,6 +35,18 @@ const routes = [
   {
     path: '/',
     redirect: '/home',
+  },
+  {
+    path: '/coupon-center',
+    name: 'CouponCenter',
+    component: CouponCenter,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/inspection-reports',
+    name: 'InspectionReport',
+    component: InspectionReport,
+    meta: { hideNavbar: true },
   },
   {
     path: '/home',
@@ -53,7 +67,7 @@ const routes = [
   {
     path: '/post/create',
     name: 'PostCreate',
-    component: Consignment,
+    component: PostCreate,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

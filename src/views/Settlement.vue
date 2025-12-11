@@ -1,8 +1,9 @@
 <script setup>
 import { getAddresses } from '@/api/address';
+import { getMyCoupons } from '@/api/coupon';
 import { createOrder } from '@/api/orders';
 import { getProduct } from '@/api/products';
-import { ChevronRight, FileCheck, MapPin, ShieldCheck } from 'lucide-vue-next';
+import { Check, ChevronRight, FileCheck, MapPin, ShieldCheck } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast, showToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -30,21 +31,29 @@ const seller = ref({
 });
 
 const deliveryType = ref('express');
-const coupon = ref(0); // Mock coupon
+const coupons = ref([]);
+const selectedCoupon = ref(null);
+const showCouponPopup = ref(false);
 const remark = ref('');
 
 // --- Computed ---
 const freight = computed(() => deliveryType.value === 'express' ? 0 : 0);
 
+const validCoupons = computed(() => {
+    const price = Number(product.value.price) || 0;
+    return coupons.value.filter(c => !c.isUsed && c.coupon.minSpend <= price);
+});
+
 const finalPrice = computed(() => {
     const p = Number(product.value.price) || 0;
     const f = freight.value;
-    const c = coupon.value;
-    return (p + f - c).toFixed(2);
+    const c = selectedCoupon.value ? selectedCoupon.value.coupon.discountAmount : 0;
+    const total = p + f - c;
+    return total > 0 ? total.toFixed(2) : '0.00';
 });
 
 const savedAmount = computed(() => {
-    return (coupon.value).toFixed(2);
+    return selectedCoupon.value ? selectedCoupon.value.coupon.discountAmount : 0;
 });
 
 // --- Methods ---
@@ -92,6 +101,19 @@ const loadData = async () => {
         const defaultAddress = addresses.find(a => a.isDefault);
         address.value = defaultAddress || (addresses.length > 0 ? addresses[0] : null);
 
+        // 3. Load Coupons
+        const myCoupons = await getMyCoupons();
+        coupons.value = myCoupons || [];
+
+        // Auto-select best coupon
+        const price = Number(product.value.price) || 0;
+        const valid = coupons.value.filter(c => !c.isUsed && c.coupon.minSpend <= price);
+        if (valid.length > 0) {
+            // Sort by discount amount desc
+            valid.sort((a, b) => b.coupon.discountAmount - a.coupon.discountAmount);
+            selectedCoupon.value = valid[0];
+        }
+
     } catch (error) {
         showFailToast('加载信息失败');
         console.error(error);
@@ -118,6 +140,7 @@ const handleSubmit = async () => {
         const orderRequest = {
             productId: product.value.id,
             addressId: address.value.id,
+            userCouponId: selectedCoupon.value ? selectedCoupon.value.id : null,
             remark: remark.value // Backend might need to support this field
         };
         const createdOrder = await createOrder(orderRequest);
@@ -186,7 +209,7 @@ onMounted(() => {
                             <div class="flex items-center gap-3 mb-1">
                                 <span class="text-lg font-bold text-[#2c3e50]">{{ address.recipientName }}</span>
                                 <span class="text-base text-gray-500 font-medium">{{ formatPhone(address.phone)
-                                }}</span>
+                                    }}</span>
                                 <span v-if="address.isDefault"
                                     class="text-[10px] text-[#4a8b6e] bg-[#4a8b6e]/10 px-1.5 py-0.5 rounded border border-[#4a8b6e]/20">默认</span>
                             </div>
@@ -267,13 +290,13 @@ onMounted(() => {
                     </div>
 
                     <!-- Coupon -->
-                    <div class="flex items-center justify-between cursor-pointer group">
+                    <div class="flex items-center justify-between cursor-pointer group" @click="showCouponPopup = true">
                         <span class="font-medium text-gray-700">优惠券</span>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-[#ff5e57] bg-[#ff5e57]/10 px-2 py-0.5 rounded font-bold"
-                                v-if="coupon > 0">- ¥{{ coupon }}</span>
-                            <span class="text-sm text-gray-400 group-hover:text-gray-600 transition-colors"
-                                v-else>无可用</span>
+                                v-if="selectedCoupon">- ¥{{ selectedCoupon.coupon.discountAmount }}</span>
+                            <span class="text-sm text-gray-400 group-hover:text-gray-600 transition-colors" v-else>{{
+                                validCoupons.length > 0 ? '有可用优惠券' : '无可用' }}</span>
                             <ChevronRight :size="16" class="text-gray-300" />
                         </div>
                     </div>
@@ -328,6 +351,42 @@ onMounted(() => {
                     class="bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white px-8 py-3 rounded-full font-bold text-base shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                     {{ isSubmitting ? '提交中...' : '提交订单' }}
                 </button>
+            </div>
+        </div>
+
+        <!-- Coupon Popup -->
+        <div v-if="showCouponPopup" class="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showCouponPopup = false"></div>
+            <div
+                class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 relative z-10 max-h-[80vh] flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-lg">选择优惠券</h3>
+                    <button @click="showCouponPopup = false" class="text-gray-400 hover:text-gray-600">关闭</button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-3 min-h-[200px]">
+                    <div v-if="validCoupons.length === 0" class="text-center py-10 text-gray-400">
+                        暂无可用优惠券
+                    </div>
+                    <div v-for="c in validCoupons" :key="c.id" @click="selectedCoupon = c; showCouponPopup = false"
+                        class="border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all"
+                        :class="selectedCoupon?.id === c.id ? 'border-[#4a8b6e] bg-[#4a8b6e]/5' : 'border-gray-100 hover:border-gray-200'">
+                        <div>
+                            <div class="font-bold text-[#ff5e57] text-lg">¥{{ c.coupon.discountAmount }}</div>
+                            <div class="text-sm text-gray-700">{{ c.coupon.title }}</div>
+                            <div class="text-xs text-gray-400">满 {{ c.coupon.minSpend }} 可用</div>
+                        </div>
+                        <div v-if="selectedCoupon?.id === c.id" class="text-[#4a8b6e]">
+                            <Check :size="20" />
+                        </div>
+                    </div>
+
+                    <!-- Don't use coupon option -->
+                    <div v-if="validCoupons.length > 0" @click="selectedCoupon = null; showCouponPopup = false"
+                        class="border border-gray-100 rounded-xl p-4 text-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                        不使用优惠券
+                    </div>
+                </div>
             </div>
         </div>
 

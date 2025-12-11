@@ -316,7 +316,7 @@ const buyerServices = [
     { label: '收货地址', icon: 'i-lucide-map-pin', action: 'address' },
     { label: '我的收藏', icon: 'i-lucide-heart', action: 'favorites' },
     { label: '浏览记录', icon: 'i-lucide-clock', action: 'history' },
-    { label: '官方验货', icon: 'i-lucide-shield-check', action: 'check' },
+    { label: '领券中心', icon: 'i-lucide-ticket', action: 'coupons' },
     { label: '帮助中心', icon: 'i-lucide-message-circle', action: 'help' },
     { label: '设置', icon: 'i-lucide-settings', action: 'settings' },
 ]
@@ -324,7 +324,7 @@ const sellerServices = [
     { label: '商品管理', icon: 'i-lucide-archive', action: 'products' },
     { label: '数据中心', icon: 'i-lucide-bar-chart-3', action: 'data' },
     { label: '订单管理', icon: 'i-lucide-clipboard-list', action: 'order-manage' },
-    { label: '验货报告', icon: 'i-lucide-shield-check', action: 'check' },
+    { label: '验货报告', icon: 'i-lucide-shield-check', action: 'inspections' },
     { label: '帮助中心', icon: 'i-lucide-message-circle', action: 'help' },
     { label: '店铺设置', icon: 'i-lucide-settings', action: 'shop-settings' },
 ]
@@ -437,7 +437,8 @@ const handleServiceClick = (item) => {
         case 'settings': router.push('/settings'); break;
         case 'products': router.push('/my-products'); break;
         case 'help': router.push('/help'); break;
-        case 'check': router.push('/service'); break;
+        case 'coupons': router.push('/coupon-center'); break;
+        case 'inspections': router.push('/inspection-reports'); break;
         case 'history': router.push('/history'); break;
         case 'order-manage': router.push('/order-manage'); break;
         case 'shop-settings': router.push('/settings'); break; // Placeholder

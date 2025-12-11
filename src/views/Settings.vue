@@ -12,11 +12,14 @@ import {
     Trash2
 } from 'lucide-vue-next';
 import { showConfirmDialog, showSuccessToast, showToast } from 'vant';
-import { onMounted, ref, watchEffect } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref, watchEffect } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
+
+const mode = computed(() => route.query.mode === 'seller' ? 'seller' : 'buyer');
 
 // --- State ---
 const settings = ref({
@@ -245,7 +248,7 @@ watchEffect(saveSettings);
                             <span class="text-sm font-medium text-gray-700">版本号</span>
                         </div>
                         <span class="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">v{{ appVersion
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- User Agreement -->

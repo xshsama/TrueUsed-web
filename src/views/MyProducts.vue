@@ -1,6 +1,8 @@
 <script setup>
+import { getMyConsignments, updateConsignmentLogistics } from '@/api/consignment';
 import { deleteProduct, getMyProducts, hideProduct, publishProduct } from '@/api/products';
 import SearchBar from '@/components/SearchBar.vue';
+import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
 import {
     ArrowDown,
@@ -12,24 +14,22 @@ import {
     MoreHorizontal,
     Package,
     RefreshCw,
-    Settings,
-    ShoppingBag,
-    Star,
-    TrendingUp
+    Truck
 } from 'lucide-vue-next';
-import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { showConfirmDialog, showDialog, showFailToast, showSuccessToast } from 'vant';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 
 // --- State ---
-const activeMenu = ref('商品管理');
 const activeTab = ref('active');
 const searchQuery = ref('');
 const isBatchMode = ref(false);
 const selectedItems = ref([]);
 const products = ref([]);
+const consignments = ref([]); // New state for consignments
 const loading = ref(false);
 const refreshing = ref(false);
 const finished = ref(false);
@@ -44,17 +44,10 @@ const stats = ref({
     income: 4850
 });
 
-const menuItems = [
-    { name: '商品管理', icon: Package, route: '/my-products' },
-    { name: '订单管理', icon: ShoppingBag, route: '/order-manage' },
-    { name: '评价管理', icon: Star, route: '/my-reviews' },
-    { name: '店铺设置', icon: Settings, route: '/settings' },
-];
-
 const tabs = [
     { name: '全部', key: 'all' },
     { name: '出售中', key: 'active' },
-    { name: '审核中', key: 'audit' },
+    { name: '寄售单', key: 'consignments' }, // New Tab
     { name: '已售出', key: 'sold' },
     { name: '已下架', key: 'off' },
 ];
@@ -65,13 +58,25 @@ const getStatusText = (status) => {
         'active': '出售中',
         'audit': '审核中',
         'sold': '已售出',
-        'off': '已下架'
+        'off': '已下架',
+        'CREATED': '待发货',
+        'SHIPPED': '运输中',
+        'RECEIVED': '已签收',
+        'INSPECTING': '验货中',
+        'PASSED': '验货通过',
+        'REJECTED': '验货驳回',
+        'CANCELLED': '已取消'
     };
     return map[status] || status;
 };
 
 // --- API & Data ---
 const loadProducts = async () => {
+    if (activeTab.value === 'consignments') {
+        await loadConsignments();
+        return;
+    }
+
     if (isInitialLoading.value) loading.value = true;
     try {
         const res = await getMyProducts({
@@ -109,29 +114,54 @@ const loadProducts = async () => {
     }
 };
 
+const loadConsignments = async () => {
+    loading.value = true;
+    try {
+        const res = await getMyConsignments();
+        consignments.value = res.map(c => ({
+            id: c.id,
+            title: c.title,
+            price: c.expectedPrice,
+            status: c.status,
+            image: c.product && c.product.images && c.product.images.length > 0 ? c.product.images[0].url : '', // Consignment might not have images directly in list unless we add them to DTO, for now use product image if available or placeholder
+            trackingNo: c.trackingNoInbound
+        }));
+        finished.value = true; // Consignments list is not paginated yet
+    } catch (e) {
+        showFailToast('加载寄售单失败');
+    } finally {
+        loading.value = false;
+        refreshing.value = false;
+    }
+};
+
 const mapBackendStatus = (status) => {
     if (status === 'ON_SALE') return 'active';
     if (status === 'SOLD_OUT') return 'sold';
     if (status === 'CANCELLED' || status === 'REJECTED' || status === 'RETURNED') return 'off';
-    if (status === 'CREATED' || status === 'SHIPPED' || status === 'RECEIVED' || status === 'INSPECTING' || status === 'WAREHOUSED' || status === 'LOCKED') return 'audit';
+    // Consignment statuses shouldn't appear here normally if we separate them, but just in case
     return 'off';
 };
 
 const onRefresh = async () => {
     page.value = 0;
     finished.value = false;
+    products.value = [];
+    consignments.value = [];
     await loadProducts();
     showSuccessToast('已刷新');
 };
 
 const onLoad = () => {
-    if (!refreshing.value && !isInitialLoading.value) {
+    if (!refreshing.value && !isInitialLoading.value && activeTab.value !== 'consignments') {
         loadProducts();
     }
 };
 
 // --- Computed ---
 const filteredProducts = computed(() => {
+    if (activeTab.value === 'consignments') return consignments.value;
+
     let result = products.value;
 
     if (activeTab.value !== 'all') {
@@ -148,17 +178,14 @@ const filteredProducts = computed(() => {
 const tabCounts = computed(() => {
     const counts = {};
     tabs.forEach(t => {
-        if (t.key === 'all') counts[t.key] = products.value.length;
+        if (t.key === 'consignments') counts[t.key] = consignments.value.length;
+        else if (t.key === 'all') counts[t.key] = products.value.length;
         else counts[t.key] = products.value.filter(p => p.status === t.key).length;
     });
     return counts;
 });
 
 // --- Actions ---
-const handleMenuClick = (item) => {
-    if (item.route) router.push(item.route);
-};
-
 const toggleSelect = (id) => {
     if (!isBatchMode.value) return;
     if (selectedItems.value.includes(id)) {
@@ -200,8 +227,52 @@ const removeItem = (item) => {
         }).catch(() => { });
 };
 
+const handleShip = (item) => {
+    showDialog({
+        title: '填写物流单号',
+        message: '请输入顺丰/快递单号',
+        showCancelButton: true,
+        confirmButtonText: '发货',
+        showInput: true, // Vant doesn't support showInput directly in showDialog like this, need custom component or prompt
+    }).then(() => {
+        // Placeholder for simple prompt
+    });
+
+    // Using browser prompt for simplicity in this demo, or better, a custom dialog
+    const trackingNo = prompt("请输入物流单号");
+    if (trackingNo) {
+        updateConsignmentLogistics(item.id, trackingNo).then(() => {
+            showSuccessToast('发货成功');
+            onRefresh();
+        });
+    }
+};
+
+const mockShip = async (item) => {
+    const mockTrackingNo = 'SF' + Date.now();
+    try {
+        await updateConsignmentLogistics(item.id, mockTrackingNo);
+        showSuccessToast('模拟发货成功');
+        onRefresh();
+    } catch (e) {
+        showFailToast('发货失败');
+    }
+};
+
 // --- Lifecycle ---
 onMounted(() => {
+    if (route.query.tab) {
+        activeTab.value = route.query.tab;
+    }
+    loadProducts();
+    // Preload consignments count
+    loadConsignments();
+});
+
+watch(activeTab, () => {
+    page.value = 0;
+    finished.value = false;
+    products.value = [];
     loadProducts();
 });
 
@@ -216,18 +287,7 @@ onMounted(() => {
         <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             <!-- Left Sidebar -->
-            <aside class="hidden lg:block lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-4 sticky top-24">
-                    <nav class="space-y-1">
-                        <a v-for="item in menuItems" :key="item.name" href="#"
-                            :class="['flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all', activeMenu === item.name ? 'bg-[#4a8b6e]/10 text-[#4a8b6e]' : 'text-gray-600 hover:bg-gray-50']"
-                            @click.prevent="handleMenuClick(item); activeMenu = item.name">
-                            <component :is="item.icon" :size="18" />
-                            {{ item.name }}
-                        </a>
-                    </nav>
-                </div>
-            </aside>
+            <SellerSidebar active-menu="商品管理" />
 
             <!-- Right Content -->
             <div class="lg:col-span-10 space-y-6">
@@ -343,7 +403,7 @@ onMounted(() => {
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
                                                 <span class="font-bold text-[#ff5e57] text-lg">¥{{ product.price
-                                                    }}</span>
+                                                }}</span>
                                                 <span class="text-xs text-gray-400 line-through">¥{{
                                                     product.originalPrice }}</span>
                                             </div>
@@ -373,7 +433,31 @@ onMounted(() => {
                                 <!-- Action Section (Desktop) -->
                                 <div class="hidden md:flex flex-col justify-center gap-2 w-40 border-l border-gray-100 pl-6"
                                     @click.stop>
-                                    <template v-if="product.status === 'active'">
+
+                                    <!-- Consignment Actions -->
+                                    <template v-if="activeTab === 'consignments'">
+                                        <div class="text-center mb-2">
+                                            <span class="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">
+                                                {{ getStatusText(product.status) }}
+                                            </span>
+                                        </div>
+                                        <button v-if="product.status === 'CREATED'" @click="handleShip(product)"
+                                            class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
+                                            <Truck :size="12" /> 发货
+                                        </button>
+                                        <!-- Mock Ship Button -->
+                                        <button v-if="product.status === 'CREATED'" @click="mockShip(product)"
+                                            class="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1">
+                                            <Package :size="12" /> 一键模拟发货
+                                        </button>
+                                        <div v-if="product.trackingNo"
+                                            class="text-xs text-gray-400 text-center truncate"
+                                            :title="product.trackingNo">
+                                            单号: {{ product.trackingNo }}
+                                        </div>
+                                    </template>
+
+                                    <template v-else-if="product.status === 'active'">
                                         <button
                                             class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
                                             <RefreshCw :size="12" /> 擦亮
@@ -389,7 +473,7 @@ onMounted(() => {
                                                 @click="toggleStatus(product)">下架</span>
                                         </div>
                                     </template>
-                                    <template v-if="product.status === 'off'">
+                                    <template v-else-if="product.status === 'off'">
                                         <button @click="toggleStatus(product)"
                                             class="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all">
                                             上架
@@ -398,7 +482,7 @@ onMounted(() => {
                                             class="text-xs text-center text-gray-400 hover:text-[#ff5e57] cursor-pointer mt-2"
                                             @click="removeItem(product)">删除</span>
                                     </template>
-                                    <template v-if="product.status === 'audit' || product.status === 'sold'">
+                                    <template v-else-if="product.status === 'audit' || product.status === 'sold'">
                                         <span class="text-center text-xs text-gray-400 py-2">{{
                                             getStatusText(product.status) }}</span>
                                     </template>

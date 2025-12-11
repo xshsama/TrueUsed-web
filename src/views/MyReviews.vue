@@ -1,196 +1,137 @@
-<template>
-    <div class="page">
-        <van-nav-bar title="我的评价" left-arrow @click-left="$router.back()" fixed />
-        <div class="container" style="padding-top: 56px;">
-            <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-                <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadReviews">
-                    <template v-if="reviews.length === 0 && !loading">
-                        <van-empty description="暂无评价" />
-                    </template>
-                    <div v-else class="review-list">
-                        <div v-for="review in reviews" :key="review.id" class="review-card">
-                            <!-- 商品信息 -->
-                            <div class="product-info" @click="$router.push(`/product/${review.productId}`)">
-                                <van-image :src="review.productImage" width="60" height="60" radius="8" fit="cover" />
-                                <div class="product-detail">
-                                    <div class="product-title">{{ review.productName }}</div>
-                                    <div class="review-time">{{ formatTime(review.createdAt) }}</div>
-                                </div>
-                                <van-icon name="arrow" class="arrow-icon" />
-                            </div>
-
-                            <!-- 评价内容 -->
-                            <div class="review-content-box">
-                                <div class="rating-row">
-                                    <van-rate v-model="review.rating" readonly size="14px" color="#ffd21e"
-                                        void-icon="star" void-color="#eee" />
-                                    <span class="rating-text">{{ getRatingText(review.rating) }}</span>
-                                </div>
-                                <div class="content-text">{{ review.content }}</div>
-                            </div>
-
-                            <!-- 卖家回复 -->
-                            <div class="seller-reply" v-if="review.replyContent">
-                                <div class="reply-title">卖家回复：</div>
-                                <div class="reply-content">{{ review.replyContent }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </van-list>
-            </van-pull-refresh>
-        </div>
-    </div>
-</template>
-
-<script>
+<script setup>
 import { getMyReviews } from '@/api/reviews';
-import { showFailToast } from 'vant';
-import { ref } from 'vue';
+import SellerSidebar from '@/components/SellerSidebar.vue';
+import TopNavbar from '@/components/TopNavbar.vue';
+import {
+    MessageSquare
+} from 'lucide-vue-next';
+import { showFailToast, showSuccessToast } from 'vant';
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-export default {
-    name: 'MyReviews',
-    setup() {
-        const loading = ref(false);
-        const finished = ref(false);
-        const refreshing = ref(false);
-        const reviews = ref([]);
+const router = useRouter();
 
-        const loadReviews = async () => {
-            try {
-                const res = await getMyReviews();
-                if (refreshing.value) {
-                    reviews.value = [];
-                    refreshing.value = false;
-                }
-                // 假设后端返回的是 List<ReviewDTO>
-                reviews.value = res;
-                finished.value = true;
-            } catch (error) {
-                showFailToast('加载评价失败');
-                finished.value = true;
-            } finally {
-                loading.value = false;
-            }
-        };
+// --- State ---
+const reviews = ref([]);
+const loading = ref(false);
+const refreshing = ref(false);
+const finished = ref(false);
+const isInitialLoading = ref(true);
 
-        const onRefresh = () => {
-            finished.value = false;
-            loading.value = true;
-            loadReviews();
-        };
-
-        const formatTime = (time) => {
-            if (!time) return '';
-            return new Date(time).toLocaleDateString();
-        };
-
-        const getRatingText = (rating) => {
-            const texts = ['极差', '失望', '一般', '满意', '惊喜'];
-            return texts[rating - 1] || '';
-        };
-
-        return {
-            loading,
-            finished,
-            refreshing,
-            reviews,
-            loadReviews,
-            onRefresh,
-            formatTime,
-            getRatingText
-        };
+// --- Actions ---
+const loadReviews = async () => {
+    if (isInitialLoading.value) loading.value = true;
+    try {
+        const res = await getMyReviews();
+        reviews.value = res || [];
+        finished.value = true;
+    } catch (error) {
+        showFailToast('加载评价失败');
+    } finally {
+        loading.value = false;
+        isInitialLoading.value = false;
+        refreshing.value = false;
     }
 };
+
+const onRefresh = async () => {
+    await loadReviews();
+    showSuccessToast('已刷新');
+};
+
+const formatTime = (time) => {
+    if (!time) return '';
+    return new Date(time).toLocaleDateString();
+};
+
+const getRatingText = (rating) => {
+    const texts = ['极差', '失望', '一般', '满意', '惊喜'];
+    return texts[rating - 1] || '';
+};
+
+onMounted(() => {
+    loadReviews();
+});
 </script>
 
-<style scoped>
-.page {
-    min-height: 100vh;
-    background: #f7f8fa;
-}
+<template>
+    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
 
-.review-list {
-    padding: 12px;
-}
+        <!-- --- Top Navigation --- -->
+        <TopNavbar mode="seller" />
 
-.review-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-}
+        <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-.product-info {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #f5f5f5;
-}
+            <!-- Left Sidebar -->
+            <SellerSidebar active-menu="评价管理" />
 
-.product-detail {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
+            <!-- Right Main Content -->
+            <div class="lg:col-span-10 space-y-6">
 
-.product-title {
-    font-size: 14px;
-    color: #333;
-    font-weight: 500;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-[#2c3e50]">评价管理</h1>
+                        <p class="text-xs text-gray-400 mt-1">查看买家对您商品的评价</p>
+                    </div>
+                </div>
 
-.review-time {
-    font-size: 12px;
-    color: #999;
-}
+                <!-- Review List -->
+                <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+                    <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadReviews">
 
-.arrow-icon {
-    color: #ccc;
-    align-self: center;
-}
+                        <div v-if="reviews.length === 0 && !loading"
+                            class="flex flex-col items-center justify-center py-20 text-gray-400">
+                            <MessageSquare :size="48" class="mb-4 opacity-20" />
+                            <p>暂无评价数据</p>
+                        </div>
 
-.rating-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
+                        <div class="space-y-4">
+                            <div v-for="review in reviews" :key="review.id"
+                                class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all">
 
-.rating-text {
-    font-size: 12px;
-    color: #666;
-}
+                                <!-- Product Header -->
+                                <div class="flex items-center gap-4 mb-4 pb-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50/50 -mx-6 px-6 transition-colors"
+                                    @click="router.push(`/product/${review.productId}`)">
+                                    <div
+                                        class="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 flex-shrink-0">
+                                        <img :src="review.productImage" class="w-full h-full object-cover" />
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-bold text-sm text-[#2c3e50] truncate">{{ review.productName }}
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-0.5">{{ formatTime(review.createdAt) }}
+                                        </div>
+                                    </div>
+                                </div>
 
-.content-text {
-    font-size: 14px;
-    color: #333;
-    line-height: 1.5;
-}
+                                <!-- Rating -->
+                                <div class="flex items-center gap-2 mb-3">
+                                    <van-rate v-model="review.rating" readonly size="14px" color="#ffd21e"
+                                        void-icon="star" void-color="#eee" />
+                                    <span class="text-xs font-bold text-gray-500">{{ getRatingText(review.rating)
+                                        }}</span>
+                                </div>
 
-.seller-reply {
-    margin-top: 12px;
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-}
+                                <!-- Content -->
+                                <div class="text-sm text-gray-700 leading-relaxed mb-4">
+                                    {{ review.content }}
+                                </div>
 
-.reply-title {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 4px;
-}
+                                <!-- Reply -->
+                                <div v-if="review.replyContent" class="bg-gray-50 rounded-xl p-4 text-xs">
+                                    <div class="font-bold text-gray-500 mb-1">卖家回复：</div>
+                                    <div class="text-gray-600">{{ review.replyContent }}</div>
+                                </div>
 
-.reply-content {
-    font-size: 13px;
-    color: #666;
-    line-height: 1.4;
-}
-</style>
+                            </div>
+                        </div>
+                    </van-list>
+                </van-pull-refresh>
+
+            </div>
+
+        </main>
+
+    </div>
+</template>

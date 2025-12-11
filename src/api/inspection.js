@@ -14,3 +14,10 @@ export function getInspectionFlow(orderId) {
     method: 'get',
   })
 }
+
+export function getMyInspections() {
+  return request({
+    url: '/inspections/my',
+    method: 'get',
+  })
+}

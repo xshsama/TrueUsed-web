@@ -1,5 +1,6 @@
 <script setup>
 import { deleteAddress as apiDeleteAddress, createAddress, getAddresses, updateAddress } from '@/api/address';
+import BuyerSidebar from '@/components/BuyerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
 import { areaList } from '@vant/area-data';
 import {
@@ -166,95 +167,99 @@ onMounted(() => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12 relative overflow-x-hidden">
-
         <!-- --- Top Navigation --- -->
         <TopNavbar mode="buyer" />
 
-        <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <BuyerSidebar active-menu="收货地址" />
 
-            <!-- --- Header --- -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-[#2c3e50]">收货地址</h1>
-                    <p class="text-xs text-gray-400 mt-1">管理您的收货地址，下单更便捷</p>
-                </div>
-                <button @click="openEditor()"
-                    class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-[#4a8b6e]/20 transition-all flex items-center gap-2 active:scale-95">
-                    <Plus :size="18" /> 新增地址
-                </button>
-            </div>
+            <div class="lg:col-span-10 space-y-6">
 
-            <!-- --- Address List --- -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div v-for="addr in addresses" :key="addr.id" :class="[
-                    'bg-white rounded-2xl p-5 border transition-all cursor-pointer group relative overflow-hidden',
-                    addr.isDefault
-                        ? 'border-[#4a8b6e] shadow-md shadow-[#4a8b6e]/5 ring-1 ring-[#4a8b6e]/20'
-                        : 'border-gray-100 shadow-sm hover:border-[#4a8b6e]/30 hover:shadow-md'
-                ]">
-                    <!-- Background Decoration for Default -->
-                    <div v-if="addr.isDefault" class="absolute top-0 right-0">
-                        <div class="bg-[#4a8b6e] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm">
-                            默认
-                        </div>
+                <!-- --- Header --- -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-[#2c3e50]">收货地址</h1>
+                        <p class="text-xs text-gray-400 mt-1">管理您的收货地址，下单更便捷</p>
                     </div>
+                    <button @click="openEditor()"
+                        class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-[#4a8b6e]/20 transition-all flex items-center gap-2 active:scale-95">
+                        <Plus :size="18" /> 新增地址
+                    </button>
+                </div>
 
-                    <div class="flex flex-col h-full justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-lg font-bold text-[#2c3e50]">{{ addr.recipientName }}</span>
-                                <span v-if="addr.tag"
-                                    class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">{{
-                                        addr.tag }}</span>
-                            </div>
-                            <div class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-1">
-                                {{ formatPhone(addr.phone) }}
-                            </div>
+                <!-- --- Address List --- -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                            <div class="text-sm text-gray-600 leading-relaxed pr-8">
-                                <span class="text-gray-400 mr-1">{{ addr.region }}</span>
-                                {{ addr.detailedAddress }}
+                    <div v-for="addr in addresses" :key="addr.id" :class="[
+                        'bg-white rounded-2xl p-5 border transition-all cursor-pointer group relative overflow-hidden',
+                        addr.isDefault
+                            ? 'border-[#4a8b6e] shadow-md shadow-[#4a8b6e]/5 ring-1 ring-[#4a8b6e]/20'
+                            : 'border-gray-100 shadow-sm hover:border-[#4a8b6e]/30 hover:shadow-md'
+                    ]">
+                        <!-- Background Decoration for Default -->
+                        <div v-if="addr.isDefault" class="absolute top-0 right-0">
+                            <div
+                                class="bg-[#4a8b6e] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm">
+                                默认
                             </div>
                         </div>
 
-                        <div
-                            class="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div class="flex items-center gap-1 cursor-pointer" @click.stop="setDefault(addr.id)">
-                                <div
-                                    :class="['w-4 h-4 rounded-full border flex items-center justify-center', addr.isDefault ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
-                                    <Check v-if="addr.isDefault" :size="10" class="text-white" />
+                        <div class="flex flex-col h-full justify-between">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-lg font-bold text-[#2c3e50]">{{ addr.recipientName }}</span>
+                                    <span v-if="addr.tag"
+                                        class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">{{
+                                            addr.tag }}</span>
                                 </div>
-                                <span
-                                    :class="['text-xs', addr.isDefault ? 'text-[#4a8b6e] font-bold' : 'text-gray-400 hover:text-gray-600']">
-                                    {{ addr.isDefault ? '默认地址' : '设为默认' }}
-                                </span>
+                                <div class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-1">
+                                    {{ formatPhone(addr.phone) }}
+                                </div>
+
+                                <div class="text-sm text-gray-600 leading-relaxed pr-8">
+                                    <span class="text-gray-400 mr-1">{{ addr.region }}</span>
+                                    {{ addr.detailedAddress }}
+                                </div>
                             </div>
 
-                            <div class="flex gap-3">
-                                <button @click.stop="openEditor(addr)"
-                                    class="text-gray-400 hover:text-[#4a8b6e] transition-colors flex items-center gap-1 text-xs font-medium">
-                                    <Edit3 :size="14" /> 编辑
-                                </button>
-                                <button @click.stop="deleteAddress(addr.id)"
-                                    class="text-gray-400 hover:text-[#ff5e57] transition-colors flex items-center gap-1 text-xs font-medium">
-                                    <Trash2 :size="14" /> 删除
-                                </button>
+                            <div
+                                class="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="flex items-center gap-1 cursor-pointer" @click.stop="setDefault(addr.id)">
+                                    <div
+                                        :class="['w-4 h-4 rounded-full border flex items-center justify-center', addr.isDefault ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
+                                        <Check v-if="addr.isDefault" :size="10" class="text-white" />
+                                    </div>
+                                    <span
+                                        :class="['text-xs', addr.isDefault ? 'text-[#4a8b6e] font-bold' : 'text-gray-400 hover:text-gray-600']">
+                                        {{ addr.isDefault ? '默认地址' : '设为默认' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex gap-3">
+                                    <button @click.stop="openEditor(addr)"
+                                        class="text-gray-400 hover:text-[#4a8b6e] transition-colors flex items-center gap-1 text-xs font-medium">
+                                        <Edit3 :size="14" /> 编辑
+                                    </button>
+                                    <button @click.stop="deleteAddress(addr.id)"
+                                        class="text-gray-400 hover:text-[#ff5e57] transition-colors flex items-center gap-1 text-xs font-medium">
+                                        <Trash2 :size="14" /> 删除
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Add New Placeholder -->
+                    <button @click="openEditor()"
+                        class="rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 gap-3 text-gray-400 hover:border-[#4a8b6e] hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 transition-all group min-h-[180px]">
+                        <div
+                            class="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-[#4a8b6e]/10 flex items-center justify-center transition-colors">
+                            <Plus :size="24" />
+                        </div>
+                        <span class="font-bold text-sm">添加新地址</span>
+                    </button>
+
                 </div>
-
-                <!-- Add New Placeholder -->
-                <button @click="openEditor()"
-                    class="rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 gap-3 text-gray-400 hover:border-[#4a8b6e] hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 transition-all group min-h-[180px]">
-                    <div
-                        class="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-[#4a8b6e]/10 flex items-center justify-center transition-colors">
-                        <Plus :size="24" />
-                    </div>
-                    <span class="font-bold text-sm">添加新地址</span>
-                </button>
-
             </div>
         </main>
 

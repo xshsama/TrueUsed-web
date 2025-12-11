@@ -14,9 +14,6 @@
 
                 <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
                     <template v-if="mode === 'seller'">
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">工作台</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">数据中心</a>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">消息通知</a>
                     </template>
                     <template v-else>
                         <router-link to="/home" class="relative transition-colors"
