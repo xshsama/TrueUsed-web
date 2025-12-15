@@ -27,6 +27,7 @@ import SellerProfile from '@/views/SellerProfile.vue'
 import ServiceCenter from '@/views/ServiceCenter.vue'
 import ServiceMessages from '@/views/ServiceMessages.vue'
 import Settings from '@/views/Settings.vue'
+import ShopSettings from '@/views/ShopSettings.vue'
 import Settlement from '@/views/Settlement.vue'
 import SoldProducts from '@/views/SoldProducts.vue'
 import Verification from '@/views/Verification.vue'
@@ -154,6 +155,12 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/shop-settings',
+    name: 'ShopSettings',
+    component: ShopSettings,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   { path: '/about', name: 'About', component: About },

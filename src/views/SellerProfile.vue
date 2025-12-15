@@ -1,99 +1,287 @@
 <template>
-    <div class="min-h-screen bg-[#f7f9fa] pb-10">
-        <!-- 顶部导航 -->
-        <van-nav-bar title="卖家主页" left-arrow @click-left="$router.back()" fixed placeholder class="!bg-transparent"
-            :border="false" />
-
-        <!-- 卖家信息卡片 -->
-        <div class="relative bg-white -mt-[46px] pt-[60px] pb-6 px-4 mb-2">
-            <div class="flex items-center gap-4">
-                <div class="relative">
-                    <van-image :src="seller.avatar" width="70" height="70" round fit="cover"
-                        class="border-2 border-white shadow-md" />
-                    <div
-                        class="absolute -bottom-1 -right-1 bg-[#4a8b6e] text-white text-[10px] px-1.5 py-0.5 rounded-full border border-white">
-                        实名
+    <div class="min-h-screen bg-[#f7f9fa] pb-12 font-sans text-[#2c3e50]">
+        <!-- --- Top Navigation --- -->
+        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100/50 backdrop-blur-md bg-white/90">
+            <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between gap-4">
+                <div class="flex items-center gap-10">
+                    <div class="flex items-center gap-1.5 cursor-pointer" @click="$router.push('/')">
+                        <div
+                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
+                            T</div>
+                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
+                                class="text-[#4a8b6e]">.</span></span>
+                    </div>
+                    <div class="hidden md:flex items-center gap-8 text-[15px] font-medium text-gray-500">
+                        <a href="#" @click.prevent="$router.push('/home')"
+                            class="hover:text-[#4a8b6e] transition-colors">首页</a>
+                        <a href="#" @click.prevent="$router.push('/ranking')"
+                            class="hover:text-[#4a8b6e] transition-colors">捡漏榜</a>
                     </div>
                 </div>
-                <div class="flex-1">
-                    <h1 class="text-xl font-bold text-gray-800 mb-1 flex items-center gap-2">
-                        {{ seller.nickname }}
-                        <van-tag type="primary" color="#4a8b6e" plain size="mini">信用极好</van-tag>
+
+                <div class="flex items-center gap-4">
+                    <button
+                        class="bg-gray-100 hover:bg-gray-200 text-[#2c3e50] px-4 py-2 rounded-full font-bold text-sm transition-colors"
+                        @click="$router.back()">
+                        返回
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- --- Hero Cover --- -->
+        <header class="relative h-64 bg-gray-800 overflow-hidden group">
+            <img :src="seller.coverImage || 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=1600'"
+                class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#f7f9fa] via-transparent to-transparent"></div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-6 -mt-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Sidebar: Seller Profile -->
+            <aside class="lg:col-span-3 space-y-6">
+                <!-- Profile Card -->
+                <div
+                    class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                    <div class="verified-badge h-2 w-full absolute top-0 left-0"></div>
+
+                    <div class="relative w-24 h-24 mx-auto mb-4">
+                        <img :src="seller.avatar"
+                            class="w-full h-full rounded-full object-cover border-4 border-white shadow-md" />
+                        <div class="absolute bottom-0 right-0 bg-[#4a8b6e] text-white p-1.5 rounded-full border-2 border-white"
+                            title="已实名认证">
+                            <ShieldCheck :size="12" />
+                        </div>
+                    </div>
+
+                    <h1 class="text-xl font-bold text-[#2c3e50] mb-1 flex items-center justify-center gap-1">
+                        {{ seller.name }}
+                        <Award v-if="seller.isPro" :size="16" class="text-yellow-500 fill-yellow-500" />
                     </h1>
-                    <div class="text-xs text-gray-500 flex gap-3">
-                        <span>在售 {{ seller.sellingCount }}</span>
-                        <span>已售 {{ seller.soldCount }}</span>
-                        <span>加入时间 {{ seller.joinDate }}</span>
+                    <p class="text-xs text-gray-400 mb-6">加入时间：{{ seller.joinDate }}</p>
+
+                    <div class="flex justify-center gap-8 border-t border-b border-gray-50 py-4 mb-6">
+                        <div>
+                            <div class="text-lg font-bold text-[#2c3e50]">{{ seller.stats.selling }}</div>
+                            <div class="text-xs text-gray-400">在售</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-bold text-[#2c3e50]">{{ seller.stats.sold }}</div>
+                            <div class="text-xs text-gray-400">已售</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-bold text-[#2c3e50]">{{ seller.stats.followers }}</div>
+                            <div class="text-xs text-gray-400">关注</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button @click="handleFollow"
+                            class="flex-1 bg-[#2c3e50] hover:bg-[#1a252f] text-white py-2 rounded-xl text-sm font-bold shadow-md transition-colors flex items-center justify-center gap-2">
+                            <Plus :size="16" /> 关注
+                        </button>
+                        <button
+                            class="flex-1 border border-gray-200 hover:border-[#4a8b6e] hover:text-[#4a8b6e] text-gray-600 py-2 rounded-xl text-sm font-bold transition-colors">
+                            私信
+                        </button>
                     </div>
                 </div>
-                <van-button type="primary" size="small" round color="#4a8b6e" icon="plus"
-                    @click="handleFollow">关注</van-button>
-            </div>
 
-            <div class="mt-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">
-                {{ seller.bio || '这位卖家很懒，什么都没写~' }}
-            </div>
-        </div>
+                <!-- Bio & Info -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+                    <div class="flex items-start gap-3 text-sm text-gray-600">
+                        <MapPin :size="16" class="text-gray-400 mt-0.5" />
+                        <span>{{ seller.location }}</span>
+                    </div>
+                    <div class="flex items-start gap-3 text-sm text-gray-600">
+                        <Clock :size="16" class="text-gray-400 mt-0.5" />
+                        <span>平均回复：<span class="text-[#4a8b6e] font-bold">10分钟内</span></span>
+                    </div>
+                    <div class="flex items-start gap-3 text-sm text-gray-600">
+                        <ThumbsUp :size="16" class="text-gray-400 mt-0.5" />
+                        <span>好评率：<span class="text-[#4a8b6e] font-bold">{{ seller.rating }}%</span></span>
+                    </div>
 
-        <!-- 商品与评价 -->
-        <van-tabs v-model:active="activeTab" sticky offset-top="46" swipeable animated color="#4a8b6e">
-            <!-- 在售商品 -->
-            <van-tab title="在售商品" name="selling">
-                <div class="p-3 grid grid-cols-2 gap-3">
-                    <ProductCard v-for="item in sellingList" :key="item.id" :product="item"
-                        @click="$router.push(`/product/${item.id}`)" />
+                    <div class="border-t border-gray-50 pt-4 mt-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">店铺简介</h3>
+                        <p class="text-sm text-gray-600 leading-relaxed">
+                            {{ seller.bio }}
+                        </p>
+                    </div>
                 </div>
-                <van-empty v-if="sellingList.length === 0" description="暂无在售商品" />
-            </van-tab>
+            </aside>
 
-            <!-- 历史评价 -->
-            <van-tab :title="`评价 (${reviews.length})`" name="reviews">
-                <div class="p-4 space-y-4">
-                    <div v-for="review in reviews" :key="review.id" class="bg-white p-4 rounded-xl shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <van-image :src="review.avatar" width="24" height="24" round />
-                                <span class="text-xs text-gray-600">{{ review.username }}</span>
+            <!-- Right Content: Goods & Reviews -->
+            <div class="lg:col-span-9 space-y-6">
+
+                <!-- Tabs -->
+                <div
+                    class="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div class="flex gap-1">
+                        <button v-for="tab in tabs" :key="tab.value" @click="activeTab = tab.value"
+                            :class="['px-6 py-2.5 rounded-xl text-sm font-bold transition-all', activeTab === tab.value ? 'bg-[#f7f9fa] text-[#2c3e50]' : 'text-gray-500 hover:text-gray-700']">
+                            {{ tab.label }}
+                            <span v-if="tab.count" class="ml-1 text-xs opacity-60 bg-gray-200 px-1.5 rounded-full">{{
+                                tab.count }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Filter (Only show on Goods tab) -->
+                    <div v-if="activeTab === 'goods'" class="flex items-center gap-2 pr-4 text-xs">
+                        <button class="text-[#4a8b6e] font-bold">综合排序</button>
+                        <span class="text-gray-300">|</span>
+                        <button class="text-gray-500 hover:text-[#2c3e50]">最新</button>
+                        <span class="text-gray-300">|</span>
+                        <button class="text-gray-500 hover:text-[#2c3e50]">价格</button>
+                    </div>
+                </div>
+
+                <!-- Content Area -->
+                <transition name="fade" mode="out-in">
+
+                    <!-- TAB 1: Goods List -->
+                    <div v-if="activeTab === 'goods'" key="goods" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div v-for="item in goods" :key="item.id" @click="$router.push(`/product/${item.id}`)"
+                            class="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-[#4a8b6e]/30 transition-all group cursor-pointer flex flex-col h-full">
+                            <div class="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                                <img :src="item.image"
+                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <div v-if="item.isNew"
+                                    class="absolute top-2 left-2 bg-[#4a8b6e] text-white text-[10px] px-2 py-0.5 rounded shadow-sm">
+                                    新上架</div>
                             </div>
-                            <span class="text-xs text-gray-400">{{ review.date }}</span>
+                            <div class="p-4 flex flex-col flex-1 justify-between">
+                                <div>
+                                    <h3
+                                        class="font-bold text-[#2c3e50] line-clamp-2 mb-2 group-hover:text-[#4a8b6e] transition-colors">
+                                        {{ item.title }}</h3>
+                                    <div class="flex flex-wrap gap-2 mb-3">
+                                        <span
+                                            class="text-[10px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100">{{
+                                                item.condition }}</span>
+                                        <span v-if="item.verified"
+                                            class="text-[10px] bg-[#4a8b6e]/5 text-[#4a8b6e] px-1.5 py-0.5 rounded border border-[#4a8b6e]/20 flex items-center gap-0.5">
+                                            <ShieldCheck :size="10" /> 官方验
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <span class="text-xl font-bold text-[#ff5e57]">¥{{ item.price }}</span>
+                                    <span class="text-xs text-gray-400">{{ item.wants }}人想要</span>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-sm text-gray-800 mb-2">{{ review.content }}</p>
-                        <div class="flex items-center gap-2 bg-gray-50 p-2 rounded text-xs text-gray-500">
-                            <van-image :src="review.productImage" width="20" height="20" radius="4" />
-                            <span class="truncate max-w-[200px]">购买了 {{ review.productName }}</span>
+                        <div v-if="goods.length === 0" class="col-span-full py-20 text-center">
+                            <div
+                                class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                                <PackageOpen :size="32" />
+                            </div>
+                            <p class="text-gray-400 text-sm">暂无在售商品</p>
                         </div>
                     </div>
-                    <van-empty v-if="reviews.length === 0" description="暂无评价" />
-                </div>
-            </van-tab>
-        </van-tabs>
+
+                    <!-- TAB 2: Reviews -->
+                    <div v-else-if="activeTab === 'reviews'" key="reviews" class="space-y-4">
+                        <div v-for="review in reviews" :key="review.id"
+                            class="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-sm transition-all">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-3">
+                                    <img :src="review.avatar" class="w-10 h-10 rounded-full bg-gray-100" />
+                                    <div>
+                                        <div class="font-bold text-sm text-[#2c3e50]">{{ review.buyer }}</div>
+                                        <div class="text-xs text-gray-400">{{ review.date }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex text-yellow-400">
+                                    <Star v-for="i in 5" :key="i" :size="14"
+                                        :fill="i <= review.rating ? 'currentColor' : 'none'"
+                                        :class="i <= review.rating ? '' : 'text-gray-200'" />
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600 leading-relaxed mb-3">{{ review.content }}</p>
+                            <div class="bg-gray-50 p-3 rounded-lg flex gap-3 items-center">
+                                <img :src="review.productImage"
+                                    class="w-10 h-10 rounded bg-white border border-gray-200 object-cover" />
+                                <div>
+                                    <div class="text-xs font-bold text-gray-700 line-clamp-1">{{ review.productTitle }}
+                                    </div>
+                                    <div class="text-xs text-gray-400">¥{{ review.price }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="reviews.length === 0" class="py-20 text-center">
+                            <p class="text-gray-400 text-sm">暂无评价</p>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Sold (Optional) -->
+                    <div v-else-if="activeTab === 'sold'" key="sold"
+                        class="py-20 text-center bg-white rounded-2xl border border-gray-100">
+                        <div
+                            class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                            <PackageOpen :size="32" />
+                        </div>
+                        <p class="text-gray-400 text-sm">暂无已售记录</p>
+                    </div>
+
+                </transition>
+
+            </div>
+
+        </main>
+
     </div>
 </template>
 
 <script setup>
 import { getSellerReviews } from '@/api/reviews';
-import ProductCard from '@/components/ProductCard.vue';
 import request from '@/utils/request';
+import {
+    Award,
+    Clock,
+    MapPin,
+    PackageOpen,
+    Plus,
+    ShieldCheck,
+    Star,
+    ThumbsUp
+} from 'lucide-vue-next';
 import { showFailToast, showSuccessToast } from 'vant';
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
+const router = useRouter();
 const sellerId = route.params.id;
 
-const activeTab = ref('selling');
+const activeTab = ref('goods');
+const loading = ref(false);
+
 const seller = ref({
-    nickname: '加载中...',
+    name: '加载中...',
     avatar: '',
-    sellingCount: 0,
-    soldCount: 0,
+    coverImage: '',
+    isPro: false,
     joinDate: '',
-    bio: ''
+    location: '未知',
+    rating: 100,
+    bio: '',
+    stats: {
+        selling: 0,
+        sold: 0,
+        followers: 0
+    }
 });
 
-const sellingList = ref([]);
+const goods = ref([]);
 const reviews = ref([]);
-const loading = ref(false);
+const soldGoods = ref([]);
+
+const tabs = computed(() => [
+    { label: '在售宝贝', value: 'goods', count: seller.value.stats.selling },
+    { label: '买家评价', value: 'reviews', count: reviews.value.length },
+    { label: '已售记录', value: 'sold', count: seller.value.stats.sold },
+]);
 
 const loadSellerInfo = async () => {
     loading.value = true;
@@ -101,31 +289,48 @@ const loadSellerInfo = async () => {
         // 1. 获取卖家基本信息
         const profileRes = await request.get(`/users/${sellerId}/public-profile`);
         seller.value = {
-            nickname: profileRes.nickname || profileRes.username || '未知用户',
+            name: profileRes.nickname || profileRes.username || '未知用户',
             avatar: profileRes.avatarUrl || 'https://via.placeholder.com/100',
-            sellingCount: profileRes.sellingCount || 0,
-            soldCount: profileRes.soldCount || 0,
+            coverImage: profileRes.coverImage || '',
+            isPro: profileRes.creditScore > 700, // 示例逻辑
             joinDate: profileRes.createdAt ? new Date(profileRes.createdAt).toLocaleDateString() : '未知',
-            bio: profileRes.bio || '这位卖家很懒，什么都没写~'
+            location: profileRes.location || '未知', // 假设API有city字段，如果没有则显示未知
+            rating: 98, // 示例数据，API可能需要提供好评率
+            bio: profileRes.bio || '这位卖家很懒，什么都没写~',
+            stats: {
+                selling: profileRes.sellingCount || 0,
+                sold: profileRes.soldCount || 0,
+                followers: 0 // API暂无
+            }
         };
 
         // 2. 获取在售商品
         const productsRes = await request.get('/products', {
-            params: { sellerId: sellerId, status: 'AVAILABLE', page: 0, size: 20 }
+            params: { sellerId: sellerId, status: 'ON_SALE', page: 0, size: 20 }
         });
-        sellingList.value = productsRes.content || [];
+        goods.value = (productsRes.content || []).map(p => ({
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            condition: p.condition || '9成新',
+            image: (p.images && p.images.length > 0) ? p.images[0].url : '',
+            wants: p.viewCount || 0,
+            verified: p.status === 'VERIFIED', // 示例
+            isNew: isNewProduct(p.createdAt)
+        }));
 
         // 3. 获取评价列表
         const reviewsRes = await getSellerReviews(sellerId, { page: 0, size: 20 });
         reviews.value = (reviewsRes.content || []).map(r => ({
             id: r.id,
-            username: r.isAnonymous ? '匿名用户' : (r.buyer?.nickname || r.buyer?.username || '买家'),
+            buyer: r.isAnonymous ? '匿名用户' : (r.buyer?.nickname || r.buyer?.username || '买家'),
             avatar: r.isAnonymous ? 'https://via.placeholder.com/50' : (r.buyer?.avatarUrl || 'https://via.placeholder.com/50'),
-            content: r.content,
             date: new Date(r.createdAt).toLocaleDateString(),
-            productName: r.product?.title || '未知商品',
-            productImage: (r.product?.images && r.product.images.length > 0) ? r.product.images[0].url : '',
-            rating: r.rating
+            rating: r.rating,
+            content: r.content,
+            productTitle: r.product?.title || '未知商品',
+            price: r.product?.price || 0,
+            productImage: (r.product?.images && r.product.images.length > 0) ? r.product.images[0].url : ''
         }));
 
     } catch (e) {
@@ -134,6 +339,15 @@ const loadSellerInfo = async () => {
     } finally {
         loading.value = false;
     }
+};
+
+const isNewProduct = (dateStr) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 3;
 };
 
 const handleFollow = () => {
@@ -146,11 +360,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
-:deep(.van-nav-bar__content) {
-    background: transparent;
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
 
-:deep(.van-hairline--bottom:after) {
-    border-bottom-width: 0;
+.verified-badge {
+    background: linear-gradient(135deg, #4a8b6e 0%, #2c3e50 100%);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

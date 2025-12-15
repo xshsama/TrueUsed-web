@@ -50,7 +50,7 @@ const menuItems = [
     { name: '商品管理', iconComponent: Package, path: '/my-products' },
     { name: '订单管理', iconComponent: ClipboardList, path: '/order-manage' },
     { name: '评价管理', iconComponent: Star, path: '/my-reviews' },
-    { name: '店铺设置', iconComponent: Settings, path: '/settings?mode=seller' },
+    { name: '店铺设置', iconComponent: Settings, path: '/shop-settings' },
 ];
 
 const handleMenuClick = (item) => {

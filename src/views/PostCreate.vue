@@ -262,7 +262,8 @@ const onSubmit = async () => {
                 locationText: form.value.location,
                 imageUrls: form.value.images,
                 shippingPayer: form.value.freight === 'seller' ? 'SELLER' : 'BUYER',
-                tradeTypes: finalTradeTypes.join(',')
+                tradeTypes: finalTradeTypes.join(','),
+                tradeModel: 'FREE_TRADING'
             };
 
             await createProduct(payload);
@@ -571,7 +572,7 @@ onMounted(() => {
                                 <span>发货地：</span>
                                 <span class="font-bold text-gray-800" @click="showLocationPicker = true">{{
                                     form.location
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>

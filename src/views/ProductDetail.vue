@@ -7,10 +7,12 @@ import { useAuth } from '@/composables/useAuth';
 import { useFavoritesStore } from '@/stores/favorites';
 import {
     AlertTriangle,
+    Camera,
     ChevronRight,
     FileCheck2,
     Heart,
-    ShieldCheck
+    ShieldCheck,
+    TrendingDown
 } from 'lucide-vue-next';
 import { ImagePreview, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
@@ -40,7 +42,9 @@ const product = ref({
     createdAt: '',
     condition: '',
     category: null,
-    address: '上海 · 徐汇区' // Placeholder
+    address: '上海 · 徐汇区', // Placeholder
+    isOfficial: false,
+    inspectionFee: 0
 });
 
 const seller = ref({
@@ -191,6 +195,10 @@ const loadData = async () => {
 
         // Load product details
         const res = await getProduct(productId);
+
+        // Use real tradeModel from backend
+        const isOfficial = res.tradeModel === 'OFFICIAL_INSPECTION';
+
         product.value = {
             id: res.id,
             title: res.title,
@@ -203,7 +211,9 @@ const loadData = async () => {
             createdAt: res.createdAt,
             condition: res.condition,
             category: res.category,
-            address: res.locationText || '未知地点'
+            address: res.locationText || '上海 · 徐汇区',
+            isOfficial: isOfficial,
+            inspectionFee: isOfficial ? 29 : 0
         };
 
         if (res.seller) {
@@ -264,11 +274,16 @@ onMounted(() => {
                         @click="previewImage(currentImageIndex)">
                         <img :src="displayImages[currentImageIndex]" class="w-full h-full object-contain" />
 
-                        <!-- Verified Badge -->
-                        <div
+                        <!-- Visual Identity: Trust Badges -->
+                        <div v-if="product.isOfficial"
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-[#4a8b6e]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
                             <ShieldCheck :size="14" />
                             <span class="text-xs font-bold">官方已验货 · 正品保证</span>
+                        </div>
+                        <div v-else
+                            class="absolute top-4 left-4 flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
+                            <Camera :size="14" />
+                            <span class="text-xs font-bold">卖家实拍 · 真实生活感</span>
                         </div>
                     </div>
 
@@ -353,7 +368,10 @@ onMounted(() => {
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 sticky top-24">
 
                     <div class="flex items-center gap-2 mb-4">
-                        <span class="bg-[#4a8b6e] text-white text-xs px-2 py-0.5 rounded font-bold">转卖</span>
+                        <span
+                            :class="['text-xs px-2 py-0.5 rounded font-bold', product.isOfficial ? 'bg-[#4a8b6e] text-white' : 'bg-orange-500 text-white']">
+                            {{ product.isOfficial ? '官方验货' : '自由交易' }}
+                        </span>
                         <span class="text-xs text-gray-400">发布于 {{ product.address }}</span>
                     </div>
 
@@ -361,11 +379,32 @@ onMounted(() => {
                         {{ product.title }}
                     </h1>
 
-                    <div class="flex items-baseline gap-2 mb-6">
+                    <!-- Price & Cost Breakdown -->
+                    <div class="flex items-baseline gap-2 mb-2">
                         <span class="text-sm text-[#ff5e57] font-bold">¥</span>
                         <span class="text-4xl font-bold text-[#ff5e57] font-mono tracking-tight">{{ product.price
                         }}</span>
-                        <span class="text-sm text-gray-400 line-through ml-2">¥{{ product.originalPrice }}</span>
+
+                        <!-- Official: Fee Hint -->
+                        <span v-if="product.isOfficial"
+                            class="text-xs text-[#4a8b6e] bg-[#4a8b6e]/10 px-1.5 py-0.5 rounded">
+                            含￥{{ product.inspectionFee }} 验货费
+                        </span>
+
+                        <!-- Free Trading: Negotiable -->
+                        <span v-else
+                            class="text-xs text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                            可小刀
+                        </span>
+                    </div>
+
+                    <!-- Free Trading: Price Advantage -->
+                    <div v-if="!product.isOfficial" class="text-xs text-[#4a8b6e] mb-4 flex items-center gap-1">
+                        <TrendingDown :size="12" />
+                        比官方验货省 ￥{{ (product.price * 0.15).toFixed(0) }}
+                    </div>
+                    <div v-else class="mb-4">
+                        <span class="text-sm text-gray-400 line-through">¥{{ product.originalPrice }}</span>
                     </div>
 
                     <!-- Tags -->
@@ -376,8 +415,8 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Inspection Banner -->
-                    <div
+                    <!-- Inspection Banner (Official Only) -->
+                    <div v-if="product.isOfficial"
                         class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6 cursor-pointer hover:bg-[#34495e] transition-colors">
                         <div class="flex items-center gap-3">
                             <div
@@ -390,6 +429,28 @@ onMounted(() => {
                             </div>
                         </div>
                         <ChevronRight :size="16" class="text-gray-400" />
+                    </div>
+
+                    <!-- Seller Trust (Free Trading - Enhanced) -->
+                    <div v-else class="bg-orange-50 rounded-xl p-4 text-orange-900 mb-6">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-10 h-10 rounded-full bg-white p-0.5">
+                                <img :src="seller.avatar" class="w-full h-full rounded-full object-cover" />
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm">{{ seller.name }}</div>
+                                <div class="text-xs opacity-80">芝麻信用 {{ seller.credit }}</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs border-t border-orange-200/50 pt-2 mb-3">
+                            <span>回复率 100%</span>
+                            <span>24h内发货</span>
+                            <span>无差评</span>
+                        </div>
+                        <button @click="router.push(`/seller/${seller.id}`)"
+                            class="w-full bg-white border border-orange-200 text-orange-800 text-xs font-bold py-2 rounded-lg hover:bg-orange-100 transition-colors">
+                            进入卖家主页
+                        </button>
                     </div>
 
                     <!-- Action Buttons -->
@@ -411,8 +472,8 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Seller Mini Profile (Moved inside Right Column) -->
-                    <div class="mt-8 pt-6 border-t border-gray-50">
+                    <!-- Seller Mini Profile (Official Mode - Simplified) -->
+                    <div v-if="product.isOfficial" class="mt-8 pt-6 border-t border-gray-50">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="relative">
                                 <img :src="seller.avatar"

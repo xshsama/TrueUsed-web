@@ -308,7 +308,6 @@ const currentOrderMenu = computed(() => isSellerMode.value ? sellerOrderMenu : b
 const currentAssets = computed(() => [
     { label: '我的钱包', value: isSellerMode.value ? '¥12,850' : '¥0.00', icon: 'i-lucide-wallet' },
     { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '3张' : '8张', icon: 'i-lucide-ticket' },
-    { label: '积分', value: '1,240', icon: 'i-lucide-star' },
 ])
 
 // 4. Services
@@ -441,7 +440,7 @@ const handleServiceClick = (item) => {
         case 'inspections': router.push('/inspection-reports'); break;
         case 'history': router.push('/history'); break;
         case 'order-manage': router.push('/order-manage'); break;
-        case 'shop-settings': router.push('/settings'); break; // Placeholder
+        case 'shop-settings': router.push('/shop-settings'); break; // Placeholder
         default: showToast('功能开发中');
     }
 }
