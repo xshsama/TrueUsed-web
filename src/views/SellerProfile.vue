@@ -180,41 +180,59 @@
                         </div>
                     </div>
 
+
                     <!-- TAB 2: Reviews -->
                     <div v-else-if="activeTab === 'reviews'" key="reviews" class="space-y-4">
                         <div v-for="review in reviews" :key="review.id"
-                            class="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-sm transition-all">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="flex items-center gap-3">
-                                    <img :src="review.avatar" class="w-10 h-10 rounded-full bg-gray-100" />
-                                    <div>
-                                        <div class="font-bold text-sm text-[#2c3e50]">{{ review.buyer }}</div>
+                            class="bg-white rounded-2xl p-6 border border-gray-100">
+                            <div class="flex items-start gap-4">
+                                <img :src="review.avatar" class="w-10 h-10 rounded-full bg-gray-100 object-cover" />
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div class="font-bold text-sm text-[#2c3e50] mb-1">{{ review.buyer }}</div>
+                                            <div class="flex items-center gap-1">
+                                                <Star v-for="i in 5" :key="i" :size="12"
+                                                    :class="i <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'" />
+                                            </div>
+                                        </div>
                                         <div class="text-xs text-gray-400">{{ review.date }}</div>
                                     </div>
-                                </div>
-                                <div class="flex text-yellow-400">
-                                    <Star v-for="i in 5" :key="i" :size="14"
-                                        :fill="i <= review.rating ? 'currentColor' : 'none'"
-                                        :class="i <= review.rating ? '' : 'text-gray-200'" />
-                                </div>
-                            </div>
-                            <p class="text-sm text-gray-600 leading-relaxed mb-3">{{ review.content }}</p>
-                            <div class="bg-gray-50 p-3 rounded-lg flex gap-3 items-center">
-                                <img :src="review.productImage"
-                                    class="w-10 h-10 rounded bg-white border border-gray-200 object-cover" />
-                                <div>
-                                    <div class="text-xs font-bold text-gray-700 line-clamp-1">{{ review.productTitle }}
+                                    <p class="text-sm text-gray-600 mb-3">{{ review.content }}</p>
+
+                                    <!-- Review Images -->
+                                    <div v-if="review.images && review.images.length > 0"
+                                        class="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+                                        <div v-for="(img, imgIdx) in review.images" :key="imgIdx"
+                                            class="w-20 h-20 rounded-lg overflow-hidden cursor-pointer border border-gray-100 flex-shrink-0"
+                                            @click.stop="previewReviewImage(review.images, imgIdx)">
+                                            <img :src="img"
+                                                class="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                                        </div>
                                     </div>
-                                    <div class="text-xs text-gray-400">¥{{ review.price }}</div>
+
+                                    <!-- Product Info -->
+                                    <div v-if="review.productTitle"
+                                        class="bg-gray-50 rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-100 transition-colors"
+                                        @click="review.productId && $router.push(`/product/${review.productId}`)">
+                                        <img v-if="review.productImage" :src="review.productImage"
+                                            class="w-10 h-10 rounded bg-white object-cover" />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs font-bold text-[#2c3e50] truncate">{{
+                                                review.productTitle }}</div>
+                                            <div class="text-xs text-[#ff5e57] font-bold mt-0.5">¥{{ review.price }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div v-if="reviews.length === 0" class="py-20 text-center">
-                            <p class="text-gray-400 text-sm">暂无评价</p>
+                        <div v-if="reviews.length === 0" class="py-10 text-center">
+                            <p class="text-gray-400 text-sm">暂无买家评论</p>
                         </div>
                     </div>
 
-                    <!-- TAB 3: Sold (Optional) -->
+                    <!-- TAB 4: Sold (Optional) -->
                     <div v-else-if="activeTab === 'sold'" key="sold"
                         class="py-20 text-center bg-white rounded-2xl border border-gray-100">
                         <div
@@ -234,7 +252,7 @@
 </template>
 
 <script setup>
-import { getSellerReviews } from '@/api/reviews';
+import { createSellerComment, getSellerComments, getSellerReviews } from '@/api/reviews';
 import request from '@/utils/request';
 import {
     Award,
@@ -243,10 +261,9 @@ import {
     PackageOpen,
     Plus,
     ShieldCheck,
-    Star,
     ThumbsUp
 } from 'lucide-vue-next';
-import { showFailToast, showSuccessToast } from 'vant';
+import { ImagePreview, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -275,11 +292,14 @@ const seller = ref({
 
 const goods = ref([]);
 const reviews = ref([]);
+const comments = ref([]);
 const soldGoods = ref([]);
+const newComment = ref('');
+const submittingComment = ref(false);
 
 const tabs = computed(() => [
     { label: '在售宝贝', value: 'goods', count: seller.value.stats.selling },
-    { label: '买家评价', value: 'reviews', count: reviews.value.length },
+    { label: '买家评论', value: 'reviews', count: reviews.value.length },
     { label: '已售记录', value: 'sold', count: seller.value.stats.sold },
 ]);
 
@@ -323,21 +343,56 @@ const loadSellerInfo = async () => {
         const reviewsRes = await getSellerReviews(sellerId, { page: 0, size: 20 });
         reviews.value = (reviewsRes.content || []).map(r => ({
             id: r.id,
-            buyer: r.isAnonymous ? '匿名用户' : (r.buyer?.nickname || r.buyer?.username || '买家'),
-            avatar: r.isAnonymous ? 'https://via.placeholder.com/50' : (r.buyer?.avatarUrl || 'https://via.placeholder.com/50'),
+            buyer: r.isAnonymous ? '匿名用户' : (r.buyerName || '买家'),
+            avatar: r.isAnonymous ? 'https://via.placeholder.com/50' : (r.buyerAvatar || 'https://via.placeholder.com/50'),
             date: new Date(r.createdAt).toLocaleDateString(),
             rating: r.rating,
             content: r.content,
-            productTitle: r.product?.title || '未知商品',
-            price: r.product?.price || 0,
-            productImage: (r.product?.images && r.product.images.length > 0) ? r.product.images[0].url : ''
+            productId: r.productId,
+            productTitle: r.productTitle || '未知商品',
+            price: r.price || 0,
+            productImage: r.productImage || '',
+            images: r.images || []
         }));
+
+        // 4. 获取留言列表
+        await loadComments();
 
     } catch (e) {
         console.error(e);
         showFailToast('加载卖家信息失败');
     } finally {
         loading.value = false;
+    }
+};
+
+const loadComments = async () => {
+    const commentsRes = await getSellerComments(sellerId, { page: 0, size: 20 });
+    comments.value = (commentsRes.content || []).map(c => ({
+        id: c.id,
+        user: c.user?.nickname || c.user?.username || '用户',
+        avatar: c.user?.avatarUrl || 'https://via.placeholder.com/50',
+        date: new Date(c.createdAt).toLocaleDateString(),
+        content: c.content,
+        replies: c.replies || []
+    }));
+};
+
+const handlePostComment = async () => {
+    if (!newComment.value.trim()) return;
+    submittingComment.value = true;
+    try {
+        await createSellerComment({
+            targetUserId: sellerId,
+            content: newComment.value
+        });
+        showSuccessToast('留言成功');
+        newComment.value = '';
+        await loadComments();
+    } catch (e) {
+        showFailToast('留言失败');
+    } finally {
+        submittingComment.value = false;
     }
 };
 
@@ -352,6 +407,14 @@ const isNewProduct = (dateStr) => {
 
 const handleFollow = () => {
     showSuccessToast('关注成功');
+};
+
+const previewReviewImage = (images, index) => {
+    ImagePreview({
+        images: images,
+        startPosition: index,
+        closeable: true,
+    });
 };
 
 onMounted(() => {

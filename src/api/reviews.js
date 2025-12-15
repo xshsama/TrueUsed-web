@@ -26,12 +26,24 @@ export function getProductReviews(productId, params) {
 }
 
 /**
- * 获取我的评价
+ * 获取我的评价 (我写的)
  */
 export function getMyReviews() {
   return request({
     url: '/reviews/my',
     method: 'get',
+  })
+}
+
+/**
+ * 获取我收到的评价
+ * @param {object} params { page, size }
+ */
+export function getReceivedReviews(params) {
+  return request({
+    url: '/reviews/received',
+    method: 'get',
+    params,
   })
 }
 
@@ -79,6 +91,31 @@ export function getProductComments(productId, params) {
  * @param {object} data { productId, content, parentId }
  */
 export function createProductComment(data) {
+  return request({
+    url: '/comments',
+    method: 'post',
+    data,
+  })
+}
+
+/**
+ * 获取卖家的留言/咨询
+ * @param {number} sellerId 卖家ID
+ * @param {object} params { page, size }
+ */
+export function getSellerComments(sellerId, params) {
+  return request({
+    url: `/comments/sellers/${sellerId}`,
+    method: 'get',
+    params,
+  })
+}
+
+/**
+ * 发布卖家留言/咨询
+ * @param {object} data { targetUserId, content, parentId }
+ */
+export function createSellerComment(data) {
   return request({
     url: '/comments',
     method: 'post',

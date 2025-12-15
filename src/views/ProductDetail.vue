@@ -92,6 +92,14 @@ const previewImage = (index) => {
     });
 };
 
+const previewReviewImage = (images, index) => {
+    ImagePreview({
+        images: images,
+        startPosition: index,
+        closeable: true,
+    });
+};
+
 const toggleFavorite = async () => {
     const loggedIn = await requireLogin({ message: '收藏商品需要登录，是否立即登录？' });
     if (!loggedIn) return;
@@ -231,11 +239,12 @@ const loadData = async () => {
             const commentsData = await getProductComments(productId, { page: 0, size: 5 });
             reviews.value = (commentsData.content || []).map(c => ({
                 id: c.id,
-                reviewerName: c.user?.nickname || c.user?.username || '匿名用户',
-                reviewerAvatar: c.user?.avatarUrl || 'https://via.placeholder.com/50',
+                reviewerName: c.isAnonymous ? '匿名用户' : (c.buyerName || '买家'),
+                reviewerAvatar: c.isAnonymous ? 'https://via.placeholder.com/50' : (c.buyerAvatar || 'https://via.placeholder.com/50'),
                 content: c.content,
                 createdAt: c.createdAt,
-                isAnonymous: false
+                isAnonymous: c.isAnonymous,
+                images: c.images || []
             }));
             reviewCount.value = commentsData.totalElements || 0;
         } catch (e) {
@@ -336,6 +345,15 @@ onMounted(() => {
                                         <span class="text-xs text-gray-400">{{ formatTime(review.createdAt) }}</span>
                                     </div>
                                     <p class="text-sm text-gray-600">{{ review.content }}</p>
+                                    <div v-if="review.images && review.images.length > 0"
+                                        class="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+                                        <div v-for="(img, imgIdx) in review.images" :key="imgIdx"
+                                            class="w-20 h-20 rounded-lg overflow-hidden cursor-pointer border border-gray-100 flex-shrink-0"
+                                            @click="previewReviewImage(review.images, imgIdx)">
+                                            <img :src="img"
+                                                class="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div v-if="index < reviews.length - 1" class="w-full h-px bg-gray-50 mt-6"></div>

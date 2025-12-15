@@ -1,12 +1,12 @@
 <script setup>
-import { getMyReviews } from '@/api/reviews';
+import { getReceivedReviews } from '@/api/reviews';
 import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
 import {
     MessageSquare
 } from 'lucide-vue-next';
-import { showFailToast, showSuccessToast } from 'vant';
-import { onMounted, ref } from 'vue';
+import { ImagePreview, showFailToast, showSuccessToast } from 'vant';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -17,25 +17,41 @@ const loading = ref(false);
 const refreshing = ref(false);
 const finished = ref(false);
 const isInitialLoading = ref(true);
+const page = ref(0);
+const size = ref(10);
 
 // --- Actions ---
 const loadReviews = async () => {
-    if (isInitialLoading.value) loading.value = true;
     try {
-        const res = await getMyReviews();
-        reviews.value = res || [];
-        finished.value = true;
+        const res = await getReceivedReviews({ page: page.value, size: size.value });
+        const newReviews = res.content || [];
+
+        if (page.value === 0) {
+            reviews.value = newReviews;
+        } else {
+            reviews.value.push(...newReviews);
+        }
+
+        page.value++;
+
+        if (reviews.value.length >= res.totalElements) {
+            finished.value = true;
+        }
     } catch (error) {
         showFailToast('加载评价失败');
+        finished.value = true;
     } finally {
         loading.value = false;
         isInitialLoading.value = false;
-        refreshing.value = false;
     }
 };
 
 const onRefresh = async () => {
+    finished.value = false;
+    loading.value = true;
+    page.value = 0;
     await loadReviews();
+    refreshing.value = false;
     showSuccessToast('已刷新');
 };
 
@@ -49,9 +65,13 @@ const getRatingText = (rating) => {
     return texts[rating - 1] || '';
 };
 
-onMounted(() => {
-    loadReviews();
-});
+const previewImage = (images, startPosition) => {
+    ImagePreview({
+        images,
+        startPosition,
+        closeable: true,
+    });
+};
 </script>
 
 <template>
@@ -98,7 +118,7 @@ onMounted(() => {
                                         <img :src="review.productImage" class="w-full h-full object-cover" />
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="font-bold text-sm text-[#2c3e50] truncate">{{ review.productName }}
+                                        <div class="font-bold text-sm text-[#2c3e50] truncate">{{ review.productTitle }}
                                         </div>
                                         <div class="text-xs text-gray-400 mt-0.5">{{ formatTime(review.createdAt) }}
                                         </div>
@@ -118,10 +138,20 @@ onMounted(() => {
                                     {{ review.content }}
                                 </div>
 
+                                <!-- Review Images -->
+                                <div v-if="review.images && review.images.length > 0"
+                                    class="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                                    <div v-for="(img, idx) in review.images" :key="idx"
+                                        class="w-20 h-20 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 cursor-zoom-in"
+                                        @click="previewImage(review.images, idx)">
+                                        <img :src="img" class="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+
                                 <!-- Reply -->
-                                <div v-if="review.replyContent" class="bg-gray-50 rounded-xl p-4 text-xs">
+                                <div v-if="review.sellerReply" class="bg-gray-50 rounded-xl p-4 text-xs">
                                     <div class="font-bold text-gray-500 mb-1">卖家回复：</div>
-                                    <div class="text-gray-600">{{ review.replyContent }}</div>
+                                    <div class="text-gray-600">{{ review.sellerReply }}</div>
                                 </div>
 
                             </div>
