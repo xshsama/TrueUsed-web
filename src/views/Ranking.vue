@@ -1,4 +1,5 @@
 <script setup>
+import { listProducts } from '@/api/products';
 import {
     Clock,
     Crown,
@@ -6,22 +7,75 @@ import {
     Flame,
     TrendingDown
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 // Ranking Data
-const rankingItems = ref([
-    { id: 1, title: 'iPhone 13 Pro 远峰蓝 256G', price: '4299', original: '7999', drop: '3700', image: 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?auto=format&fit=crop&q=80&w=400', heat: 320, time: '10分钟前', seller: '数码极客', views: 1205 },
-    { id: 2, title: 'Sony A7M3 单机身 95新', price: '8500', original: '12000', drop: '3500', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400', heat: 210, time: '2小时前', seller: '阿杰摄影', views: 890 },
-    { id: 3, title: 'Switch OLED 日版 白色', price: '1650', original: '2300', drop: '650', image: 'https://images.unsplash.com/photo-1578303512597-8198dd38ad59?auto=format&fit=crop&q=80&w=400', heat: 180, time: '刚刚', seller: '游戏人生', views: 560 },
-    { id: 4, title: 'iPad Air 5 M1芯片 64G', price: '2800', original: '3500', drop: '700', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400', heat: 156, time: '5分钟前', seller: '小陈闲置', views: 340 },
-    { id: 5, title: 'Dyson 戴森 V10 吸尘器', price: '1200', original: '3000', drop: '1800', image: 'https://images.unsplash.com/photo-1558317374-a3594743e9c7?auto=format&fit=crop&q=80&w=400', heat: 120, time: '30分钟前', seller: '居家好物', views: 210 },
-    { id: 6, title: 'AirPods Pro 2代 没拆封', price: '1200', original: '1899', drop: '699', image: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&q=80&w=400', heat: 98, time: '1小时前', seller: '耳机控', views: 180 },
-]);
-
+const rankingItems = ref([]);
 const activeTab = ref('综合热度');
+const loading = ref(false);
+
+const loadData = async () => {
+    loading.value = true;
+    try {
+        let sort = 'views_desc'; // Default for 综合热度
+        if (activeTab.value === '降价幅度') {
+            // Backend doesn't support price drop sort directly, use price_asc as proxy or just views for now
+            // Ideally backend should support 'price_drop_desc'
+            sort = 'price_asc';
+        } else if (activeTab.value === '最新发布') {
+            sort = 'created_desc'; // Backend default is createdAt desc
+        }
+
+        const res = await listProducts({
+            page: 0,
+            size: 20,
+            sort: sort,
+            status: 'ON_SALE'
+        });
+
+        rankingItems.value = (res.content || []).map(p => ({
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            original: p.originalPrice || (p.price * 1.2).toFixed(0),
+            drop: p.originalPrice ? (p.originalPrice - p.price).toFixed(0) : 0,
+            image: (p.images && p.images.length > 0) ? p.images[0].url : 'https://via.placeholder.com/400',
+            heat: p.viewsCount || 0,
+            time: formatTime(p.createdAt),
+            seller: p.seller ? (p.seller.nickname || p.seller.username) : '未知卖家',
+            views: p.viewsCount || 0
+        }));
+    } catch (e) {
+        console.error('Failed to load ranking', e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const formatTime = (time) => {
+    if (!time) return '';
+    const date = new Date(time);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    return date.toLocaleDateString();
+};
+
+watch(activeTab, () => {
+    loadData();
+});
+
+onMounted(() => {
+    loadData();
+});
 </script>
 
 <template>
@@ -53,7 +107,7 @@ const activeTab = ref('综合热度');
             </div>
 
             <!-- Top 3 Podium (Layout) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-end">
+            <div v-if="rankingItems.length >= 3" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-end">
 
                 <!-- Rank 2 -->
                 <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 relative rank-2-shadow transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer"
@@ -63,7 +117,7 @@ const activeTab = ref('综合热度');
                         2</div>
                     <div class="aspect-square bg-gray-100 rounded-xl mb-3 overflow-hidden relative">
                         <img :src="rankingItems[1].image" class="w-full h-full object-cover" />
-                        <div
+                        <div v-if="rankingItems[1].drop > 0"
                             class="absolute bottom-2 left-2 bg-[#ff5e57] text-white text-xs font-bold px-2 py-1 rounded">
                             直降 ¥{{ rankingItems[1].drop }}</div>
                     </div>
@@ -110,7 +164,7 @@ const activeTab = ref('综合热度');
                         3</div>
                     <div class="aspect-square bg-gray-100 rounded-xl mb-3 overflow-hidden relative">
                         <img :src="rankingItems[2].image" class="w-full h-full object-cover" />
-                        <div
+                        <div v-if="rankingItems[2].drop > 0"
                             class="absolute bottom-2 left-2 bg-[#ff5e57] text-white text-xs font-bold px-2 py-1 rounded">
                             直降 ¥{{ rankingItems[2].drop }}</div>
                     </div>
@@ -127,7 +181,8 @@ const activeTab = ref('综合热度');
             </div>
 
             <!-- The Rest of the List -->
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div v-if="rankingItems.length > 0"
+                class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div v-for="(item, index) in rankingItems.slice(3)" :key="item.id"
                     class="flex items-center p-6 border-b border-gray-50 hover:bg-gray-50 transition-colors group cursor-pointer"
                     @click="router.push(`/product/${item.id}`)">
@@ -144,8 +199,9 @@ const activeTab = ref('综合热度');
                             <h3
                                 class="font-bold text-[#2c3e50] text-lg group-hover:text-[#4a8b6e] transition-colors line-clamp-1">
                                 {{ item.title }}</h3>
-                            <span class="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded font-medium">低于行情 {{
-                                Math.round((item.original - item.price) / item.original * 100) }}%</span>
+                            <span v-if="item.original > 0"
+                                class="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded font-medium">低于行情 {{
+                                    Math.round((item.original - item.price) / item.original * 100) }}%</span>
                         </div>
                         <div class="flex items-center gap-4 text-xs text-gray-400 mb-3">
                             <span class="flex items-center gap-1">
@@ -168,6 +224,10 @@ const activeTab = ref('综合热度');
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div v-else-if="!loading" class="text-center py-20 text-gray-400">
+                暂无上榜商品
             </div>
 
         </main>

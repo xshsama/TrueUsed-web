@@ -154,25 +154,30 @@
                                 </div>
                             </template>
 
-                            <!-- Seller Mode: Mock Data -->
+                            <!-- Seller Mode: Top Products -->
                             <template v-else>
-                                <div v-for="item in [1, 2]" :key="item"
+                                <div v-for="item in topProducts" :key="item.id"
+                                    @click="router.push(`/product/${item.id}`)"
                                     class="bg-white rounded-xl p-3 shadow-sm hover:shadow-md border border-gray-100 hover:border-[#4a8b6e]/30 transition-all cursor-pointer group">
                                     <div class="aspect-[4/3] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
-                                        <img :src="`https://images.unsplash.com/photo-${item === 1 ? '1517336714731-489689fd1ca4' : '1516035069371-29a1b244cc32'}?auto=format&fit=crop&q=80&w=400`"
+                                        <img :src="item.image"
                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         <div
                                             class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full">
-                                            32人浏览</div>
+                                            {{ item.views }}人浏览</div>
                                     </div>
                                     <h3
                                         class="text-sm font-bold text-[#2c3e50] line-clamp-1 group-hover:text-[#4a8b6e] transition-colors">
-                                        99新 MacBook Pro M1 / 个人自用</h3>
+                                        {{ item.title }}</h3>
                                     <div class="flex items-center justify-between mt-2">
-                                        <span class="text-[#e74c3c] font-bold text-base">¥8,500</span>
+                                        <span class="text-[#e74c3c] font-bold text-base">¥{{ item.price }}</span>
                                         <span
                                             class="text-[10px] text-[#4a8b6e] bg-[#f0fdf7] px-1.5 py-0.5 rounded">曝光率高</span>
                                     </div>
+                                </div>
+                                <div v-if="topProducts.length === 0"
+                                    class="col-span-2 text-center py-8 text-gray-400 text-sm">
+                                    暂无在售商品
                                 </div>
                             </template>
                         </div>
@@ -256,7 +261,9 @@
 </template>
 
 <script setup>
+import { fetchMyStats } from '@/api/auth'
 import { getBrowsingHistory } from '@/api/history'
+import { getMyProducts } from '@/api/products'
 import defaultAvatarUrl from '@/assets/icons/user.svg'
 import ImageUpload from '@/components/ImageUpload.vue'
 import { useUserStore } from '@/stores/user'
@@ -273,41 +280,42 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.user || {})
 const avatarSrc = ref(defaultAvatarUrl)
 const recentHistory = ref([])
+const topProducts = ref([])
 
 // --- Data Definitions ---
 
 // 1. Stats
-const buyerStats = [
-    { label: '累计节省', value: '¥2,450', sub: '击败90%用户' },
-    { label: '我的闲置', value: '12', sub: '去变现' },
-    { label: '可用优惠券', value: '8', sub: '即将过期' }
-]
-const sellerStats = [
-    { label: '累计收益', value: '¥12,850', sub: '本月+12%' },
-    { label: '在售商品', value: '5', sub: '库存正常' },
-    { label: '今日访客', value: '128', sub: '新增关注+2' }
-]
-const currentStats = computed(() => isSellerMode.value ? sellerStats : buyerStats)
+const buyerStats = ref([
+    { label: '累计节省', value: '¥0', sub: '击败0%用户' }, // Still mock/placeholder as backend doesn't track "saved"
+    { label: '我的闲置', value: '0', sub: '去变现' },
+    { label: '可用优惠券', value: '0', sub: '即将过期' }
+])
+const sellerStats = ref([
+    { label: '累计收益', value: '¥0', sub: '本月+0%' },
+    { label: '在售商品', value: '0', sub: '库存正常' },
+    { label: '今日访客', value: '0', sub: '新增关注+0' }
+])
+const currentStats = computed(() => isSellerMode.value ? sellerStats.value : buyerStats.value)
 
 // 2. Order Menu
 const buyerOrderMenu = [
-    { label: '待付款', icon: 'i-lucide-credit-card', badge: 1, key: 'unpaid' },
+    { label: '待付款', icon: 'i-lucide-credit-card', badge: 0, key: 'unpaid' },
     { label: '待发货', icon: 'i-lucide-package', badge: 0, key: 'toship' },
-    { label: '待收货', icon: 'i-lucide-truck', badge: 2, key: 'toreceive' },
+    { label: '待收货', icon: 'i-lucide-truck', badge: 0, key: 'toreceive' },
     { label: '退款/售后', icon: 'i-lucide-rotate-ccw', badge: 0, key: 'afterSale' },
 ]
 const sellerOrderMenu = [
     { label: '待付款', icon: 'i-lucide-clock', badge: 0, key: 'unpaid' },
-    { label: '待发货', icon: 'i-lucide-package', badge: 3, key: 'toship' },
-    { label: '已发货', icon: 'i-lucide-truck', badge: 5, key: 'shipped' },
-    { label: '售后/退款', icon: 'i-lucide-rotate-ccw', badge: 1, key: 'refund' },
+    { label: '待发货', icon: 'i-lucide-package', badge: 0, key: 'toship' },
+    { label: '已发货', icon: 'i-lucide-truck', badge: 0, key: 'shipped' },
+    { label: '售后/退款', icon: 'i-lucide-rotate-ccw', badge: 0, key: 'refund' },
 ]
 const currentOrderMenu = computed(() => isSellerMode.value ? sellerOrderMenu : buyerOrderMenu)
 
 // 3. Assets
 const currentAssets = computed(() => [
-    { label: '我的钱包', value: isSellerMode.value ? '¥12,850' : '¥0.00', icon: 'i-lucide-wallet' },
-    { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '3张' : '8张', icon: 'i-lucide-ticket' },
+    { label: '我的钱包', value: isSellerMode.value ? sellerStats.value[0].value : '¥0.00', icon: 'i-lucide-wallet' },
+    { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '0张' : (userInfo.value.couponCount || 0) + '张', icon: 'i-lucide-ticket' },
 ])
 
 // 4. Services
@@ -332,6 +340,28 @@ const currentServices = computed(() => isSellerMode.value ? sellerServices : buy
 
 // --- Logic ---
 
+const loadStats = async () => {
+    if (!isLoggedIn.value) return
+    try {
+        const res = await fetchMyStats()
+        // Update Seller Stats
+        sellerStats.value[0].value = `¥${res.totalIncome || 0}`
+        sellerStats.value[1].value = res.onShelfProducts || 0
+        sellerStats.value[2].value = res.totalViews || 0 // Using total views as proxy for visitors for now
+
+        // Update Buyer Stats (Partial)
+        buyerStats.value[1].value = res.onShelfProducts || 0 // "My Idle" ~ on shelf products
+        // buyerStats.value[2].value = res.couponsCount || 0 // Need backend support
+
+        // Update Order Badges (Partial)
+        // We can use res.pendingOrders for seller's "To Ship" badge
+        sellerOrderMenu[1].badge = res.pendingOrders || 0
+
+    } catch (e) {
+        console.error('Failed to load stats', e)
+    }
+}
+
 const fetchRecentHistory = async () => {
     if (!isLoggedIn.value) return
     try {
@@ -349,26 +379,56 @@ const fetchRecentHistory = async () => {
     }
 }
 
+const fetchTopProducts = async () => {
+    if (!isLoggedIn.value) return
+    try {
+        // Fetch products sorted by views (assuming backend supports 'views_desc' or similar, if not default to created_desc)
+        // Note: Backend might not support 'views_desc' yet, but let's try or fallback to default
+        const res = await getMyProducts({ page: 0, size: 2, sort: 'views_desc' })
+        topProducts.value = (res.content || []).map(p => ({
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            image: p.images?.[0]?.url || '',
+            views: p.viewsCount || 0
+        }))
+    } catch (error) {
+        console.error('Failed to fetch top products', error)
+    }
+}
+
 onMounted(async () => {
     if (route.query.tab === 'seller') {
         isSellerMode.value = true
     }
     if (isLoggedIn.value) {
         await userStore.loadMe()
+        loadStats()
         if (!isSellerMode.value) {
             fetchRecentHistory()
+        } else {
+            fetchTopProducts()
         }
     }
     updateAvatar()
 })
 
 watch(() => isSellerMode.value, (newVal) => {
-    if (!newVal && isLoggedIn.value) {
-        fetchRecentHistory()
+    if (isLoggedIn.value) {
+        if (!newVal) {
+            fetchRecentHistory()
+        } else {
+            fetchTopProducts()
+        }
     }
 })
 
-watch(() => userInfo.value, updateAvatar, { deep: true })
+watch(() => userInfo.value, (newVal) => {
+    updateAvatar()
+    if (newVal) {
+        buyerStats.value[2].value = newVal.couponCount || 0
+    }
+}, { deep: true, immediate: true })
 
 function updateAvatar() {
     avatarSrc.value = (userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar)) || defaultAvatarUrl

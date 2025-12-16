@@ -82,7 +82,6 @@ export default {
             return ''
         },
         hasRealShot() {
-            // Check tags or mock
             return this.product.tags?.includes('实拍图') || false
         },
         timeAgo() {

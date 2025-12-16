@@ -34,7 +34,7 @@ const form = ref({
     title: '',
     description: '',
     price: '',
-    images: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca4?auto=format&fit=crop&q=80&w=300'],
+    images: [],
     freight: 'seller', // 'seller' (包邮) or 'buyer' (到付)
     location: '上海市',
     categoryId: null,
@@ -103,8 +103,8 @@ const handleFileChange = async (event) => {
         });
 
         const results = await Promise.all(uploadPromises);
-        const uploadedUrls = results.map(res => res.data.secure_url);
-        form.value.images.push(...uploadedUrls);
+        const uploadedKeys = results.map(res => res.data.public_id);
+        form.value.images.push(...uploadedKeys);
         closeToast();
     } catch (err) {
         console.error('Upload failed:', err);
@@ -260,7 +260,7 @@ const onSubmit = async () => {
                 condition: mapCondition(form.value.condition),
                 categoryId: form.value.categoryId,
                 locationText: form.value.location,
-                imageUrls: form.value.images,
+                imageKeys: form.value.images,
                 shippingPayer: form.value.freight === 'seller' ? 'SELLER' : 'BUYER',
                 tradeTypes: finalTradeTypes.join(','),
                 tradeModel: 'FREE_TRADING'
@@ -427,7 +427,7 @@ onMounted(() => {
                     <div class="grid grid-cols-4 sm:grid-cols-5 gap-4">
                         <div v-for="(img, idx) in form.images" :key="idx"
                             class="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
-                            <img :src="img" class="w-full h-full object-cover" />
+                            <img :src="`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${img}`" class="w-full h-full object-cover" />
                             <button @click="removeImage(idx)"
                                 class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all">
                                 <X :size="12" />
@@ -557,7 +557,7 @@ onMounted(() => {
                                 </div>
                                 <span class="text-sm font-bold text-gray-700">支持面交</span>
                             </div>
-                            <!-- Mock Toggle -->
+                            <!-- Toggle -->
                             <div
                                 class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                                 <input type="checkbox" id="toggle" v-model="form.isMeetup"
@@ -572,7 +572,7 @@ onMounted(() => {
                                 <span>发货地：</span>
                                 <span class="font-bold text-gray-800" @click="showLocationPicker = true">{{
                                     form.location
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                     </div>

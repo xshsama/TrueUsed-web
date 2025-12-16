@@ -1,4 +1,5 @@
 <script setup>
+import { fetchMyStats } from '@/api/auth';
 import { getMyConsignments, updateConsignmentLogistics } from '@/api/consignment';
 import { deleteProduct, getMyProducts, hideProduct, publishProduct } from '@/api/products';
 import SearchBar from '@/components/SearchBar.vue';
@@ -12,8 +13,8 @@ import {
     MessageCircle,
     MessageSquare,
     MoreHorizontal,
-    Package,
     RefreshCw,
+    TrendingUp,
     Truck
 } from 'lucide-vue-next';
 import { showConfirmDialog, showDialog, showFailToast, showSuccessToast } from 'vant';
@@ -37,11 +38,11 @@ const isInitialLoading = ref(true);
 const page = ref(0);
 const pageSize = 20;
 
-// Stats (Mock for now, can be replaced with API)
+// Stats
 const stats = ref({
-    views: 1208,
-    unread: 8,
-    income: 4850
+    views: 0,
+    unread: 0,
+    income: 0
 });
 
 const tabs = [
@@ -71,6 +72,19 @@ const getStatusText = (status) => {
 };
 
 // --- API & Data ---
+const loadStats = async () => {
+    try {
+        const res = await fetchMyStats();
+        stats.value = {
+            views: res.viewsCount || 0,
+            unread: res.unreadMessages || 0,
+            income: res.totalIncome || 0
+        };
+    } catch (e) {
+        console.error('Failed to load stats', e);
+    }
+};
+
 const loadProducts = async () => {
     if (activeTab.value === 'consignments') {
         await loadConsignments();
@@ -149,6 +163,7 @@ const onRefresh = async () => {
     products.value = [];
     consignments.value = [];
     await loadProducts();
+    await loadStats();
     showSuccessToast('已刷新');
 };
 
@@ -236,27 +251,18 @@ const handleShip = (item) => {
         showInput: true, // Vant doesn't support showInput directly in showDialog like this, need custom component or prompt
     }).then(() => {
         // Placeholder for simple prompt
+        const trackingNo = prompt("请输入物流单号");
+        if (trackingNo) {
+            updateConsignmentLogistics(item.id, trackingNo).then(() => {
+                showSuccessToast('发货成功');
+                onRefresh();
+            }).catch(() => {
+                showFailToast('发货失败');
+            });
+        }
+    }).catch(() => {
+        // Cancelled
     });
-
-    // Using browser prompt for simplicity in this demo, or better, a custom dialog
-    const trackingNo = prompt("请输入物流单号");
-    if (trackingNo) {
-        updateConsignmentLogistics(item.id, trackingNo).then(() => {
-            showSuccessToast('发货成功');
-            onRefresh();
-        });
-    }
-};
-
-const mockShip = async (item) => {
-    const mockTrackingNo = 'SF' + Date.now();
-    try {
-        await updateConsignmentLogistics(item.id, mockTrackingNo);
-        showSuccessToast('模拟发货成功');
-        onRefresh();
-    } catch (e) {
-        showFailToast('发货失败');
-    }
 };
 
 // --- Lifecycle ---
@@ -265,6 +271,7 @@ onMounted(() => {
         activeTab.value = route.query.tab;
     }
     loadProducts();
+    loadStats();
     // Preload consignments count
     loadConsignments();
 });
@@ -403,7 +410,7 @@ watch(activeTab, () => {
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
                                                 <span class="font-bold text-[#ff5e57] text-lg">¥{{ product.price
-                                                }}</span>
+                                                    }}</span>
                                                 <span class="text-xs text-gray-400 line-through">¥{{
                                                     product.originalPrice }}</span>
                                             </div>
@@ -444,11 +451,6 @@ watch(activeTab, () => {
                                         <button v-if="product.status === 'CREATED'" @click="handleShip(product)"
                                             class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
                                             <Truck :size="12" /> 发货
-                                        </button>
-                                        <!-- Mock Ship Button -->
-                                        <button v-if="product.status === 'CREATED'" @click="mockShip(product)"
-                                            class="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1">
-                                            <Package :size="12" /> 一键模拟发货
                                         </button>
                                         <div v-if="product.trackingNo"
                                             class="text-xs text-gray-400 text-center truncate"
