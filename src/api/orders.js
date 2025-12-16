@@ -56,6 +56,19 @@ export function payOrder(id) {
 }
 
 /**
+ * 钱包支付订单
+ * @param {number} id 订单ID
+ * @param {string} password 支付密码
+ */
+export function payOrderByWallet(id, password) {
+  return request({
+    url: `/orders/${id}/pay-wallet`,
+    method: 'put',
+    data: { password },
+  })
+}
+
+/**
  * 卖家发货
  * @param {number} id 订单ID
  * @param {object} shipData 发货信息 { expressCompany: string, trackingNumber?: string }

@@ -27,8 +27,8 @@ import SellerProfile from '@/views/SellerProfile.vue'
 import ServiceCenter from '@/views/ServiceCenter.vue'
 import ServiceMessages from '@/views/ServiceMessages.vue'
 import Settings from '@/views/Settings.vue'
-import ShopSettings from '@/views/ShopSettings.vue'
 import Settlement from '@/views/Settlement.vue'
+import ShopSettings from '@/views/ShopSettings.vue'
 import SoldProducts from '@/views/SoldProducts.vue'
 import Verification from '@/views/Verification.vue'
 
@@ -247,6 +247,18 @@ const routes = [
     path: '/notifications',
     name: 'SystemNotifications',
     component: () => import('@/views/SystemNotifications.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/wallet',
+    name: 'Wallet',
+    component: () => import('@/views/Wallet.vue'),
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/cashier',
+    name: 'Cashier',
+    component: () => import('@/views/Cashier.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
 ]

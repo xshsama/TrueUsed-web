@@ -308,6 +308,8 @@ const serviceFee = computed(() => {
     }
 });
 
+const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+
 onMounted(() => {
     loadCategories();
 });
@@ -427,7 +429,8 @@ onMounted(() => {
                     <div class="grid grid-cols-4 sm:grid-cols-5 gap-4">
                         <div v-for="(img, idx) in form.images" :key="idx"
                             class="aspect-square rounded-xl overflow-hidden relative group border border-gray-200">
-                            <img :src="`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload/${img}`" class="w-full h-full object-cover" />
+                            <img :src="`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${img}`"
+                                class="w-full h-full object-cover" />
                             <button @click="removeImage(idx)"
                                 class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all">
                                 <X :size="12" />

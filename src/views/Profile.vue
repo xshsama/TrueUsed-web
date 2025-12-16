@@ -192,7 +192,7 @@
                     <section class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50">
                         <h2 class="text-lg font-bold text-[#2c3e50] mb-6">我的资产</h2>
                         <div class="space-y-1">
-                            <div v-for="(item, idx) in currentAssets" :key="idx"
+                            <div v-for="(item, idx) in currentAssets" :key="idx" @click="handleServiceClick(item)"
                                 class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 cursor-pointer group transition-colors">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full flex items-center justify-center group-hover:text-white transition-colors"
@@ -314,8 +314,8 @@ const currentOrderMenu = computed(() => isSellerMode.value ? sellerOrderMenu : b
 
 // 3. Assets
 const currentAssets = computed(() => [
-    { label: '我的钱包', value: isSellerMode.value ? sellerStats.value[0].value : '¥0.00', icon: 'i-lucide-wallet' },
-    { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '0张' : (userInfo.value.couponCount || 0) + '张', icon: 'i-lucide-ticket' },
+    { label: '我的钱包', value: isSellerMode.value ? sellerStats.value[0].value : '¥0.00', icon: 'i-lucide-wallet', action: 'wallet' },
+    { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '0张' : (userInfo.value.couponCount || 0) + '张', icon: 'i-lucide-ticket', action: 'coupons' },
 ])
 
 // 4. Services
@@ -501,6 +501,7 @@ const handleServiceClick = (item) => {
         case 'history': router.push('/history'); break;
         case 'order-manage': router.push('/order-manage'); break;
         case 'shop-settings': router.push('/shop-settings'); break; // Placeholder
+        case 'wallet': router.push('/wallet'); break;
         default: showToast('功能开发中');
     }
 }

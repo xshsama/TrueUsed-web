@@ -12,6 +12,7 @@
     "@stomp/stompjs": "^7.2.1",
     "@vant/area-data": "^2.1.0",
     "axios": "^1.7.2",
+    "lucide": "^0.561.0",
     "lucide-vue-next": "^0.556.0",
     "pinia": "^2.1.7",
     "socketjs-client": "^1.0.2",
