@@ -295,7 +295,7 @@ const fetchHistory = async () => {
                 sellerName: product.seller ? product.seller.nickname : 'Unknown',
                 sellerAvatar: product.seller ? product.seller.avatarUrl : '',
                 isCollected: false, // TODO: check if collected
-                status: product.status === 'SOLD_OUT' ? 'sold' : 'active'
+                status: product.status === 'SOLD' ? 'sold' : 'active'
             };
         });
     } catch (error) {

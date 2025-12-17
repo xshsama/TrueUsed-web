@@ -30,7 +30,13 @@
                                 class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
                             </div>
                         </router-link>
-                        <a href="#" class="hover:text-[#4a8b6e] transition-colors">附近闲置</a>
+                        <router-link to="/nearby" class="relative transition-colors"
+                            :class="[route.path === '/nearby' ? 'text-[#4a8b6e] font-bold' : 'hover:text-[#4a8b6e]']">
+                            附近闲置
+                            <div v-if="route.path === '/nearby'"
+                                class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
+                            </div>
+                        </router-link>
                     </template>
                 </div>
             </div>

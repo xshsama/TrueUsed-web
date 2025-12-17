@@ -88,7 +88,14 @@ export default {
             return this.product.timeAgo || ''
         },
         statusText() {
-            const map = { selling: '', sold: '已售', offline: '已下架' }
+            const map = {
+                'ON_SALE': '',
+                'SOLD': '已售',
+                'OFF_SHELF': '已下架',
+                'selling': '',
+                'sold': '已售',
+                'offline': '已下架'
+            }
             return map[this.status] || ''
         },
         savedAmount() {

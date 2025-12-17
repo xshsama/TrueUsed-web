@@ -60,6 +60,11 @@ const routes = [
     component: () => import('@/views/Ranking.vue'),
   },
   {
+    path: '/nearby',
+    name: 'Nearby',
+    component: () => import('@/views/Nearby.vue'),
+  },
+  {
     path: '/favorites',
     name: 'Favorites',
     component: Favorites,

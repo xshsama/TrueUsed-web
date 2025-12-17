@@ -2,7 +2,6 @@
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50]">
 
         <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
 
         <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
             <!-- Left Sidebar -->
@@ -25,7 +24,7 @@
                             <button v-for="tab in ['全部', '降价', '失效']" :key="tab" @click="activeTab = tab"
                                 class="px-4 py-1.5 rounded-full text-sm font-medium transition-all border-none cursor-pointer"
                                 :class="activeTab === tab ? 'bg-[#4a8b6e] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-[#4a8b6e] hover:bg-gray-50'">
-                                {{ tab }} {{ tab === '降价' ? '(1)' : '' }} {{ tab === '失效' ? '(1)' : '' }}
+                                {{ tab }}
                             </button>
                         </div>
 
@@ -49,7 +48,7 @@
 
                         <!-- Image Section -->
                         <div class="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                            <img :src="item.image" :alt="item.title"
+                            <img :src="item.image || 'https://via.placeholder.com/400'" :alt="item.title"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
                             <!-- 状态遮罩 -->
@@ -103,7 +102,7 @@
                             <!-- Seller Info & Actions Divider -->
                             <div class="border-t border-gray-50 pt-3 flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <img :src="item.seller.avatar"
+                                    <img :src="item.seller.avatar || 'https://via.placeholder.com/100'"
                                         class="w-6 h-6 rounded-full border border-gray-100" />
                                     <div class="flex flex-col">
                                         <span class="text-xs text-gray-600 font-medium scale-95 origin-left">{{
@@ -123,7 +122,7 @@
                                     </button>
                                     <button
                                         class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border-none bg-transparent cursor-pointer"
-                                        title="删除" @click.stop>
+                                        title="删除" @click.stop="handleRemove(item)">
                                         <div class="i-lucide-trash-2 text-base"></div>
                                     </button>
                                 </div>
@@ -163,61 +162,65 @@
 </template>
 
 <script setup>
+import { listMyFavorites, removeFavorite } from '@/api/favorites';
 import BuyerSidebar from '@/components/BuyerSidebar.vue';
-import { computed, ref } from 'vue';
+import { showFailToast, showSuccessToast } from 'vant';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter()
 const activeTab = ref('全部')
 const isEditMode = ref(false)
+const favorites = ref([])
+const loading = ref(false)
 
-// 模拟收藏数据
-const favorites = ref([
-    {
-        id: 1,
-        title: '99新 Kindle Paperwhite 5 (11代) / 8G 翻页快',
-        price: 650,
-        originalPrice: 899,
-        image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400',
-        seller: { name: 'Geek_Tom', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100', credit: '极好' },
-        status: 'normal',
-        tags: ['个人自用', '箱说全'],
-        priceDrop: 0
-    },
-    {
-        id: 2,
-        title: 'Sony WH-1000XM4 降噪耳机 黑色',
-        price: 1200,
-        originalPrice: 1599,
-        image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=400',
-        seller: { name: '音乐发烧友', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100', credit: '优秀' },
-        status: 'price_drop',
-        tags: ['降噪神器'],
-        priceDrop: 300 // 降价幅度
-    },
-    {
-        id: 3,
-        title: 'Fujifilm X100V 银色 / 几乎全新 仅快门500',
-        price: 9200,
-        originalPrice: 9500,
-        image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400',
-        seller: { name: '摄影师阿杰', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&q=80&w=100', credit: '极好' },
-        status: 'normal',
-        tags: ['传家宝', '女生自用'],
-        priceDrop: 0
-    },
-    {
-        id: 4,
-        title: 'IKEA 宜家 懒人沙发 / 自提',
-        price: 150,
-        originalPrice: 499,
-        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=400',
-        seller: { name: '搬家甩卖', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100', credit: '良好' },
-        status: 'invalid', // 失效
-        tags: [],
-        priceDrop: 0
+const fetchFavorites = async () => {
+    loading.value = true
+    try {
+        const res = await listMyFavorites({ page: 0, size: 100 })
+        favorites.value = res.content.map(item => {
+            const p = item.product
+            if (!p) return null // Should not happen if data integrity is good
+            return {
+                id: p.id,
+                favoriteId: item.id,
+                title: p.title,
+                price: p.price,
+                originalPrice: p.originalPrice,
+                image: p.images && p.images.length > 0 ? p.images[0].url : '',
+                seller: {
+                    name: p.seller ? (p.seller.nickname || p.seller.username) : 'Unknown',
+                    avatar: p.seller ? p.seller.avatarUrl : '',
+                    credit: '良好'
+                },
+                status: mapStatus(p.status),
+                tags: p.condition ? [p.condition] : [],
+                priceDrop: 0
+            }
+        }).filter(Boolean)
+    } catch (error) {
+        console.error(error)
+        showFailToast('加载失败')
+    } finally {
+        loading.value = false
     }
-])
+}
+
+const mapStatus = (status) => {
+    if (status === 'ON_SALE') return 'normal'
+    if (status === 'SOLD' || status === 'OFF_SHELF') return 'invalid'
+    return 'normal'
+}
+
+const handleRemove = async (item) => {
+    try {
+        await removeFavorite(item.id)
+        favorites.value = favorites.value.filter(i => i.id !== item.id)
+        showSuccessToast('已取消收藏')
+    } catch (error) {
+        showFailToast('操作失败')
+    }
+}
 
 // 筛选逻辑
 const filteredItems = computed(() => {
@@ -234,6 +237,10 @@ const handleItemClick = (item) => {
         router.push(`/product/${item.id}`)
     }
 }
+
+onMounted(() => {
+    fetchFavorites()
+})
 </script>
 
 <style scoped>

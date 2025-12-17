@@ -25,12 +25,11 @@ const router = useRouter();
 const route = useRoute();
 
 // --- State ---
-const activeTab = ref('active');
+const activeTab = ref('inbound');
 const searchQuery = ref('');
 const isBatchMode = ref(false);
 const selectedItems = ref([]);
-const products = ref([]);
-const consignments = ref([]); // New state for consignments
+const items = ref([]);
 const loading = ref(false);
 const refreshing = ref(false);
 const finished = ref(false);
@@ -46,27 +45,28 @@ const stats = ref({
 });
 
 const tabs = [
-    { name: '全部', key: 'all' },
-    { name: '出售中', key: 'active' },
-    { name: '寄售单', key: 'consignments' }, // New Tab
-    { name: '已售出', key: 'sold' },
-    { name: '已下架', key: 'off' },
+    { name: '入仓期', key: 'inbound' },
+    { name: '验货期', key: 'inspecting' },
+    { name: '销售期', key: 'sales' },
+    { name: '下架', key: 'off' },
 ];
 
 // --- Helpers ---
 const getStatusText = (status) => {
     const map = {
-        'active': '出售中',
-        'audit': '审核中',
-        'sold': '已售出',
-        'off': '已下架',
         'CREATED': '待发货',
         'SHIPPED': '运输中',
         'RECEIVED': '已签收',
         'INSPECTING': '验货中',
         'PASSED': '验货通过',
         'REJECTED': '验货驳回',
-        'CANCELLED': '已取消'
+        'RETURNING': '退回中',
+        'RETURNED': '已退回',
+        'PENDING': '待处理',
+        'ON_SALE': '出售中',
+        'LOCKED': '交易中',
+        'SOLD': '已售出',
+        'OFF_SHELF': '已下架'
     };
     return map[status] || status;
 };
@@ -85,41 +85,80 @@ const loadStats = async () => {
     }
 };
 
-const loadProducts = async () => {
-    if (activeTab.value === 'consignments') {
-        await loadConsignments();
-        return;
-    }
-
+const loadData = async () => {
     if (isInitialLoading.value) loading.value = true;
+
     try {
-        const res = await getMyProducts({
-            page: page.value,
-            size: pageSize,
-            sort: 'created_desc'
-        });
+        if (activeTab.value === 'inbound' || activeTab.value === 'inspecting') {
+            // Load Consignments
+            const res = await getMyConsignments();
+            const mapped = res.map(c => ({
+                id: c.id,
+                title: c.title,
+                price: c.expectedPrice,
+                originalPrice: null, // Consignments don't usually show original price here
+                image: c.product && c.product.images && c.product.images.length > 0 ? c.product.images[0].url : '',
+                status: c.status,
+                trackingNo: c.trackingNoInbound,
+                type: 'consignment',
+                views: 0,
+                comments: 0,
+                likes: 0
+            }));
 
-        const newItems = (res.content || []).map(p => ({
-            id: p.id,
-            title: p.title,
-            price: p.price,
-            originalPrice: p.originalPrice || (p.price * 1.2).toFixed(0),
-            image: p.images && p.images.length > 0 ? p.images[0].url : '',
-            views: p.viewsCount || 0,
-            comments: 0, // Backend doesn't return this yet
-            likes: p.favoritesCount || 0,
-            status: mapBackendStatus(p.status)
-        }));
-
-        if (page.value === 0) {
-            products.value = newItems;
+            // Filter locally since API returns all
+            if (activeTab.value === 'inbound') {
+                items.value = mapped.filter(i => ['CREATED', 'SHIPPED', 'RECEIVED'].includes(i.status));
+            } else {
+                items.value = mapped.filter(i => ['INSPECTING', 'PASSED', 'REJECTED'].includes(i.status));
+            }
+            finished.value = true;
         } else {
-            products.value = [...products.value, ...newItems];
-        }
+            // Load Products
+            const res = await getMyProducts({
+                page: page.value,
+                size: pageSize,
+                sort: 'created_desc'
+            });
 
-        finished.value = res.last;
-        page.value++;
+            const newItems = (res.content || []).map(p => ({
+                id: p.id,
+                title: p.title,
+                price: p.price,
+                originalPrice: p.originalPrice || (p.price * 1.2).toFixed(0),
+                image: p.images && p.images.length > 0 ? p.images[0].url : '',
+                views: p.viewsCount || 0,
+                comments: 0,
+                likes: p.favoritesCount || 0,
+                status: p.status,
+                type: 'product'
+            }));
+
+            // Filter locally if needed, but usually backend handles pagination. 
+            // However, getMyProducts returns all products for the user. 
+            // We need to filter by status group.
+            // Since backend pagination might return mixed statuses, we might need to filter on client side 
+            // OR update backend to support status filtering. 
+            // For now, let's assume we filter client side and append.
+
+            let filteredNewItems = [];
+            if (activeTab.value === 'sales') {
+                filteredNewItems = newItems.filter(i => ['ON_SALE', 'LOCKED'].includes(i.status));
+            } else {
+                filteredNewItems = newItems.filter(i => ['SOLD', 'OFF_SHELF'].includes(i.status));
+            }
+
+            if (page.value === 0) {
+                items.value = filteredNewItems;
+            } else {
+                items.value = [...items.value, ...filteredNewItems];
+            }
+
+            finished.value = res.last;
+            page.value++;
+        }
     } catch (error) {
+        console.error(error);
         showFailToast('加载失败');
     } finally {
         loading.value = false;
@@ -128,61 +167,24 @@ const loadProducts = async () => {
     }
 };
 
-const loadConsignments = async () => {
-    loading.value = true;
-    try {
-        const res = await getMyConsignments();
-        consignments.value = res.map(c => ({
-            id: c.id,
-            title: c.title,
-            price: c.expectedPrice,
-            status: c.status,
-            image: c.product && c.product.images && c.product.images.length > 0 ? c.product.images[0].url : '', // Consignment might not have images directly in list unless we add them to DTO, for now use product image if available or placeholder
-            trackingNo: c.trackingNoInbound
-        }));
-        finished.value = true; // Consignments list is not paginated yet
-    } catch (e) {
-        showFailToast('加载寄售单失败');
-    } finally {
-        loading.value = false;
-        refreshing.value = false;
-    }
-};
-
-const mapBackendStatus = (status) => {
-    if (status === 'ON_SALE') return 'active';
-    if (status === 'SOLD_OUT') return 'sold';
-    if (status === 'CANCELLED' || status === 'REJECTED' || status === 'RETURNED') return 'off';
-    // Consignment statuses shouldn't appear here normally if we separate them, but just in case
-    return 'off';
-};
-
 const onRefresh = async () => {
     page.value = 0;
     finished.value = false;
-    products.value = [];
-    consignments.value = [];
-    await loadProducts();
+    items.value = [];
+    await loadData();
     await loadStats();
     showSuccessToast('已刷新');
 };
 
 const onLoad = () => {
-    if (!refreshing.value && !isInitialLoading.value && activeTab.value !== 'consignments') {
-        loadProducts();
+    if (!refreshing.value && !isInitialLoading.value && (activeTab.value === 'sales' || activeTab.value === 'off')) {
+        loadData();
     }
 };
 
 // --- Computed ---
-const filteredProducts = computed(() => {
-    if (activeTab.value === 'consignments') return consignments.value;
-
-    let result = products.value;
-
-    if (activeTab.value !== 'all') {
-        result = result.filter(p => p.status === activeTab.value);
-    }
-
+const filteredItems = computed(() => {
+    let result = items.value;
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase();
         result = result.filter(p => p.title.toLowerCase().includes(q));
@@ -191,13 +193,10 @@ const filteredProducts = computed(() => {
 });
 
 const tabCounts = computed(() => {
-    const counts = {};
-    tabs.forEach(t => {
-        if (t.key === 'consignments') counts[t.key] = consignments.value.length;
-        else if (t.key === 'all') counts[t.key] = products.value.length;
-        else counts[t.key] = products.value.filter(p => p.status === t.key).length;
-    });
-    return counts;
+    // This is tricky because we don't have counts for all tabs without fetching everything.
+    // For now, we can only show counts for the loaded data or hide them.
+    // Let's hide them or show 0 to avoid confusion, or implement a separate count API.
+    return {};
 });
 
 // --- Actions ---
@@ -211,16 +210,18 @@ const toggleSelect = (id) => {
 };
 
 const toggleStatus = async (item) => {
-    const action = item.status === 'active' ? '下架' : '上架';
+    const action = item.status === 'ON_SALE' ? '下架' : '上架';
     showConfirmDialog({ title: `${action}商品`, message: `确定要${action}这个商品吗？` })
         .then(async () => {
             try {
-                if (item.status === 'active') {
+                if (item.status === 'ON_SALE') {
                     await hideProduct(item.id);
-                    item.status = 'off';
+                    // Refresh to move to 'off' tab
+                    onRefresh();
                 } else {
                     await publishProduct(item.id);
-                    item.status = 'active';
+                    // Refresh to move to 'sales' tab
+                    onRefresh();
                 }
                 showSuccessToast(`${action}成功`);
             } catch (e) {
@@ -234,7 +235,7 @@ const removeItem = (item) => {
         .then(async () => {
             try {
                 await deleteProduct(item.id);
-                products.value = products.value.filter(p => p.id !== item.id);
+                items.value = items.value.filter(p => p.id !== item.id);
                 showSuccessToast('已删除');
             } catch (e) {
                 showFailToast('删除失败');
@@ -248,9 +249,9 @@ const handleShip = (item) => {
         message: '请输入顺丰/快递单号',
         showCancelButton: true,
         confirmButtonText: '发货',
-        showInput: true, // Vant doesn't support showInput directly in showDialog like this, need custom component or prompt
+        showInput: true,
     }).then(() => {
-        // Placeholder for simple prompt
+        // Placeholder for simple prompt since Vant dialog input is limited in this version
         const trackingNo = prompt("请输入物流单号");
         if (trackingNo) {
             updateConsignmentLogistics(item.id, trackingNo).then(() => {
@@ -270,17 +271,15 @@ onMounted(() => {
     if (route.query.tab) {
         activeTab.value = route.query.tab;
     }
-    loadProducts();
+    loadData();
     loadStats();
-    // Preload consignments count
-    loadConsignments();
 });
 
 watch(activeTab, () => {
     page.value = 0;
     finished.value = false;
-    products.value = [];
-    loadProducts();
+    items.value = [];
+    loadData();
 });
 
 </script>
@@ -343,9 +342,6 @@ watch(activeTab, () => {
                         <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
                             :class="['px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2', activeTab === tab.key ? 'bg-[#2c3e50] text-white' : 'text-gray-500 hover:bg-gray-50']">
                             {{ tab.name }}
-                            <span v-if="tabCounts[tab.key] > 0"
-                                :class="['text-xs px-1.5 py-0.5 rounded-full', activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400']">{{
-                                    tabCounts[tab.key] }}</span>
                         </button>
                     </div>
 
@@ -362,28 +358,23 @@ watch(activeTab, () => {
 
                 <!-- Batch Action Bar -->
                 <div v-if="isBatchMode"
-                    class="bg-[#2c3e50] text-white px-6 py-3 rounded-xl flex items-center justify-between shadow-lg animate-in slide-in-from-top-2 duration-200">
+                    class="bg-[#2c3e50] text-white px-6 py-3 rounded-xl flex items-center justify-center shadow-lg animate-in slide-in-from-top-2 duration-200">
                     <span class="text-sm font-medium">已选 {{ selectedItems.length }} 件商品</span>
-                    <div class="flex gap-3">
-                        <button class="text-xs hover:text-gray-300">下架</button>
-                        <button class="text-xs text-[#ff5e57] hover:text-red-400">删除</button>
-                    </div>
                 </div>
 
                 <!-- 3. Product List -->
                 <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                     <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
                         <div class="space-y-4">
-                            <div v-for="product in filteredProducts" :key="product.id"
-                                :class="['bg-white rounded-2xl p-5 border shadow-sm transition-all group item-card flex flex-col md:flex-row gap-6 relative', isBatchMode && selectedItems.includes(product.id) ? 'border-[#4a8b6e] bg-[#4a8b6e]/5' : 'border-gray-100 hover:border-[#4a8b6e]/30 hover:shadow-md']"
-                                @click="toggleSelect(product.id)">
+                            <div v-for="item in filteredItems" :key="item.id"
+                                :class="['bg-white rounded-2xl p-5 border shadow-sm transition-all group item-card flex flex-col md:flex-row gap-6 relative', isBatchMode && selectedItems.includes(item.id) ? 'border-[#4a8b6e] bg-[#4a8b6e]/5' : 'border-gray-100 hover:border-[#4a8b6e]/30 hover:shadow-md']"
+                                @click="toggleSelect(item.id)">
 
                                 <!-- Batch Checkbox -->
                                 <div v-if="isBatchMode" class="absolute top-5 left-5 z-10">
                                     <div
-                                        :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center bg-white check-circle', selectedItems.includes(product.id) ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
-                                        <Check v-if="selectedItems.includes(product.id)" :size="12"
-                                            class="text-white" />
+                                        :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center bg-white check-circle', selectedItems.includes(item.id) ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
+                                        <Check v-if="selectedItems.includes(item.id)" :size="12" class="text-white" />
                                     </div>
                                 </div>
 
@@ -391,10 +382,10 @@ watch(activeTab, () => {
                                 <div class="flex gap-5 flex-1 pl-0 md:pl-0" :class="isBatchMode ? 'pl-8 md:pl-0' : ''">
                                     <div
                                         class="w-28 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 relative group-hover:scale-[1.02] transition-transform flex-shrink-0">
-                                        <img :src="product.image" class="w-full h-full object-cover" />
-                                        <div v-if="product.status === 'audit'"
+                                        <img :src="item.image" class="w-full h-full object-cover" />
+                                        <div v-if="item.status === 'INSPECTING'"
                                             class="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <span class="text-white text-xs font-bold">审核中</span>
+                                            <span class="text-white text-xs font-bold">验货中</span>
                                         </div>
                                     </div>
 
@@ -403,35 +394,41 @@ watch(activeTab, () => {
                                             <div class="flex justify-between items-start">
                                                 <h3
                                                     class="font-bold text-[#2c3e50] text-base mb-1 line-clamp-1 hover:text-[#4a8b6e] transition-colors cursor-pointer">
-                                                    {{ product.title }}</h3>
+                                                    {{ item.title }}</h3>
                                                 <button class="text-gray-400 hover:text-[#2c3e50] md:hidden">
                                                     <MoreHorizontal :size="20" />
                                                 </button>
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
-                                                <span class="font-bold text-[#ff5e57] text-lg">¥{{ product.price
-                                                    }}</span>
-                                                <span class="text-xs text-gray-400 line-through">¥{{
-                                                    product.originalPrice }}</span>
+                                                <span class="font-bold text-[#ff5e57] text-lg">¥{{ item.price
+                                                }}</span>
+                                                <span v-if="item.originalPrice"
+                                                    class="text-xs text-gray-400 line-through">¥{{
+                                                        item.originalPrice }}</span>
                                             </div>
                                         </div>
 
                                         <!-- Data Tags -->
-                                        <div
+                                        <div v-if="item.type === 'product'"
                                             class="flex items-center gap-4 text-xs text-gray-500 bg-gray-50 w-fit px-3 py-1.5 rounded-lg">
                                             <span class="flex items-center gap-1.5" title="浏览量">
-                                                <Eye :size="14" class="text-gray-400" /> {{ product.views }}
+                                                <Eye :size="14" class="text-gray-400" /> {{ item.views }}
                                             </span>
                                             <div class="w-px h-3 bg-gray-300"></div>
                                             <span
                                                 class="flex items-center gap-1.5 hover:text-[#4a8b6e] cursor-pointer transition-colors"
                                                 title="留言">
-                                                <MessageSquare :size="14" class="text-gray-400" /> {{ product.comments
+                                                <MessageSquare :size="14" class="text-gray-400" /> {{ item.comments
                                                 }}
                                             </span>
                                             <div class="w-px h-3 bg-gray-300"></div>
                                             <span class="flex items-center gap-1.5" title="想要">
-                                                <Heart :size="14" class="text-gray-400" /> {{ product.likes }}
+                                                <Heart :size="14" class="text-gray-400" /> {{ item.likes }}
+                                            </span>
+                                        </div>
+                                        <div v-else class="flex items-center gap-2">
+                                            <span class="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">
+                                                {{ getStatusText(item.status) }}
                                             </span>
                                         </div>
                                     </div>
@@ -441,25 +438,31 @@ watch(activeTab, () => {
                                 <div class="hidden md:flex flex-col justify-center gap-2 w-40 border-l border-gray-100 pl-6"
                                     @click.stop>
 
-                                    <!-- Consignment Actions -->
-                                    <template v-if="activeTab === 'consignments'">
-                                        <div class="text-center mb-2">
-                                            <span class="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">
-                                                {{ getStatusText(product.status) }}
-                                            </span>
-                                        </div>
-                                        <button v-if="product.status === 'CREATED'" @click="handleShip(product)"
+                                    <!-- Inbound Actions -->
+                                    <template v-if="activeTab === 'inbound'">
+                                        <button v-if="item.status === 'CREATED'" @click="handleShip(item)"
                                             class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
                                             <Truck :size="12" /> 发货
                                         </button>
-                                        <div v-if="product.trackingNo"
-                                            class="text-xs text-gray-400 text-center truncate"
-                                            :title="product.trackingNo">
-                                            单号: {{ product.trackingNo }}
+                                        <div v-if="item.trackingNo" class="text-xs text-gray-400 text-center truncate"
+                                            :title="item.trackingNo">
+                                            单号: {{ item.trackingNo }}
+                                        </div>
+                                        <div v-if="item.status === 'RECEIVED'"
+                                            class="text-xs text-center text-green-600 font-bold">
+                                            已入库
                                         </div>
                                     </template>
 
-                                    <template v-else-if="product.status === 'active'">
+                                    <!-- Inspecting Actions -->
+                                    <template v-else-if="activeTab === 'inspecting'">
+                                        <div class="text-center text-xs text-gray-500">
+                                            等待验货报告
+                                        </div>
+                                    </template>
+
+                                    <!-- Sales Actions -->
+                                    <template v-else-if="activeTab === 'sales'">
                                         <button
                                             class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
                                             <RefreshCw :size="12" /> 擦亮
@@ -470,23 +473,25 @@ watch(activeTab, () => {
                                         </button>
                                         <div class="flex justify-center gap-4 mt-1">
                                             <span class="text-xs text-gray-400 hover:text-[#2c3e50] cursor-pointer"
-                                                @click="router.push({ name: 'PostCreate', query: { id: product.id } })">编辑</span>
+                                                @click="router.push({ name: 'PostCreate', query: { id: item.id } })">编辑</span>
                                             <span class="text-xs text-gray-400 hover:text-[#ff5e57] cursor-pointer"
-                                                @click="toggleStatus(product)">下架</span>
+                                                @click="toggleStatus(item)">下架</span>
                                         </div>
                                     </template>
-                                    <template v-else-if="product.status === 'off'">
-                                        <button @click="toggleStatus(product)"
+
+                                    <!-- Off Actions -->
+                                    <template v-else-if="activeTab === 'off'">
+                                        <button v-if="item.status !== 'SOLD'" @click="toggleStatus(item)"
                                             class="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all">
                                             上架
                                         </button>
-                                        <span
+                                        <span v-if="item.status !== 'SOLD'"
                                             class="text-xs text-center text-gray-400 hover:text-[#ff5e57] cursor-pointer mt-2"
-                                            @click="removeItem(product)">删除</span>
-                                    </template>
-                                    <template v-else-if="product.status === 'audit' || product.status === 'sold'">
-                                        <span class="text-center text-xs text-gray-400 py-2">{{
-                                            getStatusText(product.status) }}</span>
+                                            @click="removeItem(item)">删除</span>
+                                        <span v-if="item.status === 'SOLD'"
+                                            class="text-center text-xs text-gray-400 py-2">
+                                            交易完成
+                                        </span>
                                     </template>
                                 </div>
 

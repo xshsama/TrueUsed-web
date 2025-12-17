@@ -239,6 +239,7 @@ const onSubmit = async () => {
                 title: form.value.title,
                 description: form.value.description,
                 expectedPrice: Number(form.value.price),
+                originalPrice: form.value.originalPrice ? Number(form.value.originalPrice) : undefined,
                 categoryId: form.value.categoryId,
                 shippingMethod: 'express', // Default
                 trackingNoInbound: '' // Initial submission might not have tracking
@@ -463,6 +464,17 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <label class="text-sm font-bold text-gray-600">入手原价 (选填)</label>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">¥</span>
+                        <input type="number" v-model="form.originalPrice" placeholder="0.00"
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none font-bold text-xl text-gray-600 focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none" />
+                    </div>
+                </div>
+
                 <!-- Consignment Fee Mode -->
                 <transition name="fade" mode="out-in">
                     <div v-if="saleMode === 'consignment'"
@@ -575,7 +587,7 @@ onMounted(() => {
                                 <span>发货地：</span>
                                 <span class="font-bold text-gray-800" @click="showLocationPicker = true">{{
                                     form.location
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
