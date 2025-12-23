@@ -90,6 +90,16 @@ export default {
             messageStore.fetchUnreadCount()
             if (userStore.isLoggedIn) {
                 userStore.loadMe().catch(() => { })
+                messageStore.connect()
+            }
+        })
+
+        // 监听登录状态变化，自动连接/断开 WebSocket
+        watch(() => userStore.isLoggedIn, (newVal) => {
+            if (newVal) {
+                messageStore.connect()
+            } else {
+                messageStore.disconnect()
             }
         })
 
