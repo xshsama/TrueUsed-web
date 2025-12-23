@@ -9,6 +9,8 @@ import SockJS from 'sockjs-client'
 import { ref } from 'vue'
 import { useUserStore } from './user'
 
+import { showNotify } from 'vant'
+
 export const useMessageStore = defineStore('message', () => {
   const unreadCount = ref(0)
   const conversations = ref([])
@@ -48,6 +50,16 @@ export const useMessageStore = defineStore('message', () => {
               handleIncomingMessage(msg)
             },
           )
+
+          // Subscribe to system notifications
+          console.log('Subscribing to /user/queue/notifications')
+          stompClient.value.subscribe(
+            '/user/queue/notifications',
+            (message) => {
+              const notification = JSON.parse(message.body)
+              handleNotification(notification)
+            },
+          )
         } else {
           console.error('User ID not found, cannot subscribe to private topic')
         }
@@ -71,6 +83,25 @@ export const useMessageStore = defineStore('message', () => {
       stompClient.value = null
       isConnected.value = false
     }
+  }
+
+  const handleNotification = (notification) => {
+    console.log('Received notification:', notification)
+    // Show popup
+    showNotify({
+      type: 'success',
+      message: notification.content,
+      duration: 3000,
+      onClick: () => {
+        // Navigate if needed, e.g. to product detail
+        if (notification.type === 'PRICE_DROP' && notification.relatedId) {
+          // router.push(`/product/${notification.relatedId}`)
+          // Note: router is not directly available here, might need to pass it or use window.location
+          window.location.href = `/product/${notification.relatedId}`
+        }
+      },
+    })
+    // Refresh unread count if needed (though notifications are separate from chat messages usually)
   }
 
   const handleIncomingMessage = (msg) => {

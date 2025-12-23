@@ -29,6 +29,7 @@ const loading = ref(true);
 const isFavorited = ref(false);
 const searchQuery = ref('');
 const newComment = ref('');
+// 价格趋势功能已移除
 
 const product = ref({
     id: null,
@@ -192,6 +193,8 @@ const handleSendComment = async () => {
     }
 };
 
+// 图表与异步趋势加载逻辑已移除
+
 const loadData = async () => {
     try {
         loading.value = true;
@@ -233,6 +236,8 @@ const loadData = async () => {
                 credit: '极好'
             };
         }
+
+        // 价格趋势已移除
 
         // Load comments
         try {
@@ -324,6 +329,8 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- 价格趋势模块已移除 -->
 
                 <!-- 3. Comments -->
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100/50">

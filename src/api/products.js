@@ -47,3 +47,8 @@ export function publishProduct(id) {
 export function hideProduct(id) {
   return request({ url: `/products/${id}/hide`, method: 'put' })
 }
+
+// 擦亮商品
+export function polishProduct(id) {
+  return request({ url: `/products/${id}/polish`, method: 'put' })
+}

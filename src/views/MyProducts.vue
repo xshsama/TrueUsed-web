@@ -1,7 +1,7 @@
 <script setup>
 import { fetchMyStats } from '@/api/auth';
 import { getMyConsignments, updateConsignmentLogistics } from '@/api/consignment';
-import { deleteProduct, getMyProducts, hideProduct, publishProduct } from '@/api/products';
+import { deleteProduct, getMyProducts, hideProduct, polishProduct, publishProduct } from '@/api/products';
 import SearchBar from '@/components/SearchBar.vue';
 import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
@@ -266,6 +266,20 @@ const handleShip = (item) => {
     });
 };
 
+const handlePolish = async (item) => {
+    try {
+        await polishProduct(item.id);
+        showSuccessToast('擦亮成功，宝贝已排到最前');
+        onRefresh();
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            showFailToast(e.response.data.message || '每天只能擦亮一次');
+        } else {
+            showFailToast('擦亮失败');
+        }
+    }
+};
+
 // --- Lifecycle ---
 onMounted(() => {
     if (route.query.tab) {
@@ -401,7 +415,7 @@ watch(activeTab, () => {
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
                                                 <span class="font-bold text-[#ff5e57] text-lg">¥{{ item.price
-                                                }}</span>
+                                                    }}</span>
                                                 <span v-if="item.originalPrice"
                                                     class="text-xs text-gray-400 line-through">¥{{
                                                         item.originalPrice }}</span>
@@ -463,7 +477,7 @@ watch(activeTab, () => {
 
                                     <!-- Sales Actions -->
                                     <template v-else-if="activeTab === 'sales'">
-                                        <button
+                                        <button @click="handlePolish(item)"
                                             class="w-full bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold py-2 rounded-lg shadow-sm shadow-[#4a8b6e]/20 transition-all flex items-center justify-center gap-1">
                                             <RefreshCw :size="12" /> 擦亮
                                         </button>

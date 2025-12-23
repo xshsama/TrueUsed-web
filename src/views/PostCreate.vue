@@ -242,7 +242,8 @@ const onSubmit = async () => {
                 originalPrice: form.value.originalPrice ? Number(form.value.originalPrice) : undefined,
                 categoryId: form.value.categoryId,
                 shippingMethod: 'express', // Default
-                trackingNoInbound: '' // Initial submission might not have tracking
+                trackingNoInbound: '', // Initial submission might not have tracking
+                imageKeys: form.value.images
             };
             await createConsignment(payload);
         } else {
@@ -272,11 +273,9 @@ const onSubmit = async () => {
 
         closeToast();
         showSuccessToast('发布成功');
-        if (saleMode.value === 'consignment') {
-            router.replace('/my-products?tab=consignments');
-        } else {
-            router.replace('/my-products');
-        }
+
+        router.replace('/my-products');
+
     } catch (e) {
         closeToast();
         showFailToast('发布失败');
