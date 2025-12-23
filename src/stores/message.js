@@ -2,6 +2,7 @@ import {
   sendMessage as apiSendMessage,
   getConversations,
   getMessages,
+  getOnlineUsers,
 } from '@/api/chat'
 import { Client } from '@stomp/stompjs'
 import { defineStore } from 'pinia'
@@ -18,6 +19,7 @@ export const useMessageStore = defineStore('message', () => {
   const messages = ref([]) // Current conversation messages
   const stompClient = ref(null)
   const isConnected = ref(false)
+  const onlineUsers = ref(new Set())
   const userStore = useUserStore()
 
   const setUnreadCount = (count) => {
@@ -39,6 +41,15 @@ export const useMessageStore = defineStore('message', () => {
       onConnect: () => {
         isConnected.value = true
         console.log('Connected to WebSocket')
+
+        // Fetch initial online users
+        fetchOnlineUsers()
+
+        // Subscribe to presence updates
+        stompClient.value.subscribe('/topic/presence', (message) => {
+          const presence = JSON.parse(message.body)
+          handlePresenceUpdate(presence)
+        })
 
         // Subscribe to user's private topic (using ID-based topic for reliability)
         if (userStore.user && userStore.user.id) {
@@ -82,6 +93,25 @@ export const useMessageStore = defineStore('message', () => {
       stompClient.value.deactivate()
       stompClient.value = null
       isConnected.value = false
+    }
+  }
+
+  const handlePresenceUpdate = (presence) => {
+    if (presence.status === 'ONLINE') {
+      onlineUsers.value.add(presence.userId)
+    } else {
+      onlineUsers.value.delete(presence.userId)
+    }
+  }
+
+  const fetchOnlineUsers = async () => {
+    try {
+      const users = await getOnlineUsers()
+      if (Array.isArray(users)) {
+        onlineUsers.value = new Set(users)
+      }
+    } catch (error) {
+      console.error('Failed to fetch online users', error)
     }
   }
 
@@ -183,7 +213,10 @@ export const useMessageStore = defineStore('message', () => {
           id: msg.id,
           type: 'text',
           content: msg.content,
-          isSelf: msg.senderId === userStore.user?.id,
+          isSelf:
+            msg.self !== undefined
+              ? msg.self
+              : msg.senderId === userStore.user?.id,
           timestamp: msg.timestamp
             ? new Date(msg.timestamp).getTime()
             : Date.now(),
@@ -193,6 +226,16 @@ export const useMessageStore = defineStore('message', () => {
       // So we need to reverse it to be ASC.
     } catch (error) {
       console.error('Failed to fetch messages', error)
+    }
+  }
+
+  const markConversationAsRead = (conversationId) => {
+    const conversation = conversations.value.find(
+      (c) => c.id === conversationId,
+    )
+    if (conversation && conversation.unreadCount > 0) {
+      unreadCount.value -= conversation.unreadCount
+      conversation.unreadCount = 0
     }
   }
 
@@ -216,7 +259,9 @@ export const useMessageStore = defineStore('message', () => {
     sendMessage,
     fetchConversations,
     fetchMessages,
+    markConversationAsRead,
     fetchUnreadCount,
     clearCurrentConversation,
+    onlineUsers,
   }
 })

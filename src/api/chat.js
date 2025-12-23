@@ -40,3 +40,10 @@ export function sendMessage(data) {
     data,
   })
 }
+
+export function getOnlineUsers() {
+  return request({
+    url: '/conversations/online',
+    method: 'get',
+  })
+}

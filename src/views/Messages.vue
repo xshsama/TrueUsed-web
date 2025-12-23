@@ -1,103 +1,119 @@
 <template>
-    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] flex flex-col">
+    <div class="flex h-[calc(100vh-64px)] bg-gray-50 font-sans">
+        <!-- Sidebar -->
+        <div class="w-80 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-50 flex justify-between items-center sticky top-0 bg-white z-10">
+                <h1 class="text-xl font-bold text-gray-800">消息</h1>
+                <div class="flex gap-3">
+                    <button
+                        class="p-2 hover:bg-gray-50 rounded-full transition-colors relative group border-none bg-transparent cursor-pointer">
+                        <div class="i-lucide-bell w-5 h-5 text-gray-600"></div>
+                        <span
+                            class="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <button
+                        class="p-2 hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
+                        <div class="i-lucide-plus w-5 h-5 text-gray-600"></div>
+                    </button>
+                </div>
+            </div>
 
-        <!-- --- Main Chat Layout (Two Columns) --- -->
-        <main class="max-w-[1280px] mx-auto w-full flex-1 px-6 py-6 flex h-[calc(100vh-72px)] gap-4">
-
-            <!-- Left Sidebar: Chat List -->
-            <aside
-                class="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden flex-shrink-0">
-                <!-- Sidebar Header -->
-                <div class="p-4 border-b border-gray-50 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-gray-800">消息列表</h2>
+            <!-- Search -->
+            <div class="px-4 py-3">
+                <div class="relative group">
                     <div
-                        class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 cursor-pointer transition-colors">
-                        <div class="i-lucide-plus text-lg"></div>
+                        class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4a8b6e] transition-colors">
+                        <div class="i-lucide-search w-4 h-4"></div>
                     </div>
+                    <input type="text" placeholder="搜索联系人/聊天记录"
+                        class="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm text-gray-700 focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all outline-none placeholder:text-gray-400" />
                 </div>
+            </div>
 
-                <!-- Search (Optional) -->
-                <div class="px-4 py-3">
-                    <SearchBar v-model="searchQuery" placeholder="搜索联系人" />
-                </div>
+            <!-- Chat List -->
+            <div class="flex-1 overflow-y-auto">
+                <div v-for="chat in chatList" :key="chat.id" @click="switchChat(chat)"
+                    class="px-4 py-3 flex gap-3 cursor-pointer transition-all border-l-4 hover:bg-gray-50"
+                    :class="activeChatId === chat.id ? 'bg-[#4a8b6e]/5 border-[#4a8b6e]' : 'border-transparent'">
 
-                <!-- Chat List -->
-                <div class="flex-1 overflow-y-auto">
-                    <div v-for="chat in chatList" :key="chat.id" @click="switchChat(chat)"
-                        class="flex items-center gap-3 p-4 cursor-pointer transition-all hover:bg-gray-50 relative group"
-                        :class="activeChatId === chat.id ? 'bg-emerald-50/40' : ''">
+                    <div class="relative flex-shrink-0">
+                        <img :src="chat.avatar" class="w-12 h-12 rounded-full object-cover border border-gray-100" />
+                        <span v-if="chat.online"
+                            class="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                    </div>
 
-                        <!-- Avatar -->
-                        <div class="relative flex-shrink-0">
-                            <img :src="chat.avatar"
-                                class="w-12 h-12 rounded-full object-cover border border-gray-100 group-hover:scale-105 transition-transform" />
-                            <div v-if="chat.unread > 0"
-                                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h3 class="font-bold text-gray-800 truncate text-sm"
+                                :class="activeChatId === chat.id ? 'text-[#4a8b6e]' : ''">
+                                {{ chat.name }}
+                            </h3>
+                            <span class="text-[10px] text-gray-400 flex-shrink-0">{{ chat.time }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs text-gray-500 truncate max-w-[140px]"
+                                :class="chat.unread ? 'font-medium text-gray-700' : ''">
+                                {{ chat.lastMessage }}
+                            </p>
+                            <span v-if="chat.unread"
+                                class="min-w-[18px] h-[18px] flex items-center justify-center bg-[#ff4d4f] text-white text-[10px] font-bold rounded-full px-1">
                                 {{ chat.unread }}
-                            </div>
+                            </span>
                         </div>
-
-                        <!-- Info -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-baseline mb-1">
-                                <h3 class="font-bold text-gray-800 truncate text-[14px]"
-                                    :class="activeChatId === chat.id ? 'text-[#4a8b6e]' : ''">{{ chat.name }}</h3>
-                                <span class="text-[10px] text-gray-400 flex-shrink-0">{{ chat.time }}</span>
-                            </div>
-                            <p class="text-xs text-gray-500 truncate group-hover:text-gray-700 transition-colors">{{
-                                chat.lastMessage }}</p>
-                        </div>
-
-                        <!-- Active Indicator -->
-                        <div v-if="activeChatId === chat.id"
-                            class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-[#4a8b6e] rounded-r-full"></div>
                     </div>
                 </div>
-            </aside>
+            </div>
+        </div>
 
-            <!-- Right Chat Window -->
-            <div v-if="!activeChatId"
-                class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-gray-400">
-                <div class="i-lucide-message-square text-6xl mb-4 opacity-20"></div>
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col bg-white relative min-w-0">
+            <div v-if="!activeChatId" class="flex-1 flex flex-col items-center justify-center text-gray-400">
+                <div class="i-lucide-message-square w-16 h-16 mb-4 opacity-20"></div>
                 <p>选择一个联系人开始聊天</p>
             </div>
 
-            <div v-else
-                class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
-
+            <div v-else class="flex flex-col h-full">
                 <!-- Chat Header -->
-                <header
-                    class="h-16 border-b border-gray-50 flex items-center justify-between px-6 flex-shrink-0 bg-white z-20">
+                <div
+                    class="h-16 px-6 border-b border-gray-50 flex justify-between items-center bg-white/80 backdrop-blur-sm sticky top-0 z-20">
                     <div class="flex items-center gap-3">
                         <div class="relative">
-                            <img :src="currentChatUser.avatar" class="w-10 h-10 rounded-full object-cover" />
-                            <div
-                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full">
-                            </div>
+                            <img :src="activeChat?.avatar"
+                                class="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm" />
+                            <span v-if="activeChat?.online"
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                         </div>
                         <div>
-                            <div class="font-bold text-gray-800 flex items-center gap-2">
-                                {{ currentChatUser.name }}
-                                <span v-if="currentChatUser.credit"
-                                    class="bg-gray-100 text-gray-400 text-[10px] px-1.5 py-0.5 rounded font-normal">芝麻信用{{
-                                        currentChatUser.credit }}</span>
+                            <div class="flex items-center gap-2">
+                                <h2 class="font-bold text-gray-800">{{ activeChat?.name }}</h2>
+                                <span
+                                    class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded flex items-center gap-1">
+                                    <div class="i-lucide-shield w-3 h-3"></div>
+                                    信用极好
+                                </span>
                             </div>
-                            <div class="text-xs text-gray-400">活跃于 刚刚</div>
+                            <div v-if="activeChat?.online" class="text-xs text-green-600 flex items-center gap-1">
+                                <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                在线
+                            </div>
+                            <div v-else class="text-xs text-gray-400 flex items-center gap-1">
+                                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
+                                离线
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Header Actions -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex gap-4">
                         <button
-                            class="w-8 h-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-phone text-lg"></div>
+                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 rounded-full transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-phone w-5 h-5"></div>
                         </button>
                         <button
-                            class="w-8 h-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-more-vertical text-lg"></div>
+                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 rounded-full transition-colors border-none bg-transparent cursor-pointer">
+                            <div class="i-lucide-more-horizontal w-5 h-5"></div>
                         </button>
                     </div>
-                </header>
+                </div>
 
                 <!-- Product Context Card -->
                 <div v-if="relatedProduct"
@@ -106,8 +122,7 @@
                         <img :src="relatedProduct.image" class="w-10 h-10 rounded-lg object-cover bg-gray-100" />
                         <div>
                             <div class="text-sm font-bold text-gray-800">¥{{ relatedProduct.price }}</div>
-                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}
-                            </div>
+                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}</div>
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -123,29 +138,35 @@
                 </div>
 
                 <!-- Messages Area -->
-                <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f9fafb]" ref="messagesContainer">
-
+                <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-[#f9fafb]" ref="messagesContainer">
                     <template v-for="msg in messages" :key="msg.id">
+                        <!-- System Message -->
                         <div v-if="msg.type === 'system'" class="flex justify-center mb-4">
                             <div
                                 class="bg-[#fefce8] text-[#854d0e] text-xs px-4 py-2 rounded-full flex items-center gap-2 border border-[#fef08a] shadow-sm max-w-lg text-center">
-                                <div class="i-lucide-shield-alert text-sm flex-shrink-0"></div>
+                                <div class="i-lucide-shield-alert w-3.5 h-3.5 flex-shrink-0"></div>
                                 {{ msg.content }}
                             </div>
                         </div>
 
-                        <div v-else class="flex gap-3" :class="msg.type === 'me' ? 'flex-row-reverse' : ''">
-                            <img :src="msg.type === 'me' ? currentUser.avatar : currentChatUser.avatar"
-                                class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-white shadow-sm" />
+                        <!-- User Message -->
+                        <div v-else class="flex gap-3 group" :class="msg.type === 'me' ? 'flex-row-reverse' : ''">
+                            <img :src="msg.type === 'me' ? currentUser.avatar : activeChat?.avatar"
+                                class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-white shadow-sm mt-1" />
+
                             <div class="max-w-[70%] space-y-1"
                                 :class="msg.type === 'me' ? 'items-end flex flex-col' : ''">
-                                <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm relative group"
-                                    :class="msg.type === 'me'
-                                        ? 'bg-[#4a8b6e] text-white rounded-tr-none'
-                                        : 'bg-white text-gray-700 border border-gray-100 rounded-tl-none'">
+                                <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm relative" :class="msg.type === 'me'
+                                    ? 'bg-[#4a8b6e] text-white rounded-tr-none'
+                                    : 'bg-white text-gray-700 border border-gray-100 rounded-tl-none'">
                                     {{ msg.content }}
                                 </div>
-                                <span class="text-[10px] text-gray-300 px-1">{{ msg.time }}</span>
+                                <div
+                                    class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                                    <span class="text-[10px] text-gray-300">{{ msg.time }}</span>
+                                    <span v-if="msg.type === 'me'"
+                                        class="text-[10px] text-[#4a8b6e] font-medium">已读</span>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -153,7 +174,6 @@
 
                 <!-- Input Area -->
                 <div class="bg-white border-t border-gray-100 p-4">
-
                     <!-- Quick Replies -->
                     <div class="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
                         <button v-for="text in quickReplies" :key="text" @click="handleQuickReply(text)"
@@ -165,11 +185,11 @@
                     <div class="flex items-center gap-3">
                         <button
                             class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-image text-[22px]"></div>
+                            <div class="i-lucide-image w-[22px] h-[22px]"></div>
                         </button>
                         <button
                             class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-truck text-[22px]"></div>
+                            <div class="i-lucide-smile w-[22px] h-[22px]"></div>
                         </button>
 
                         <div class="flex-1 relative">
@@ -181,18 +201,16 @@
                             class="p-2.5 rounded-full transition-all border-none cursor-pointer flex items-center justify-center"
                             :class="inputText.trim() ? 'bg-[#4a8b6e] text-white shadow-lg shadow-[#4a8b6e]/30' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
                             :disabled="!inputText.trim()">
-                            <div class="i-lucide-send text-xl" :class="inputText.trim() ? 'translate-x-0.5' : ''"></div>
+                            <div class="i-lucide-send w-5 h-5" :class="inputText.trim() ? 'translate-x-0.5' : ''"></div>
                         </button>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
 </template>
 
 <script setup>
-import SearchBar from '@/components/SearchBar.vue'
 import { useMessageStore } from '@/stores/message'
 import { useUserStore } from '@/stores/user'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -204,25 +222,27 @@ const messageStore = useMessageStore()
 const userStore = useUserStore()
 
 const inputText = ref('')
-const searchQuery = ref('')
 const messagesContainer = ref(null)
 
 // Current User
-const currentUser = computed(() => userStore.user || {
-    id: 'me',
-    avatar: 'https://via.placeholder.com/100'
+const currentUser = computed(() => {
+    const u = userStore.user
+    return {
+        id: u?.id || 'me',
+        avatar: u?.avatarUrl || 'https://via.placeholder.com/100'
+    }
 })
 
 // Chat List from Store
 const chatList = computed(() => messageStore.conversations.map(c => ({
     id: c.id,
-    name: c.otherUser?.nickname || c.otherUser?.username || '未知用户',
-    avatar: c.otherUser?.avatarUrl || 'https://via.placeholder.com/100',
-    lastMessage: c.lastMessageContent,
-    time: formatTime(c.lastMessageTimestamp),
+    name: c.otherUserName || '未知用户',
+    avatar: c.otherUserAvatar || 'https://via.placeholder.com/100',
+    lastMessage: c.lastMessage,
+    time: formatTime(c.lastMessageTime),
     unread: c.unreadCount,
-    otherUserId: c.otherUser?.id, // Keep track of other user ID
-    type: 'user' // Assume all are user chats for now
+    otherUserId: c.otherUserId,
+    online: messageStore.onlineUsers.has(c.otherUserId)
 })))
 
 // Messages from Store
@@ -234,13 +254,16 @@ const messages = computed(() => messageStore.messages.map(m => ({
 })))
 
 const activeChatId = ref(null)
-const currentChatUser = ref({
-    name: '',
-    avatar: '',
-    credit: ''
+const activeChat = computed(() => {
+    if (!activeChatId.value) return null
+    return chatList.value.find(c => c.id === activeChatId.value) || {
+        name: '未知用户',
+        avatar: 'https://via.placeholder.com/100',
+        online: false
+    }
 })
 
-// Related product (Mock for now as backend doesn't support it in conversation API yet)
+// Related product (Mock for now)
 const relatedProduct = ref(null)
 
 const quickReplies = ['还在吗？', '可以刀吗？', '什么时候能发货？', '成色怎么样？', '有瑕疵吗？']
@@ -267,7 +290,6 @@ const scrollToBottom = () => {
 const handleSend = async () => {
     if (!inputText.value.trim() || !activeChatId.value) return
 
-    // Find the other user ID
     const chat = chatList.value.find(c => c.id === activeChatId.value)
     if (!chat || !chat.otherUserId) return
 
@@ -284,20 +306,15 @@ const handleQuickReply = (text) => {
 const switchChat = async (chat) => {
     if (activeChatId.value === chat.id) return
     activeChatId.value = chat.id
-    currentChatUser.value = {
-        name: chat.name,
-        avatar: chat.avatar,
-        credit: '' // Backend doesn't return credit score in conversation list yet
-    }
+
+    messageStore.markConversationAsRead(chat.id)
 
     await messageStore.fetchMessages(chat.id)
     scrollToBottom()
 
-    // Update URL without reloading
     router.replace(`/messages/chat/${chat.id}`)
 }
 
-// Watch for store messages update to scroll
 watch(() => messageStore.messages.length, () => {
     scrollToBottom()
 })
@@ -308,25 +325,17 @@ onMounted(async () => {
 
     const paramId = route.params.id ? parseInt(route.params.id) : null
     if (paramId) {
-        // If ID provided in URL
         const chat = chatList.value.find(c => c.id === paramId)
         if (chat) {
             switchChat(chat)
         } else {
-            // If chat not in list (new chat?), might need to fetch single conversation or handle error
-            // For now, try to fetch messages directly if we assume ID is valid
             activeChatId.value = paramId
             await messageStore.fetchMessages(paramId)
-            // We won't have currentChatUser info if not in list, might need extra API call
         }
-    } else if (chatList.value.length > 0) {
-        // Select first chat if no ID
-        switchChat(chatList.value[0])
     }
 })
 
 onUnmounted(() => {
-    // Optional: messageStore.disconnect() - usually keep connected for notifications
     messageStore.clearCurrentConversation()
 })
 </script>
