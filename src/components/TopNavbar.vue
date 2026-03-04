@@ -30,13 +30,7 @@
                                 class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
                             </div>
                         </router-link>
-                        <router-link to="/nearby" class="relative transition-colors"
-                            :class="[route.path === '/nearby' ? 'text-[#4a8b6e] font-bold' : 'hover:text-[#4a8b6e]']">
-                            附近闲置
-                            <div v-if="route.path === '/nearby'"
-                                class="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#4a8b6e] rounded-t-full">
-                            </div>
-                        </router-link>
+
                     </template>
                 </div>
             </div>
@@ -117,6 +111,7 @@
 import SearchBar from '@/components/SearchBar.vue';
 import { useMessageStore } from '@/stores/message';
 import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -133,7 +128,7 @@ const userStore = useUserStore();
 const messageStore = useMessageStore();
 
 const unreadCount = computed(() => messageStore.unreadCount);
-const avatarSrc = computed(() => userStore.user?.avatarUrl);
+const avatarSrc = computed(() => resolveAvatar(userStore.user?.avatarUrl, userStore.user?.avatar));
 
 const goHome = () => {
     router.push('/');

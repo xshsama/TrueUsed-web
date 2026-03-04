@@ -245,8 +245,6 @@
                 </div>
                 <van-field v-model="form.nickname" label="昵称" placeholder="请输入昵称" :error-message="errors.nickname"
                     class="mb-2" />
-                <van-field v-model="form.phone" label="手机号" placeholder="可选" :error-message="errors.phone"
-                    class="mb-2" />
                 <van-field v-model="form.bio" label="签名" type="textarea" rows="2" maxlength="80" show-word-limit
                     placeholder="介绍一下自己吧" />
 
@@ -264,6 +262,7 @@
 import { fetchMyStats } from '@/api/auth'
 import { getBrowsingHistory } from '@/api/history'
 import { getMyProducts } from '@/api/products'
+import { getMyWallet } from '@/api/wallet'
 import defaultAvatarUrl from '@/assets/icons/user.svg'
 import ImageUpload from '@/components/ImageUpload.vue'
 import { useUserStore } from '@/stores/user'
@@ -281,6 +280,7 @@ const userInfo = computed(() => userStore.user || {})
 const avatarSrc = ref(defaultAvatarUrl)
 const recentHistory = ref([])
 const topProducts = ref([])
+const walletBalance = ref(0)
 
 // --- Data Definitions ---
 
@@ -314,7 +314,7 @@ const currentOrderMenu = computed(() => isSellerMode.value ? sellerOrderMenu : b
 
 // 3. Assets
 const currentAssets = computed(() => [
-    { label: '我的钱包', value: isSellerMode.value ? sellerStats.value[0].value : '¥0.00', icon: 'i-lucide-wallet', action: 'wallet' },
+    { label: '我的钱包', value: `¥${Number(walletBalance.value || 0).toFixed(2)}`, icon: 'i-lucide-wallet', action: 'wallet' },
     { label: isSellerMode.value ? '推广券' : '优惠券', value: isSellerMode.value ? '0张' : (userInfo.value.couponCount || 0) + '张', icon: 'i-lucide-ticket', action: 'coupons' },
 ])
 
@@ -385,7 +385,9 @@ const fetchTopProducts = async () => {
         // Fetch products sorted by views (assuming backend supports 'views_desc' or similar, if not default to created_desc)
         // Note: Backend might not support 'views_desc' yet, but let's try or fallback to default
         const res = await getMyProducts({ page: 0, size: 2, sort: 'views_desc' })
-        topProducts.value = (res.content || []).map(p => ({
+        const visibleProducts = (res.content || [])
+            .filter(p => ['ON_SALE', 'LOCKED'].includes(p.status))
+        topProducts.value = visibleProducts.map(p => ({
             id: p.id,
             title: p.title,
             price: p.price,
@@ -397,6 +399,16 @@ const fetchTopProducts = async () => {
     }
 }
 
+const fetchWalletBalance = async () => {
+    if (!isLoggedIn.value) return
+    try {
+        const wallet = await getMyWallet()
+        walletBalance.value = Number(wallet?.balance || 0)
+    } catch (error) {
+        console.error('Failed to fetch wallet balance', error)
+    }
+}
+
 onMounted(async () => {
     if (route.query.tab === 'seller') {
         isSellerMode.value = true
@@ -404,6 +416,7 @@ onMounted(async () => {
     if (isLoggedIn.value) {
         await userStore.loadMe()
         loadStats()
+        fetchWalletBalance()
         if (!isSellerMode.value) {
             fetchRecentHistory()
         } else {
@@ -430,6 +443,14 @@ watch(() => userInfo.value, (newVal) => {
     }
 }, { deep: true, immediate: true })
 
+watch(() => isLoggedIn.value, (loggedIn) => {
+    if (loggedIn) {
+        fetchWalletBalance()
+    } else {
+        walletBalance.value = 0
+    }
+})
+
 function updateAvatar() {
     avatarSrc.value = (userInfo.value && (userInfo.value.avatarUrl || userInfo.value.avatar)) || defaultAvatarUrl
 }
@@ -443,9 +464,9 @@ const onAvatarError = () => {
 // Edit Profile Logic
 const showEdit = ref(false)
 const saving = ref(false)
-const form = ref({ nickname: '', avatarUrl: '', bio: '', phone: '' })
+const form = ref({ nickname: '', avatarUrl: '', bio: '' })
 const avatarList = ref([])
-const errors = ref({ nickname: '', phone: '' })
+const errors = ref({ nickname: '' })
 
 const editProfile = () => {
     if (!isLoggedIn.value) {
@@ -455,8 +476,7 @@ const editProfile = () => {
     form.value = {
         nickname: userInfo.value.nickname || '',
         avatarUrl: userInfo.value.avatarUrl || '',
-        bio: userInfo.value.bio || '',
-        phone: userInfo.value.phone || ''
+        bio: userInfo.value.bio || ''
     }
     avatarList.value = form.value.avatarUrl ? [form.value.avatarUrl] : []
     showEdit.value = true
@@ -500,6 +520,7 @@ const handleServiceClick = (item) => {
         case 'inspections': router.push('/inspection-reports'); break;
         case 'history': router.push('/history'); break;
         case 'order-manage': router.push('/order-manage'); break;
+        case 'data': router.push('/seller/data-center'); break;
         case 'shop-settings': router.push('/shop-settings'); break; // Placeholder
         case 'wallet': router.push('/wallet'); break;
         default: showToast('功能开发中');

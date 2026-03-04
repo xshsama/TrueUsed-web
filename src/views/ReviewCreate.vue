@@ -22,7 +22,7 @@
                     </button>
                     <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100">
                         <!-- User Avatar Placeholder or Real Avatar -->
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                        <img :src="resolveAvatar()"
                             class="w-full h-full object-cover" />
                     </div>
                 </div>
@@ -41,7 +41,7 @@
                 <div class="text-right">
                     <div class="font-bold text-lg text-[#2c3e50] font-mono">¥{{ order.price }}</div>
                     <div class="flex items-center justify-end gap-1.5 mt-1">
-                        <img :src="order.seller.avatarUrl || 'https://via.placeholder.com/50'"
+                        <img :src="resolveAvatar(order.seller.avatarUrl, order.seller.avatar)"
                             class="w-4 h-4 rounded-full bg-gray-200" />
                         <span class="text-xs text-gray-500">{{ order.seller.nickname || order.seller.username }}</span>
                     </div>
@@ -141,6 +141,7 @@
 import { getCloudinarySignature } from '@/api/cloudinary';
 import { getOrderById } from '@/api/orders';
 import { createReview } from '@/api/reviews';
+import { resolveAvatar } from '@/utils/avatar';
 import axios from 'axios';
 import { Camera, Check, Star, X } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast } from 'vant';

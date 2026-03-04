@@ -84,6 +84,7 @@
 
 <script>
 import { getSoldOrders, shipOrder } from '@/api/orders';
+import { resolveAvatar } from '@/utils/avatar';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -96,7 +97,7 @@ export default {
         const refreshing = ref(false);
         const finished = ref(false);
         const orders = ref([]);
-        const defaultAvatar = '';
+        const defaultAvatar = resolveAvatar();
 
         const statusMap = {
             PENDING: '待付款',

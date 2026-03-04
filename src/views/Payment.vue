@@ -1,7 +1,9 @@
 <script setup>
-import { getOrderById, payOrder } from '@/api/orders';
+import { getOrderById, payOrderByWallet } from '@/api/orders';
 import { createPayment } from '@/api/payments';
-import { Check, Clock, CreditCard, Loader2, Lock, ShieldCheck } from 'lucide-vue-next';
+import { getMyWallet } from '@/api/wallet';
+import { Check, Clock, Loader2, Lock, ShieldCheck, Wallet } from 'lucide-vue-next';
+import { showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -12,8 +14,11 @@ const router = useRouter();
 const loading = ref(true);
 const order = ref(null);
 const selectedMethod = ref('alipay');
+const wallet = ref(null);
 const isProcessing = ref(false);
 const showSuccess = ref(false);
+const showPasswordModal = ref(false);
+const password = ref('');
 const countdown = ref('15:00');
 let timerInterval = null;
 
@@ -75,11 +80,34 @@ const loadOrder = async () => {
     }
 };
 
+const loadWallet = async () => {
+    try {
+        const res = await getMyWallet();
+        wallet.value = res;
+    } catch (error) {
+        console.error('Failed to load wallet', error);
+    }
+};
+
 const handlePayment = async () => {
     if (!order.value) return;
 
-    isProcessing.value = true;
     try {
+        if (selectedMethod.value === 'wallet') {
+            if (!wallet.value?.hasPayPassword) {
+                showFailToast('请先设置支付密码');
+                router.push('/wallet');
+                return;
+            }
+            if ((wallet.value?.balance || 0) < order.value.price) {
+                showFailToast('钱包余额不足');
+                return;
+            }
+            showPasswordModal.value = true;
+            return;
+        }
+
+        isProcessing.value = true;
         if (selectedMethod.value === 'alipay') {
             await createPayment({
                 outTradeNo: String(order.value.id),
@@ -87,16 +115,32 @@ const handlePayment = async () => {
                 subject: `TrueUsed Order ${order.value.id}`,
                 body: 'TrueUsed Transaction'
             });
-        } else {
-            // Simulate network delay for better UX
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            await payOrder(order.value.id);
-            showSuccess.value = true;
         }
     } catch (error) {
         console.error('Payment failed', error);
-        // You might want to show a toast here
+        showFailToast(error?.response?.data?.message || '支付失败');
+    } finally {
+        isProcessing.value = false;
+    }
+};
+
+const confirmWalletPayment = async () => {
+    if (!order.value) return;
+    if (!password.value) {
+        showFailToast('请输入支付密码');
+        return;
+    }
+
+    isProcessing.value = true;
+    try {
+        await payOrderByWallet(order.value.id, password.value);
+        showPasswordModal.value = false;
+        password.value = '';
+        showSuccessToast('支付成功');
+        showSuccess.value = true;
+    } catch (error) {
+        console.error('Wallet payment failed', error);
+        showFailToast(error?.response?.data?.message || '余额支付失败');
     } finally {
         isProcessing.value = false;
     }
@@ -111,7 +155,13 @@ const goToOrderDetail = () => {
 };
 
 onMounted(() => {
+    if (route.query.method === 'wallet') {
+        selectedMethod.value = 'wallet';
+    } else if (route.query.method === 'alipay') {
+        selectedMethod.value = 'alipay';
+    }
     loadOrder();
+    loadWallet();
 });
 
 onUnmounted(() => {
@@ -207,41 +257,24 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <!-- WeChat Pay -->
-                    <div @click="selectedMethod = 'wechat'"
-                        :class="['bg-white rounded-xl p-5 border-2 cursor-pointer transition-all flex items-center justify-between group', selectedMethod === 'wechat' ? 'payment-card-selected' : 'border-transparent hover:border-gray-100']">
+                    <!-- Wallet Pay -->
+                    <div @click="selectedMethod = 'wallet'"
+                        :class="['bg-white rounded-xl p-5 border-2 cursor-pointer transition-all flex items-center justify-between group', selectedMethod === 'wallet' ? 'payment-card-selected' : 'border-transparent hover:border-gray-100']">
                         <div class="flex items-center gap-4">
                             <div
-                                class="w-10 h-10 rounded-lg bg-[#07c160] flex items-center justify-center text-white shrink-0">
-                                <span class="font-bold text-sm">微</span>
+                                class="w-10 h-10 rounded-lg bg-[#2c3e50] flex items-center justify-center text-white shrink-0">
+                                <Wallet :size="20" />
                             </div>
                             <div>
-                                <div class="font-bold text-gray-800">微信支付</div>
-                                <div class="text-xs text-gray-400">亿万用户的选择</div>
+                                <div class="font-bold text-gray-800">钱包余额支付</div>
+                                <div class="text-xs text-gray-400">
+                                    余额：¥{{ wallet ? Number(wallet.balance || 0).toFixed(2) : '0.00' }}
+                                </div>
                             </div>
                         </div>
                         <div
-                            :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center radio-ring', selectedMethod === 'wechat' ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
-                            <Check v-if="selectedMethod === 'wechat'" :size="12" class="text-white" />
-                        </div>
-                    </div>
-
-                    <!-- Bank Card -->
-                    <div @click="selectedMethod = 'card'"
-                        :class="['bg-white rounded-xl p-5 border-2 cursor-pointer transition-all flex items-center justify-between group', selectedMethod === 'card' ? 'payment-card-selected' : 'border-transparent hover:border-gray-100']">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-white shrink-0">
-                                <CreditCard :size="20" />
-                            </div>
-                            <div>
-                                <div class="font-bold text-gray-800">银行卡 / 信用卡</div>
-                                <div class="text-xs text-gray-400">支持大额支付</div>
-                            </div>
-                        </div>
-                        <div
-                            :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center radio-ring', selectedMethod === 'card' ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
-                            <Check v-if="selectedMethod === 'card'" :size="12" class="text-white" />
+                            :class="['w-5 h-5 rounded-full border-2 flex items-center justify-center radio-ring', selectedMethod === 'wallet' ? 'border-[#4a8b6e] bg-[#4a8b6e]' : 'border-gray-300']">
+                            <Check v-if="selectedMethod === 'wallet'" :size="12" class="text-white" />
                         </div>
                     </div>
 
@@ -266,6 +299,29 @@ onUnmounted(() => {
         <!-- Loading State -->
         <div v-else class="flex-1 flex items-center justify-center">
             <Loader2 class="animate-spin text-[#4a8b6e]" :size="32" />
+        </div>
+
+        <!-- --- Wallet Password Modal --- -->
+        <div v-if="showPasswordModal" class="wallet-modal-mask">
+            <div class="wallet-modal-card">
+                <div class="wallet-modal-head">
+                    <h3>输入支付密码</h3>
+                    <p>本次将使用余额支付 ¥{{ orderAmount }}</p>
+                </div>
+                <div class="wallet-modal-body">
+                    <label class="wallet-field-label">支付密码</label>
+                    <div class="wallet-input-wrap">
+                        <span class="text-[13px]">•••</span>
+                        <input v-model="password" type="password" maxlength="20" placeholder="请输入支付密码">
+                    </div>
+                </div>
+                <div class="wallet-modal-actions">
+                    <button type="button" class="btn-ghost" @click="showPasswordModal = false">取消</button>
+                    <button type="button" class="btn-primary" :disabled="isProcessing" @click="confirmWalletPayment">
+                        {{ isProcessing ? '处理中...' : '确认支付' }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- --- Success Modal --- -->
@@ -298,5 +354,136 @@ onUnmounted(() => {
     border-color: #4a8b6e;
     background-color: rgba(74, 139, 110, 0.03);
     box-shadow: 0 4px 6px -1px rgba(74, 139, 110, 0.1), 0 2px 4px -1px rgba(74, 139, 110, 0.06);
+}
+
+.wallet-modal-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(11, 18, 32, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+.wallet-modal-card {
+    width: min(520px, calc(100vw - 32px));
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 24px 50px rgba(20, 31, 45, 0.28);
+    border: 1px solid #eef2f7;
+    overflow: hidden;
+}
+
+.wallet-modal-head {
+    padding: 20px 24px 14px;
+    background: linear-gradient(160deg, #f7fbf9 0%, #ffffff 70%);
+    border-bottom: 1px solid #edf2f7;
+}
+
+.wallet-modal-head h3 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.1;
+    color: #2c3e50;
+    font-weight: 800;
+}
+
+.wallet-modal-head p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #7a8598;
+}
+
+.wallet-modal-body {
+    padding: 18px 24px 6px;
+}
+
+.wallet-field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #617086;
+}
+
+.wallet-input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #d8e0ea;
+    border-radius: 14px;
+    padding: 0 14px;
+    height: 56px;
+    background: #fbfcff;
+    transition: all .2s ease;
+}
+
+.wallet-input-wrap:focus-within {
+    border-color: #4a8b6e;
+    box-shadow: 0 0 0 4px rgba(74, 139, 110, .12);
+    background: #fff;
+}
+
+.wallet-input-wrap span {
+    font-weight: 700;
+    color: #2c3e50;
+    margin-right: 8px;
+}
+
+.wallet-input-wrap input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.wallet-input-wrap input::placeholder {
+    color: #b0b9c7;
+    font-weight: 600;
+}
+
+.wallet-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 22px;
+}
+
+.wallet-modal-actions button {
+    min-width: 104px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all .2s ease;
+}
+
+.wallet-modal-actions button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.btn-ghost {
+    background: #f4f6fa;
+    color: #5f6d82;
+}
+
+.btn-ghost:hover {
+    background: #eaf0f7;
+}
+
+.btn-primary {
+    background: #4a8b6e;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #3b755b;
 }
 </style>

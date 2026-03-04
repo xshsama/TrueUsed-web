@@ -46,7 +46,19 @@ export default {
                 showSuccessToast('保存成功');
                 router.back();
             } catch (error) {
-                showFailToast('保存失败');
+                console.error('Address save error:', error);
+                let msg = '保存失败';
+                // 优先尝试获取后端返回的业务错误信息
+                if (error.response?.data) {
+                    if (typeof error.response.data === 'object') {
+                        msg = error.response.data.message || error.response.data.msg || JSON.stringify(error.response.data);
+                    } else {
+                        msg = String(error.response.data);
+                    }
+                } else if (error.message) {
+                    msg = error.message;
+                }
+                showFailToast(msg);
             }
         };
 

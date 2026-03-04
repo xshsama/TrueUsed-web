@@ -21,7 +21,7 @@ export function fetchMe() {
 }
 
 export function updateMe(data) {
-  return request.put('/users/me', data)
+  return request.put('/users/me', data, { silent: true })
 }
 
 export function fetchMyStats() {

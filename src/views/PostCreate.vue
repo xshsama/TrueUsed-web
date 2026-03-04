@@ -4,6 +4,8 @@ import { getCloudinarySignature } from '@/api/cloudinary';
 import { createConsignment } from '@/api/consignment';
 import { createProduct } from '@/api/products';
 import { useAuth } from '@/composables/useAuth';
+import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import axios from 'axios';
 import {
     ArrowRight,
@@ -24,7 +26,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const { user } = useAuth();
+const { currentUser } = useAuth();
+const userStore = useUserStore();
 
 // --- 状态管理 ---
 const saleMode = ref('consignment'); // 'consignment' or 'direct'
@@ -312,6 +315,9 @@ const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
 onMounted(() => {
     loadCategories();
+    if (userStore.isLoggedIn && !userStore.user) {
+        userStore.loadMe().catch(() => { });
+    }
 });
 </script>
 
@@ -340,7 +346,7 @@ onMounted(() => {
                         存草稿
                     </button>
                     <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden ml-2 border border-gray-100">
-                        <img :src="user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'"
+                        <img :src="resolveAvatar(currentUser?.avatarUrl, currentUser?.avatar)"
                             class="w-full h-full object-cover" />
                     </div>
                 </div>

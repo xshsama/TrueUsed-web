@@ -2,6 +2,7 @@
 import { cancelOrder, confirmDelivery, getMyOrders } from '@/api/orders';
 import BuyerSidebar from '@/components/BuyerSidebar.vue';
 import SearchBar from '@/components/SearchBar.vue';
+import { resolveAvatar } from '@/utils/avatar';
 import {
     ChevronRight,
     Clock,
@@ -9,7 +10,7 @@ import {
     Truck
 } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -22,6 +23,8 @@ const orders = ref([]);
 const loading = ref(false);
 const refreshing = ref(false);
 const finished = ref(false);
+const nowTs = ref(Date.now());
+let countdownTimer = null;
 
 const tabs = ['全部', '待付款', '待发货', '待收货', '售后/退款'];
 
@@ -162,13 +165,22 @@ const getProductImage = (product) => {
 };
 
 const getRemainingTime = (createdAt) => {
-    // Simple countdown logic placeholder
-    // In a real app, you'd calculate this dynamically
-    return '14:59';
+    if (!createdAt) return '00:00';
+    const created = new Date(createdAt).getTime();
+    if (Number.isNaN(created)) return '00:00';
+    const expireAt = created + 15 * 60 * 1000;
+    const remainMs = Math.max(0, expireAt - nowTs.value);
+    const minutes = Math.floor(remainMs / 60000).toString().padStart(2, '0');
+    const seconds = Math.floor((remainMs % 60000) / 1000).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
 };
 
 // --- Lifecycle ---
 onMounted(() => {
+    countdownTimer = setInterval(() => {
+        nowTs.value = Date.now();
+    }, 1000);
+
     loadOrders();
 
     // Handle query params for initial tab
@@ -183,6 +195,13 @@ onMounted(() => {
         if (map[statusQuery]) {
             activeTab.value = map[statusQuery];
         }
+    }
+});
+
+onUnmounted(() => {
+    if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
     }
 });
 
@@ -233,7 +252,7 @@ onMounted(() => {
                             <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
                                 <div class="flex items-center gap-2">
                                     <!-- Seller Info (Mocked if missing) -->
-                                    <img :src="order.seller?.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100'"
+                                    <img :src="resolveAvatar(order.seller?.avatarUrl, order.seller?.avatar)"
                                         class="w-6 h-6 rounded-full border border-gray-100" />
                                     <span class="font-bold text-sm text-gray-800">{{ order.seller?.username ||
                                         order.seller?.name || '卖家' }}</span>
@@ -244,7 +263,7 @@ onMounted(() => {
                                 <div class="flex items-center gap-2">
                                     <span v-if="order.status === 'PENDING_PAYMENT'"
                                         class="text-xs text-[#ff5e57] flex items-center gap-1">
-                                        <Clock :size="12" /> 剩余 14:59
+                                        <Clock :size="12" /> 剩余 {{ getRemainingTime(order.createdAt) }}
                                     </span>
                                     <span :class="['text-sm font-bold', getStatusColor(order.status)]">
                                         {{ getStatusText(order.status) }}

@@ -36,6 +36,7 @@ const finished = ref(false);
 const isInitialLoading = ref(true);
 const page = ref(0);
 const pageSize = 20;
+const rejectedProductIds = ref([]);
 
 // Stats
 const stats = ref({
@@ -86,7 +87,8 @@ const loadStats = async () => {
 };
 
 const loadData = async () => {
-    if (isInitialLoading.value) loading.value = true;
+    if (loading.value) return;
+    loading.value = true;
 
     try {
         if (activeTab.value === 'inbound' || activeTab.value === 'inspecting') {
@@ -110,10 +112,14 @@ const loadData = async () => {
             if (activeTab.value === 'inbound') {
                 items.value = mapped.filter(i => ['CREATED', 'SHIPPED', 'RECEIVED'].includes(i.status));
             } else {
-                items.value = mapped.filter(i => ['INSPECTING', 'PASSED', 'REJECTED'].includes(i.status));
+                items.value = mapped.filter(i => i.status === 'INSPECTING');
             }
             finished.value = true;
         } else {
+            if (activeTab.value === 'off') {
+                await loadRejectedProductIds();
+            }
+
             // Load Products
             const res = await getMyProducts({
                 page: page.value,
@@ -149,9 +155,9 @@ const loadData = async () => {
             }
 
             if (page.value === 0) {
-                items.value = filteredNewItems;
+                items.value = dedupeById(filteredNewItems);
             } else {
-                items.value = [...items.value, ...filteredNewItems];
+                items.value = dedupeById([...items.value, ...filteredNewItems]);
             }
 
             finished.value = res.last;
@@ -171,6 +177,7 @@ const onRefresh = async () => {
     page.value = 0;
     finished.value = false;
     items.value = [];
+    rejectedProductIds.value = [];
     await loadData();
     await loadStats();
     showSuccessToast('已刷新');
@@ -192,6 +199,31 @@ const filteredItems = computed(() => {
     return result;
 });
 
+const dedupeById = (list) => {
+    const seen = new Set();
+    return list.filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+    });
+};
+
+const loadRejectedProductIds = async () => {
+    try {
+        const consignments = await getMyConsignments();
+        rejectedProductIds.value = (consignments || [])
+            .filter(c => c.status === 'REJECTED' && c.product && c.product.id)
+            .map(c => c.product.id);
+    } catch (e) {
+        console.error('Failed to load rejected consignments', e);
+        rejectedProductIds.value = [];
+    }
+};
+
+const isInspectionRejectedProduct = (productId) => {
+    return rejectedProductIds.value.includes(productId);
+};
+
 const tabCounts = computed(() => {
     // This is tricky because we don't have counts for all tabs without fetching everything.
     // For now, we can only show counts for the loaded data or hide them.
@@ -210,6 +242,11 @@ const toggleSelect = (id) => {
 };
 
 const toggleStatus = async (item) => {
+    if (item.status !== 'ON_SALE' && isInspectionRejectedProduct(item.id)) {
+        showFailToast('验货驳回商品不能重新上架');
+        return;
+    }
+
     const action = item.status === 'ON_SALE' ? '下架' : '上架';
     showConfirmDialog({ title: `${action}商品`, message: `确定要${action}这个商品吗？` })
         .then(async () => {
@@ -267,17 +304,28 @@ const handleShip = (item) => {
 };
 
 const handlePolish = async (item) => {
-    try {
-        await polishProduct(item.id);
-        showSuccessToast('擦亮成功，宝贝已排到最前');
-        onRefresh();
-    } catch (e) {
-        if (e.response && e.response.status === 400) {
-            showFailToast(e.response.data.message || '每天只能擦亮一次');
-        } else {
-            showFailToast('擦亮失败');
+    showConfirmDialog({
+        title: '擦亮商品',
+        message: '擦亮将消耗一张推广券，确定继续吗？'
+    }).then(async () => {
+        try {
+            await polishProduct(item.id);
+            showSuccessToast('擦亮成功，宝贝已排到最前');
+            onRefresh();
+        } catch (e) {
+            // Check for specific error messages from backend
+            const msg = e.response?.data?.message || e.response?.data || '';
+            if (msg.includes('推广券')) {
+                showFailToast('擦亮失败：您没有可用的推广券');
+            } else if (msg.includes('每天')) {
+                showFailToast('擦亮失败：该商品今天已擦亮过');
+            } else {
+                showFailToast('擦亮失败，请稍后重试');
+            }
         }
-    }
+    }).catch(() => {
+        // Cancelled
+    });
 };
 
 // --- Lifecycle ---
@@ -415,7 +463,7 @@ watch(activeTab, () => {
                                             </div>
                                             <div class="flex items-center gap-2 text-sm mb-3">
                                                 <span class="font-bold text-[#ff5e57] text-lg">¥{{ item.price
-                                                    }}</span>
+                                                }}</span>
                                                 <span v-if="item.originalPrice"
                                                     class="text-xs text-gray-400 line-through">¥{{
                                                         item.originalPrice }}</span>
@@ -495,10 +543,16 @@ watch(activeTab, () => {
 
                                     <!-- Off Actions -->
                                     <template v-else-if="activeTab === 'off'">
-                                        <button v-if="item.status !== 'SOLD'" @click="toggleStatus(item)"
+                                        <button
+                                            v-if="item.status !== 'SOLD' && !isInspectionRejectedProduct(item.id)"
+                                            @click="toggleStatus(item)"
                                             class="w-full bg-[#2c3e50] hover:bg-[#34495e] text-white text-xs font-bold py-2 rounded-lg shadow-sm transition-all">
                                             上架
                                         </button>
+                                        <span v-if="item.status !== 'SOLD' && isInspectionRejectedProduct(item.id)"
+                                            class="text-center text-xs text-red-500 py-2 bg-red-50 rounded-lg">
+                                            验货驳回不可上架
+                                        </span>
                                         <span v-if="item.status !== 'SOLD'"
                                             class="text-xs text-center text-gray-400 hover:text-[#ff5e57] cursor-pointer mt-2"
                                             @click="removeItem(item)">删除</span>

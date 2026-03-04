@@ -102,7 +102,7 @@
                             <!-- Seller Info & Actions Divider -->
                             <div class="border-t border-gray-50 pt-3 flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <img :src="item.seller.avatar || 'https://via.placeholder.com/100'"
+                                    <img :src="resolveAvatar(item.seller.avatar)"
                                         class="w-6 h-6 rounded-full border border-gray-100" />
                                     <div class="flex flex-col">
                                         <span class="text-xs text-gray-600 font-medium scale-95 origin-left">{{
@@ -164,6 +164,7 @@
 <script setup>
 import { listMyFavorites, removeFavorite } from '@/api/favorites';
 import BuyerSidebar from '@/components/BuyerSidebar.vue';
+import { resolveAvatar } from '@/utils/avatar';
 import { showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';

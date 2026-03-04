@@ -25,10 +25,12 @@
 
 <script setup>
 import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import {
-    ClipboardList,
+    BarChart3,
     Package,
     Settings,
+    ShoppingBag,
     Star
 } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -44,11 +46,12 @@ const props = defineProps({
 const router = useRouter();
 const userStore = useUserStore();
 
-const userAvatar = computed(() => userStore.user?.avatarUrl || 'https://ui-avatars.com/api/?name=Seller');
+const userAvatar = computed(() => resolveAvatar(userStore.user?.avatarUrl, userStore.user?.avatar));
 
 const menuItems = [
     { name: '商品管理', iconComponent: Package, path: '/my-products' },
-    { name: '订单管理', iconComponent: ClipboardList, path: '/order-manage' },
+    { name: '订单管理', iconComponent: ShoppingBag, path: '/order-manage' },
+    { name: '数据中心', iconComponent: BarChart3, path: '/seller/data-center' },
     { name: '评价管理', iconComponent: Star, path: '/my-reviews' },
     { name: '店铺设置', iconComponent: Settings, path: '/shop-settings' },
 ];

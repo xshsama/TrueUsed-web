@@ -23,6 +23,14 @@ export function topUp(data) {
   })
 }
 
+export function withdraw(data) {
+  return request({
+    url: '/wallet/withdraw',
+    method: 'post',
+    data,
+  })
+}
+
 export function getTransactions(params) {
   return request({
     url: '/wallet/transactions',

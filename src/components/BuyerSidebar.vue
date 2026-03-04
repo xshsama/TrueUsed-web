@@ -25,6 +25,7 @@
 
 <script setup>
 import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import {
     Heart,
     History,
@@ -45,7 +46,7 @@ const router = useRouter();
 const userStore = useUserStore();
 
 const userName = computed(() => userStore.user?.nickname || 'User');
-const userAvatar = computed(() => userStore.user?.avatarUrl || 'https://ui-avatars.com/api/?name=User');
+const userAvatar = computed(() => resolveAvatar(userStore.user?.avatarUrl, userStore.user?.avatar));
 
 const menuItems = [
     { name: '我的订单', iconComponent: ShoppingBag, path: '/orders' },

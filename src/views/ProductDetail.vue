@@ -5,6 +5,7 @@ import { createProductComment, getProductComments } from '@/api/reviews';
 import TopNavbar from '@/components/TopNavbar.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useFavoritesStore } from '@/stores/favorites';
+import { resolveAvatar } from '@/utils/avatar';
 import {
     AlertTriangle,
     Camera,
@@ -181,7 +182,7 @@ const handleSendComment = async () => {
         reviews.value.unshift({
             id: newCommentRes.id,
             reviewerName: newCommentRes.user?.nickname || newCommentRes.user?.username || '我',
-            reviewerAvatar: newCommentRes.user?.avatarUrl || 'https://via.placeholder.com/50',
+            reviewerAvatar: resolveAvatar(newCommentRes.user?.avatarUrl, newCommentRes.user?.avatar),
             content: newCommentRes.content,
             createdAt: newCommentRes.createdAt,
             isAnonymous: false
@@ -231,7 +232,7 @@ const loadData = async () => {
             seller.value = {
                 id: res.seller.id,
                 name: res.seller.username || res.seller.nickname || '卖家',
-                avatar: res.seller.avatarUrl || 'https://via.placeholder.com/100',
+                avatar: resolveAvatar(res.seller.avatarUrl, res.seller.avatar),
                 productCount: res.seller.productCount || 0,
                 credit: '极好'
             };
@@ -245,7 +246,7 @@ const loadData = async () => {
             reviews.value = (commentsData.content || []).map(c => ({
                 id: c.id,
                 reviewerName: c.isAnonymous ? '匿名用户' : (c.buyerName || '买家'),
-                reviewerAvatar: c.isAnonymous ? 'https://via.placeholder.com/50' : (c.buyerAvatar || 'https://via.placeholder.com/50'),
+                reviewerAvatar: c.isAnonymous ? resolveAvatar() : resolveAvatar(c.buyerAvatar),
                 content: c.content,
                 createdAt: c.createdAt,
                 isAnonymous: c.isAnonymous,
@@ -343,7 +344,7 @@ onMounted(() => {
                     <div class="space-y-6" v-if="reviews.length > 0">
                         <div v-for="(review, index) in reviews" :key="review.id">
                             <div class="flex gap-4">
-                                <img :src="review.reviewerAvatar || 'https://via.placeholder.com/50'"
+                                <img :src="resolveAvatar(review.reviewerAvatar)"
                                     class="w-10 h-10 rounded-full bg-gray-100 object-cover" />
                                 <div class="flex-1">
                                     <div class="flex items-baseline justify-between mb-1">
@@ -372,7 +373,7 @@ onMounted(() => {
 
                     <!-- Comment Input -->
                     <div class="mt-6 flex gap-3">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                        <img :src="resolveAvatar()"
                             class="w-10 h-10 rounded-full bg-gray-100 object-cover" />
                         <div class="flex-1 relative">
                             <input v-model="newComment" @keyup.enter="handleSendComment" type="text"

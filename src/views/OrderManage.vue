@@ -1,5 +1,6 @@
 <script setup>
 import { getSoldOrders, shipOrder } from '@/api/orders';
+import { getMyWallet } from '@/api/wallet';
 import SearchBar from '@/components/SearchBar.vue';
 import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
@@ -29,6 +30,7 @@ const loading = ref(false);
 const refreshing = ref(false);
 const finished = ref(false);
 const isInitialLoading = ref(true);
+const walletBalance = ref('0.00');
 
 // Shipping State
 const showShipDialog = ref(false);
@@ -80,18 +82,22 @@ const stats = computed(() => {
     const paid = orders.value.filter(o => o.status === 'PAID').length;
     const refund = orders.value.filter(o => ['REFUNDING', 'REFUNDED'].includes(o.status)).length;
     const completed = orders.value.filter(o => o.status === 'COMPLETED').length;
-    const totalAmount = orders.value
-        .filter(o => ['PAID', 'SHIPPED', 'COMPLETED'].includes(o.status))
-        .reduce((sum, o) => sum + (o.price || 0), 0)
-        .toFixed(2);
 
     return {
         pendingShip: paid,
         refund: refund,
-        completedMonth: completed, // Simplified: total completed
-        balance: totalAmount
+        completedMonth: completed // Simplified: total completed
     };
 });
+
+const loadWalletBalance = async () => {
+    try {
+        const wallet = await getMyWallet();
+        walletBalance.value = Number(wallet?.balance || 0).toFixed(2);
+    } catch (error) {
+        console.error('Failed to load wallet balance', error);
+    }
+};
 
 const tabCounts = computed(() => {
     const counts = {};
@@ -141,7 +147,7 @@ const loadOrders = async () => {
 };
 
 const onRefresh = async () => {
-    await loadOrders();
+    await Promise.all([loadOrders(), loadWalletBalance()]);
     showSuccessToast('已刷新');
 };
 
@@ -223,6 +229,7 @@ onMounted(() => {
         if (found) activeTab.value = found.key;
     }
     loadOrders();
+    loadWalletBalance();
 });
 
 watch(() => route.query.status, (newStatus) => {
@@ -296,8 +303,8 @@ watch(() => route.query.status, (newStatus) => {
                     <div class="bg-white rounded-2xl p-5 border border-gray-100/50 shadow-sm">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-3xl font-bold text-[#2c3e50] font-mono">¥{{ stats.balance }}</div>
-                                <div class="text-xs font-medium text-gray-400 mt-1">账户余额</div>
+                                <div class="text-3xl font-bold text-[#2c3e50] font-mono">¥{{ walletBalance }}</div>
+                                <div class="text-xs font-medium text-gray-400 mt-1">钱包余额</div>
                             </div>
                             <div class="bg-gray-50 text-gray-500 p-2 rounded-lg">
                                 <Wallet :size="20" />

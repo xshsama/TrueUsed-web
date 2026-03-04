@@ -11,6 +11,7 @@ import Feedback from '@/views/Feedback.vue'
 import Help from '@/views/Help.vue'
 import Home from '@/views/Home.vue'
 import InspectionReport from '@/views/InspectionReport.vue'
+import InspectionDetail from '@/views/InspectionDetail.vue'
 import Login from '@/views/Login.vue'
 import Messages from '@/views/Messages.vue'
 import MyProducts from '@/views/MyProducts.vue'
@@ -21,8 +22,8 @@ import PaymentSuccess from '@/views/PaymentSuccess.vue'
 import PostCreate from '@/views/PostCreate.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import Profile from '@/views/Profile.vue'
-import Register from '@/views/Register.vue'
 import Search from '@/views/Search.vue'
+import SellerDataCenter from '@/views/SellerDataCenter.vue'
 import SellerProfile from '@/views/SellerProfile.vue'
 import ServiceCenter from '@/views/ServiceCenter.vue'
 import ServiceMessages from '@/views/ServiceMessages.vue'
@@ -50,6 +51,12 @@ const routes = [
     meta: { hideNavbar: true },
   },
   {
+    path: '/inspection-report/:id',
+    name: 'InspectionDetail',
+    component: InspectionDetail,
+    meta: { hideNavbar: true },
+  },
+  {
     path: '/home',
     name: 'Home',
     component: Home,
@@ -58,11 +65,6 @@ const routes = [
     path: '/ranking',
     name: 'Ranking',
     component: () => import('@/views/Ranking.vue'),
-  },
-  {
-    path: '/nearby',
-    name: 'Nearby',
-    component: () => import('@/views/Nearby.vue'),
   },
   {
     path: '/favorites',
@@ -103,7 +105,7 @@ const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: Register,
+    component: Login,
     meta: { hideNavbar: true },
   },
   {
@@ -192,6 +194,12 @@ const routes = [
     path: '/order-manage',
     name: 'OrderManage',
     component: OrderManage,
+    meta: { requiresAuth: true, hideNavbar: true },
+  },
+  {
+    path: '/seller/data-center',
+    name: 'SellerDataCenter',
+    component: SellerDataCenter,
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

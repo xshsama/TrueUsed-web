@@ -1,6 +1,7 @@
 <script setup>
 import { cancelOrder, confirmDelivery, getOrderById, getOrderShipping, shipOrder } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import { Check, ChevronRight, Copy, MapPin, PackageSearch, Store, Truck } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
@@ -164,7 +165,7 @@ onMounted(() => {
                     </button>
                     <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer"
                         @click="router.push('/profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                        <img :src="resolveAvatar(userStore.user?.avatarUrl, userStore.user?.avatar)"
                             class="w-full h-full object-cover" />
                     </div>
                 </div>

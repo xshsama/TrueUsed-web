@@ -213,6 +213,7 @@
 <script setup>
 import { useMessageStore } from '@/stores/message'
 import { useUserStore } from '@/stores/user'
+import { resolveAvatar } from '@/utils/avatar'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -229,7 +230,7 @@ const currentUser = computed(() => {
     const u = userStore.user
     return {
         id: u?.id || 'me',
-        avatar: u?.avatarUrl || 'https://via.placeholder.com/100'
+        avatar: resolveAvatar(u?.avatarUrl, u?.avatar)
     }
 })
 
@@ -237,7 +238,7 @@ const currentUser = computed(() => {
 const chatList = computed(() => messageStore.conversations.map(c => ({
     id: c.id,
     name: c.otherUserName || '未知用户',
-    avatar: c.otherUserAvatar || 'https://via.placeholder.com/100',
+    avatar: resolveAvatar(c.otherUserAvatar),
     lastMessage: c.lastMessage,
     time: formatTime(c.lastMessageTime),
     unread: c.unreadCount,
@@ -258,7 +259,7 @@ const activeChat = computed(() => {
     if (!activeChatId.value) return null
     return chatList.value.find(c => c.id === activeChatId.value) || {
         name: '未知用户',
-        avatar: 'https://via.placeholder.com/100',
+        avatar: resolveAvatar(),
         online: false
     }
 })

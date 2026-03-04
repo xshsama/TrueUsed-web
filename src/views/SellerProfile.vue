@@ -254,6 +254,7 @@
 <script setup>
 import { createSellerComment, getSellerComments, getSellerReviews } from '@/api/reviews';
 import request from '@/utils/request';
+import { resolveAvatar } from '@/utils/avatar';
 import {
     Award,
     Clock,
@@ -310,7 +311,7 @@ const loadSellerInfo = async () => {
         const profileRes = await request.get(`/users/${sellerId}/public-profile`);
         seller.value = {
             name: profileRes.nickname || profileRes.username || '未知用户',
-            avatar: profileRes.avatarUrl || 'https://via.placeholder.com/100',
+            avatar: resolveAvatar(profileRes.avatarUrl, profileRes.avatar),
             coverImage: profileRes.coverImage || '',
             isPro: profileRes.creditScore > 700, // 示例逻辑
             joinDate: profileRes.createdAt ? new Date(profileRes.createdAt).toLocaleDateString() : '未知',
@@ -344,7 +345,7 @@ const loadSellerInfo = async () => {
         reviews.value = (reviewsRes.content || []).map(r => ({
             id: r.id,
             buyer: r.isAnonymous ? '匿名用户' : (r.buyerName || '买家'),
-            avatar: r.isAnonymous ? 'https://via.placeholder.com/50' : (r.buyerAvatar || 'https://via.placeholder.com/50'),
+            avatar: r.isAnonymous ? resolveAvatar() : resolveAvatar(r.buyerAvatar),
             date: new Date(r.createdAt).toLocaleDateString(),
             rating: r.rating,
             content: r.content,
@@ -371,7 +372,7 @@ const loadComments = async () => {
     comments.value = (commentsRes.content || []).map(c => ({
         id: c.id,
         user: c.user?.nickname || c.user?.username || '用户',
-        avatar: c.user?.avatarUrl || 'https://via.placeholder.com/50',
+        avatar: resolveAvatar(c.user?.avatarUrl, c.user?.avatar),
         date: new Date(c.createdAt).toLocaleDateString(),
         content: c.content,
         replies: c.replies || []

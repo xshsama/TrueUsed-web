@@ -3,7 +3,9 @@ import { getAddresses } from '@/api/address';
 import { getMyCoupons } from '@/api/coupon';
 import { createOrder } from '@/api/orders';
 import { getProduct } from '@/api/products';
-import { Check, ChevronRight, FileCheck, MapPin, ShieldCheck } from 'lucide-vue-next';
+import { getMyWallet } from '@/api/wallet';
+import { resolveAvatar } from '@/utils/avatar';
+import { Check, ChevronRight, FileCheck, MapPin, ShieldCheck, Wallet } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast, showToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -27,10 +29,12 @@ const product = ref({
 
 const seller = ref({
     name: '卖家',
-    avatar: 'https://via.placeholder.com/100'
+    avatar: resolveAvatar()
 });
 
 const deliveryType = ref('express');
+const paymentMethod = ref('alipay');
+const walletSummary = ref({ balance: 0, hasPayPassword: false });
 const coupons = ref([]);
 const selectedCoupon = ref(null);
 const showCouponPopup = ref(false);
@@ -80,7 +84,7 @@ const loadData = async () => {
                 if (res.seller) {
                     seller.value = {
                         name: res.seller.username || res.seller.nickname || '卖家',
-                        avatar: res.seller.avatarUrl || 'https://via.placeholder.com/100'
+                        avatar: resolveAvatar(res.seller.avatarUrl, res.seller.avatar)
                     };
                 }
             } catch (e) {
@@ -114,6 +118,14 @@ const loadData = async () => {
             selectedCoupon.value = valid[0];
         }
 
+        // 4. Load Wallet
+        try {
+            const wallet = await getMyWallet();
+            walletSummary.value = wallet || walletSummary.value;
+        } catch (e) {
+            console.error('Failed to load wallet summary', e);
+        }
+
     } catch (error) {
         showFailToast('加载信息失败');
         console.error(error);
@@ -145,7 +157,11 @@ const handleSubmit = async () => {
         };
         const createdOrder = await createOrder(orderRequest);
         showSuccessToast('订单已提交');
-        router.replace({ name: 'Payment', params: { id: createdOrder.id } });
+        router.replace({
+            name: 'Payment',
+            params: { id: createdOrder.id },
+            query: { method: paymentMethod.value }
+        });
     } catch (error) {
         showToast('下单失败');
     } finally {
@@ -318,18 +334,31 @@ onMounted(() => {
                 </div>
             </section>
 
-            <!-- 3. Payment Method (Simplified) -->
+            <!-- 3. Payment Method -->
             <section class="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-6 space-y-4">
                 <h2 class="font-bold text-gray-800 text-sm mb-2">支付方式</h2>
 
-                <div class="flex items-center justify-between cursor-pointer">
+                <div class="flex items-center justify-between cursor-pointer" @click="paymentMethod = 'alipay'">
                     <div class="flex items-center gap-3">
                         <div class="w-6 h-6 rounded bg-[#1677ff] flex items-center justify-center text-white">
                             <span class="font-bold text-xs">支</span>
                         </div>
                         <span class="text-sm text-gray-700">支付宝</span>
                     </div>
-                    <div class="w-5 h-5 rounded-full border-[5px] border-[#4a8b6e] bg-white"></div>
+                    <div :class="['w-5 h-5 rounded-full border-[5px] bg-white', paymentMethod === 'alipay' ? 'border-[#4a8b6e]' : 'border-gray-200']"></div>
+                </div>
+
+                <div class="flex items-center justify-between cursor-pointer" @click="paymentMethod = 'wallet'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded bg-[#2c3e50] flex items-center justify-center text-white">
+                            <Wallet :size="13" />
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-700">余额支付</div>
+                            <div class="text-[11px] text-gray-400">可用余额 ¥{{ Number(walletSummary.balance || 0).toFixed(2) }}</div>
+                        </div>
+                    </div>
+                    <div :class="['w-5 h-5 rounded-full border-[5px] bg-white', paymentMethod === 'wallet' ? 'border-[#4a8b6e]' : 'border-gray-200']"></div>
                 </div>
             </section>
 

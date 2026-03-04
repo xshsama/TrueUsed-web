@@ -12,6 +12,7 @@ export function createAddress(data) {
     url: '/addresses',
     method: 'post',
     data,
+    silent: true,
   })
 }
 
@@ -27,6 +28,7 @@ export function updateAddress(id, data) {
     url: `/addresses/${id}`,
     method: 'put',
     data,
+    silent: true,
   })
 }
 

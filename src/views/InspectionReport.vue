@@ -22,7 +22,7 @@
                 <div class="flex items-center gap-4">
                     <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer"
                         @click="router.push('/profile')">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100"
+                        <img :src="resolveAvatar(currentUser?.avatarUrl, currentUser?.avatar)"
                             class="w-full h-full object-cover" />
                     </div>
                 </div>
@@ -108,7 +108,7 @@
                     class="bg-white rounded-2xl border border-gray-100 p-1 shadow-sm hover:shadow-md hover:border-[#4a8b6e]/30 transition-all group flex flex-col md:flex-row">
                     <!-- Left: Grade & Image -->
                     <div
-                        class="relative w-full md:w-64 h-48 md:h-auto bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 m-1">
+                        class="relative w-full md:w-64 h-48 md:h-44 lg:h-48 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 m-1">
                         <img :src="report.image"
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
@@ -175,7 +175,7 @@
 
                     <!-- Right: Actions -->
                     <div class="p-5 md:w-48 md:border-l border-gray-50 flex flex-col justify-center gap-3">
-                        <button
+                        <button @click="router.push({ name: 'InspectionDetail', params: { id: report.id } })"
                             class="w-full bg-[#2c3e50] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-[#1a252f] transition-all active:scale-95 flex items-center justify-center gap-2 border-none cursor-pointer">
                             <div class="i-lucide-eye w-4 h-4"></div> 查看详情
                         </button>
@@ -206,10 +206,15 @@
 
 <script setup>
 import { getMyInspections } from '@/api/inspection';
+import { useAuth } from '@/composables/useAuth';
+import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+const { currentUser } = useAuth();
+const userStore = useUserStore();
 const searchQuery = ref('');
 const activeTab = ref('全部');
 const tabs = ['全部', '已通过', '未通过', '30天内'];
@@ -219,30 +224,35 @@ const reports = ref([]);
 const fetchReports = async () => {
     try {
         const res = await getMyInspections();
-        reports.value = (res || []).map(item => ({
-            id: item.inspectionId,
-            reportId: `R-${new Date(item.createdAt).getFullYear()}${String(new Date(item.createdAt).getMonth() + 1).padStart(2, '0')}-${String(item.inspectionId).padStart(3, '0')}`,
-            title: item.productTitle || '未知商品',
-            image: item.productImage || 'https://images.unsplash.com/photo-1512054502232-10a0a035d672?auto=format&fit=crop&q=80&w=300',
-            grade: item.grade || 'A',
-            status: item.status === 'COMPLETED' ? '通过' : (item.status === 'FAILED' ? '驳回' : '检测中'),
-            category: item.categoryName || '通用',
-            spec: '标准规格', // Placeholder
-            inspectDate: new Date(item.updatedAt || item.createdAt).toLocaleString(),
-            inspector: '工号' + (100 + Math.floor(Math.random() * 50)), // Placeholder
-            location: '上海', // Placeholder
-            highlights: (item.items || []).slice(0, 4).map(i => ({
-                label: i.itemName,
-                pass: i.status === 'PASSED',
-                value: i.notes
-            }))
-        }));
+        reports.value = (res || [])
+            .filter(item => item.status === 'COMPLETED' || item.status === 'FAILED')
+            .map(item => ({
+                id: item.inspectionId,
+                reportId: `R-${new Date(item.createdAt).getFullYear()}${String(new Date(item.createdAt).getMonth() + 1).padStart(2, '0')}-${String(item.inspectionId).padStart(3, '0')}`,
+                title: item.productTitle || '未知商品',
+                image: item.productImage || 'https://images.unsplash.com/photo-1512054502232-10a0a035d672?auto=format&fit=crop&q=80&w=300',
+                grade: item.grade || 'A',
+                status: item.status === 'COMPLETED' ? '通过' : '驳回',
+                category: item.categoryName || '通用',
+                spec: '标准规格', // Placeholder
+                inspectDate: new Date(item.updatedAt || item.createdAt).toLocaleString(),
+                inspector: '工号' + (100 + Math.floor(Math.random() * 50)), // Placeholder
+                location: '上海', // Placeholder
+                highlights: (item.items || []).slice(0, 4).map(i => ({
+                    label: i.itemName,
+                    pass: i.status === 'PASSED',
+                    value: i.notes
+                }))
+            }));
     } catch (e) {
         console.error('Failed to fetch inspections', e);
     }
 };
 
 onMounted(() => {
+    if (userStore.isLoggedIn && !userStore.user) {
+        userStore.loadMe().catch(() => { });
+    }
     fetchReports();
 });
 

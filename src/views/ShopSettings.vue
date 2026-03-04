@@ -141,7 +141,7 @@
 
                                 <!-- Avatar -->
                                 <div class="relative w-24 h-24 mx-auto mb-4">
-                                    <img :src="form.avatarUrl || 'https://via.placeholder.com/200'"
+                                    <img :src="resolveAvatar(form.avatarUrl)"
                                         class="w-full h-full rounded-full object-cover border-4 border-white shadow-md" />
                                 </div>
 
@@ -207,6 +207,7 @@ import ImageUpload from '@/components/ImageUpload.vue';
 import SellerSidebar from '@/components/SellerSidebar.vue';
 import TopNavbar from '@/components/TopNavbar.vue';
 import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
 import { Clock, MapPin, Save } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';

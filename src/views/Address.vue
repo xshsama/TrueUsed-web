@@ -119,7 +119,21 @@ const saveAddress = async () => {
         closeEditor();
     } catch (error) {
         console.error(error);
-        showFailToast('保存失败');
+        let msg = '保存失败';
+        // 尝试从响应中提取具体的错误信息
+        if (error.response?.data) {
+            const data = error.response.data;
+            // 如果 data 是对象且有 message 字段
+            if (data && typeof data === 'object') {
+                msg = data.message || JSON.stringify(data);
+            } else {
+                // 如果 data 是字符串
+                msg = String(data);
+            }
+        } else if (error.message) {
+            msg = error.message;
+        }
+        showFailToast(msg);
     }
 };
 
