@@ -1,6 +1,5 @@
 <script setup>
 import { cancelOrder, confirmDelivery, getMyOrders } from '@/api/orders';
-import BuyerSidebar from '@/components/BuyerSidebar.vue';
 import SearchBar from '@/components/SearchBar.vue';
 import { resolveAvatar } from '@/utils/avatar';
 import {
@@ -209,14 +208,7 @@ onUnmounted(() => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-        <TopNavbar mode="buyer" />
-
-        <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Sidebar -->
-            <BuyerSidebar active-menu="我的订单" />
-
-            <!-- Right Content -->
-            <div class="lg:col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- --- Header & Search --- -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -227,7 +219,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- --- Tabs (Sticky) --- -->
-                <div class="sticky top-[73px] z-40 bg-[#f7f9fa]/95 backdrop-blur-sm pt-2 pb-4">
+                <div class="sticky top-[118px] z-40 bg-[#f7f9fa]/95 backdrop-blur-sm pt-2 pb-4">
                     <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide">
                         <button v-for="tab in tabs" :key="tab" @click="activeTab = tab" :class="[
                             'px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all',
@@ -374,7 +366,6 @@ onUnmounted(() => {
                 </van-pull-refresh>
 
                 <p v-if="filteredOrders.length > 0" class="text-center text-xs text-gray-300 pt-4">没有更多订单了</p>
-            </div>
         </main>
     </div>
 </template>

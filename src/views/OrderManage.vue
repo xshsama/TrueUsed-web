@@ -2,8 +2,6 @@
 import { getSoldOrders, shipOrder } from '@/api/orders';
 import { getMyWallet } from '@/api/wallet';
 import SearchBar from '@/components/SearchBar.vue';
-import SellerSidebar from '@/components/SellerSidebar.vue';
-import TopNavbar from '@/components/TopNavbar.vue';
 import {
     AlertCircle,
     CheckCircle2,
@@ -242,17 +240,7 @@ watch(() => route.query.status, (newStatus) => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="seller" />
-
-        <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            <!-- Left Sidebar -->
-            <SellerSidebar active-menu="订单管理" />
-
-            <!-- Right Main Content -->
-            <div class="lg:col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- 1. Fulfillment Dashboard -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -452,8 +440,6 @@ watch(() => route.query.status, (newStatus) => {
 
                     </div>
                 </van-pull-refresh>
-
-            </div>
 
         </main>
 

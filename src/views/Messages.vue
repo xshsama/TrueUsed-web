@@ -1,4 +1,5 @@
 <script setup>
+import SearchBar from '@/components/SearchBar.vue';
 import { useMessageStore } from '@/stores/message';
 import { useUserStore } from '@/stores/user';
 import { resolveAvatar } from '@/utils/avatar';
@@ -277,11 +278,8 @@ onUnmounted(() => {
                         </div>
 
                         <div class="mt-5 rounded-[24px] bg-slate-50 px-4 py-4">
-                            <label class="relative block">
-                                <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input v-model="searchKeyword" type="text" placeholder="搜索联系人或聊天内容"
-                                    class="w-full rounded-2xl border border-transparent bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition-colors focus:border-emerald-200" />
-                            </label>
+                            <SearchBar v-model="searchKeyword" placeholder="搜索联系人或聊天内容"
+                                :show-shortcut="false" :show-submit="false" size="compact" />
 
                             <div class="mt-4 grid grid-cols-2 gap-3">
                                 <div class="rounded-2xl bg-white px-4 py-3">

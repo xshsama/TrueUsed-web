@@ -1,7 +1,5 @@
 <script setup>
 import { deleteAddress as apiDeleteAddress, createAddress, getAddresses, updateAddress } from '@/api/address';
-import BuyerSidebar from '@/components/BuyerSidebar.vue';
-import TopNavbar from '@/components/TopNavbar.vue';
 import { areaList } from '@vant/area-data';
 import {
     Check,
@@ -181,13 +179,7 @@ onMounted(() => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12 relative overflow-x-hidden">
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
-
-        <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <BuyerSidebar active-menu="收货地址" />
-
-            <div class="lg:col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- --- Header --- -->
                 <div class="flex items-center justify-between">
@@ -274,7 +266,6 @@ onMounted(() => {
                     </button>
 
                 </div>
-            </div>
         </main>
 
         <!-- --- Edit Drawer (Overlay) --- -->

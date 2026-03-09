@@ -3,13 +3,15 @@
         <div class="app-backdrop"></div>
 
         <div class="app-shell">
-            <TopNavbar mode="buyer" v-if="!route.meta.hideNavbar" />
+            <TopNavbar :mode="navbarMode" v-if="!route.meta.hideNavbar" />
 
             <main class="app-main" :class="{ 'app-main--framed': !route.meta.hideNavbar }">
                 <router-view v-slot="{ Component }">
-                    <transition name="page-fade" mode="out-in">
-                        <component :is="Component" />
-                    </transition>
+                    <div class="route-stage">
+                        <transition name="page-fade" mode="out-in" appear>
+                            <component :is="Component" :key="route.fullPath" class="route-screen" />
+                        </transition>
+                    </div>
                 </router-view>
             </main>
         </div>
@@ -21,7 +23,7 @@ import TopNavbar from '@/components/TopNavbar.vue';
 import { useFavoritesStore } from '@/stores/favorites';
 import { useMessageStore } from '@/stores/message';
 import { useUserStore } from '@/stores/user';
-import { onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 export default {
@@ -32,6 +34,7 @@ export default {
         const messageStore = useMessageStore()
         const favoritesStore = useFavoritesStore()
         const userStore = useUserStore()
+        const navbarMode = computed(() => route.meta.navbarMode === 'seller' ? 'seller' : 'buyer')
 
         onMounted(() => {
             if (userStore.isLoggedIn) {
@@ -54,6 +57,7 @@ export default {
         })
 
         return {
+            navbarMode,
             route,
             userStore
         }
@@ -90,22 +94,57 @@ export default {
 }
 
 .app-main {
+    position: relative;
     padding: 24px 0 56px;
+    overflow-x: clip;
 }
 
 .app-main--framed {
     padding-top: 18px;
 }
 
+.route-stage {
+    position: relative;
+}
+
+.route-screen {
+    will-change: opacity, transform, filter;
+    transform-origin: center top;
+}
+
 /* 页面切换动画 */
-.page-fade-enter-active,
+.page-fade-enter-active {
+    transition:
+        opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .page-fade-leave-active {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+        opacity 0.24s ease,
+        transform 0.28s ease,
+        filter 0.28s ease;
 }
 
 .page-fade-enter-from,
 .page-fade-leave-to {
     opacity: 0;
-    transform: translateY(8px);
+    filter: blur(10px);
+}
+
+.page-fade-enter-from {
+    transform: translate3d(0, 22px, 0) scale(0.988);
+}
+
+.page-fade-leave-to {
+    transform: translate3d(0, -14px, 0) scale(1.012);
+}
+
+.page-fade-enter-to,
+.page-fade-leave-from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
 }
 </style>

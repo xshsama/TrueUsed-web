@@ -1,6 +1,5 @@
 <script setup>
 import { listMyFavorites, removeFavorite } from '@/api/favorites';
-import BuyerSidebar from '@/components/BuyerSidebar.vue';
 import { resolveAvatar } from '@/utils/avatar';
 import {
     CheckCheck,
@@ -248,10 +247,7 @@ onMounted(() => {
 
 <template>
     <div class="min-h-screen bg-transparent">
-        <div class="mx-auto grid max-w-[1480px] grid-cols-12 gap-8 px-8 py-6">
-            <BuyerSidebar active-menu="我的收藏" />
-
-            <main class="col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
                 <section
                     class="relative overflow-hidden rounded-[32px] border border-white/70 bg-gradient-to-br from-[#10201a] via-[#18362d] to-[#255948] px-8 py-8 text-white shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
                     <div class="absolute right-0 top-0 h-72 w-72 rounded-full bg-white/8 blur-3xl"></div>
@@ -507,7 +503,6 @@ onMounted(() => {
                         </div>
                     </aside>
                 </section>
-            </main>
-        </div>
+        </main>
     </div>
 </template>

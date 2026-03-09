@@ -2,7 +2,8 @@
     <div class="page">
         <van-nav-bar title="帮助中心" left-arrow @click-left="$router.back()" fixed />
         <div class="container" style="padding-top:56px;">
-            <van-search v-model="kw" placeholder="搜索问题，如 发货、退款" shape="round" />
+            <SearchBar v-model="kw" placeholder="搜索问题，如 发货、退款"
+                :show-shortcut="false" :show-submit="false" />
             <van-collapse v-model="activeNames">
                 <van-collapse-item v-for="(q, idx) in filtered" :key="idx" :title="q.q" :name="idx">
                     <div class="answer" v-html="q.a"></div>
@@ -16,10 +17,12 @@
 </template>
 
 <script>
+import SearchBar from '@/components/SearchBar.vue';
 import { computed, ref } from 'vue';
 
 export default {
     name: 'Help',
+    components: { SearchBar },
     setup() {
         const kw = ref('')
         const activeNames = ref([])
@@ -44,13 +47,6 @@ export default {
 .answer {
     color: #374151;
     line-height: 1.6;
-}
-
-/* 搜索框样式优化 */
-:deep(.van-search__content) {
-    background-color: #fff;
-    border: 1px solid var(--primary-color);
-    border-radius: 99px;
 }
 
 /* 页面布局调整 */

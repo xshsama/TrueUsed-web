@@ -3,8 +3,6 @@ import { fetchMyStats } from '@/api/auth';
 import { getMyConsignments, updateConsignmentLogistics } from '@/api/consignment';
 import { deleteProduct, getMyProducts, hideProduct, polishProduct, publishProduct } from '@/api/products';
 import SearchBar from '@/components/SearchBar.vue';
-import SellerSidebar from '@/components/SellerSidebar.vue';
-import TopNavbar from '@/components/TopNavbar.vue';
 import {
     ArrowDown,
     Check,
@@ -348,17 +346,7 @@ watch(activeTab, () => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="seller" />
-
-        <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            <!-- Left Sidebar -->
-            <SellerSidebar active-menu="商品管理" />
-
-            <!-- Right Content -->
-            <div class="lg:col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- 1. Data Dashboard -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -567,8 +555,6 @@ watch(activeTab, () => {
                         </div>
                     </van-list>
                 </van-pull-refresh>
-
-            </div>
 
         </main>
 

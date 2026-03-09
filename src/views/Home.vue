@@ -71,22 +71,21 @@
                 </div>
             </section>
 
-            <section class="mb-6 grid grid-cols-4 gap-5">
-                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+            <section class="mb-6 grid grid-cols-3 gap-5">
+                <div
+                    class="rounded-[28px] border border-white/45 bg-white/28 p-5 shadow-[0_20px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                     <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">在售商品</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ totalProducts }}</div>
                 </div>
-                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                <div
+                    class="rounded-[28px] border border-white/45 bg-white/28 p-5 shadow-[0_20px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                     <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">当前类目</div>
                     <div class="mt-2 text-lg font-bold text-slate-900">{{ currentCategoryName }}</div>
                 </div>
-                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                <div
+                    class="rounded-[28px] border border-white/45 bg-white/28 p-5 shadow-[0_20px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                     <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">排序策略</div>
                     <div class="mt-2 text-lg font-bold text-slate-900">{{ currentSortLabel }}</div>
-                </div>
-                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
-                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">浏览模式</div>
-                    <div class="mt-2 text-lg font-bold text-slate-900">桌面工作台</div>
                 </div>
             </section>
 
@@ -132,8 +131,28 @@
                         @click="router.push(`/product/${product.id}`)" />
                 </TransitionGroup>
 
-                <div v-if="productList.length > 0 && hasMore" class="mt-8 text-center">
-                    <van-button round block plain type="primary" :loading="loading" @click="fetchProducts">加载更多</van-button>
+                <div v-if="productList.length > 0 && hasMore" class="mt-10 flex justify-center">
+                    <button type="button"
+                        class="group inline-flex min-w-[320px] items-center justify-between gap-6 rounded-[26px] border border-slate-200 bg-white px-6 py-4 text-left shadow-[0_18px_36px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_20px_40px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+                        :disabled="loading" @click="fetchProducts">
+                        <div>
+                            <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                More Listings
+                            </div>
+                            <div class="mt-1 text-base font-bold text-slate-900">
+                                {{ loading ? '正在加载更多好物...' : '继续浏览更多商品' }}
+                            </div>
+                            <div class="mt-1 text-sm text-slate-500">
+                                {{ loading ? '请稍候，新的商品卡片正在进入列表。' : `已展示 ${productList.length} 件，再展开下一页结果。` }}
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-transform group-hover:translate-x-1">
+                            <div v-if="loading" class="i-lucide-loader-2 animate-spin text-lg"></div>
+                            <div v-else class="i-lucide-arrow-right text-lg"></div>
+                        </div>
+                    </button>
                 </div>
                 <div v-if="!hasMore && productList.length > 0" class="mt-8 text-center text-sm text-gray-400">没有更多了</div>
             </div>

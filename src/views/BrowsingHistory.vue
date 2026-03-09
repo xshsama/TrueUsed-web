@@ -1,15 +1,6 @@
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
-
-        <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            <!-- Left Sidebar (Consistent Menu) -->
-            <BuyerSidebar active-menu="浏览记录" />
-
-            <!-- Right Content -->
-            <div class="lg:col-span-10 space-y-6">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- Header Actions -->
                 <div
@@ -225,8 +216,6 @@
                     </button>
                 </div>
 
-            </div>
-
         </main>
 
     </div>
@@ -234,8 +223,6 @@
 
 <script setup>
 import { getBrowsingHistory } from '@/api/history';
-import BuyerSidebar from '@/components/BuyerSidebar.vue';
-import TopNavbar from '@/components/TopNavbar.vue';
 import { useUserStore } from '@/stores/user';
 import {
     ArrowDown,

@@ -1,10 +1,14 @@
 <template>
     <div class="search-page">
-        <van-nav-bar left-arrow @click-left="$router.go(-1)">
-            <template #title>
-                <van-search v-model="searchValue" placeholder="搜索商品" autofocus @search="onSearch" @clear="onClear" />
-            </template>
-        </van-nav-bar>
+        <div class="search-header">
+            <button type="button" class="search-back" @click="goBack">
+                <div class="i-lucide-chevron-left w-5 h-5"></div>
+            </button>
+            <div class="search-header-bar">
+                <SearchBar v-model="searchValue" placeholder="搜索商品"
+                    :show-shortcut="false" @search="onSearch" />
+            </div>
+        </div>
 
         <!-- 搜索历史 -->
         <div v-if="!searchValue && searchHistory.length > 0" class="search-history">
@@ -13,7 +17,7 @@
                 <van-button size="small" plain @click="clearHistory">清空</van-button>
             </div>
             <div class="history-tags">
-                <van-tag v-for="(item, index) in searchHistory" :key="index" @click="searchValue = item">
+                <van-tag v-for="(item, index) in searchHistory" :key="index" @click="applyKeyword(item)">
                     {{ item }}
                 </van-tag>
             </div>
@@ -24,7 +28,7 @@
             <div class="section-title">热门搜索</div>
             <div class="hot-tags">
                 <van-tag v-for="(item, index) in hotSearch" :key="index" type="primary" plain
-                    @click="searchValue = item">
+                    @click="applyKeyword(item)">
                     {{ item }}
                 </van-tag>
             </div>
@@ -70,13 +74,14 @@
 <script>
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
+import SearchBar from '@/components/SearchBar.vue'
 import { showFailToast, showSuccessToast } from 'vant'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export default {
     name: 'Search',
-    components: { ProductCard },
+    components: { ProductCard, SearchBar },
     setup() {
         const router = useRouter()
         const route = useRoute()
@@ -218,6 +223,21 @@ export default {
             router.push(`/product/${id}`)
         }
 
+        const applyKeyword = (keyword) => {
+            searchValue.value = keyword
+            onSearch()
+        }
+
+        const goBack = () => {
+            router.go(-1)
+        }
+
+        watch(searchValue, (value) => {
+            if (!String(value || '').trim()) {
+                onClear()
+            }
+        })
+
         onMounted(() => {
             const { q, sort: sortQuery } = route.query
             if (q) {
@@ -257,7 +277,9 @@ export default {
             onLoad,
             onSortChange,
             applyFilters,
-            goToProductDetail
+            goToProductDetail,
+            applyKeyword,
+            goBack
         }
     }
 }
@@ -267,6 +289,37 @@ export default {
 .search-page {
     min-height: 100vh;
     background-color: #f7f8fa;
+}
+
+.search-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(18px);
+}
+
+.search-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    border: 1px solid rgba(203, 213, 225, 0.85);
+    background: rgba(255, 255, 255, 0.92);
+    color: #475569;
+    flex-shrink: 0;
+}
+
+.search-header-bar {
+    width: 100%;
+    max-width: 640px;
 }
 
 .search-history,

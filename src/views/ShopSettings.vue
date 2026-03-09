@@ -1,14 +1,7 @@
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-        <!-- 头部导航 -->
-        <TopNavbar mode="seller" />
-
-        <main class="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- 左侧菜单 -->
-            <SellerSidebar active-menu="店铺设置" />
-
-            <!-- 中间：编辑表单 -->
-            <div class="lg:col-span-6 space-y-6">
+        <main class="mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)_420px] gap-8 px-8 py-6">
+            <div class="space-y-6">
                 <div class="flex justify-between items-center">
                     <h1 class="text-2xl font-bold text-[#2c3e50]">店铺装修与设置</h1>
                     <button @click="saveChanges" :disabled="loading"
@@ -104,8 +97,8 @@
             </div>
 
             <!-- 右侧：实时预览 -->
-            <div class="lg:col-span-4 hidden lg:block">
-                <div class="sticky top-24">
+            <div class="space-y-4">
+                <div class="sticky top-[120px]">
                     <div class="flex items-center justify-between mb-4 px-2">
                         <span class="text-sm font-bold text-gray-500">实时预览</span>
                         <span class="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded">Desktop Web</span>
@@ -204,8 +197,6 @@
 
 <script setup>
 import ImageUpload from '@/components/ImageUpload.vue';
-import SellerSidebar from '@/components/SellerSidebar.vue';
-import TopNavbar from '@/components/TopNavbar.vue';
 import { useUserStore } from '@/stores/user';
 import { resolveAvatar } from '@/utils/avatar';
 import { Clock, MapPin, Save } from 'lucide-vue-next';

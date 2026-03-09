@@ -48,7 +48,6 @@ const routes = [
     path: '/inspection-reports',
     name: 'InspectionReport',
     component: InspectionReport,
-    meta: { hideNavbar: true },
   },
   {
     path: '/inspection-report/:id',
@@ -136,7 +135,7 @@ const routes = [
     path: '/address',
     name: 'Address',
     component: Address,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true },
   },
   {
     path: '/verification',
@@ -168,14 +167,14 @@ const routes = [
     path: '/shop-settings',
     name: 'ShopSettings',
     component: ShopSettings,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   { path: '/about', name: 'About', component: About },
   {
     path: '/my-products',
     name: 'MyProducts',
     component: MyProducts,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, navbarMode: 'seller' },
   },
 
   {
@@ -194,13 +193,13 @@ const routes = [
     path: '/order-manage',
     name: 'OrderManage',
     component: OrderManage,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   {
     path: '/seller/data-center',
     name: 'SellerDataCenter',
     component: SellerDataCenter,
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   {
     path: '/settlement',
@@ -248,13 +247,13 @@ const routes = [
     path: '/my-reviews',
     name: 'MyReviews',
     component: () => import('@/views/MyReviews.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   {
     path: '/history',
     name: 'BrowsingHistory',
     component: () => import('@/views/BrowsingHistory.vue'),
-    meta: { requiresAuth: true, hideNavbar: true },
+    meta: { requiresAuth: true },
   },
   {
     path: '/notifications',

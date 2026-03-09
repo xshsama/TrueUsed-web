@@ -1,35 +1,6 @@
 <template>
-    <div class="min-h-screen pb-12 bg-[#f7f9fa] font-sans text-[#2c3e50]">
-
-        <!-- --- Top Navigation --- -->
-        <nav class="bg-white sticky top-0 z-50 border-b border-gray-100">
-            <div class="max-w-[1400px] mx-auto px-6 h-[72px] flex items-center justify-between gap-4">
-                <div class="flex items-center gap-10">
-                    <div class="flex items-center gap-1.5 cursor-pointer">
-                        <div
-                            class="w-9 h-9 bg-[#4a8b6e] rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-sm">
-                            T</div>
-                        <span class="text-2xl font-bold text-[#2c3e50] tracking-tight">TrueUsed<span
-                                class="text-[#4a8b6e]">.</span></span>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 cursor-pointer">
-                        <img :src="resolveAvatar()"
-                            class="w-full h-full object-cover" />
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <main class="max-w-[1400px] mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            <!-- Custom Sidebar -->
-            <SellerSidebar active-menu="数据中心" />
-
-            <!-- Right Content -->
-            <div class="lg:col-span-10 space-y-6">
+    <div class="min-h-screen pb-12 bg-transparent font-sans text-[#2c3e50]">
+        <main class="mx-auto max-w-[1480px] space-y-6 px-8 py-6">
 
                 <!-- 1. Date Filter & Header -->
                 <div
@@ -203,17 +174,13 @@
 
                 </div>
 
-            </div>
-
         </main>
 
     </div>
 </template>
 
 <script setup>
-import SellerSidebar from '@/components/SellerSidebar.vue';
 import request from '@/utils/request';
-import { resolveAvatar } from '@/utils/avatar';
 import Chart from 'chart.js/auto';
 import {
     TrendingDown,
