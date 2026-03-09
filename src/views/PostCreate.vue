@@ -47,6 +47,8 @@ const form = ref({
     isMeetup: false
 });
 
+const conditionOptions = ['全新', '99新', '95新', '9成新', '8成新', '战损版'];
+
 // --- 图片上传 ---
 const fileInput = ref(null);
 const isUploading = ref(false);
@@ -244,6 +246,7 @@ const onSubmit = async () => {
                 expectedPrice: Number(form.value.price),
                 originalPrice: form.value.originalPrice ? Number(form.value.originalPrice) : undefined,
                 categoryId: form.value.categoryId,
+                sellerClaimCondition: mapCondition(form.value.condition),
                 shippingMethod: 'express', // Default
                 trackingNoInbound: '', // Initial submission might not have tracking
                 imageKeys: form.value.images
@@ -262,7 +265,7 @@ const onSubmit = async () => {
                 price: Number(form.value.price),
                 originalPrice: form.value.originalPrice ? Number(form.value.originalPrice) : undefined,
                 currency: 'CNY',
-                condition: mapCondition(form.value.condition),
+                sellerClaimCondition: mapCondition(form.value.condition),
                 categoryId: form.value.categoryId,
                 locationText: form.value.location,
                 imageKeys: form.value.images,
@@ -451,6 +454,27 @@ onMounted(() => {
 
                     <textarea v-model="form.description" placeholder="描述一下宝贝的使用情况..."
                         class="w-full h-24 bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#4a8b6e]/20 outline-none resize-none text-sm"></textarea>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold text-gray-600">卖家自报成色</label>
+                            <span class="text-xs text-gray-400">
+                                {{ saleMode === 'consignment' ? '平台验货后会生成最终等级' : '买家看到的是你的自报成色' }}
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="option in conditionOptions" :key="option" type="button"
+                                @click="form.condition = option"
+                                :class="[
+                                    'px-3 py-2 rounded-full text-sm border transition-colors',
+                                    form.condition === option
+                                        ? 'bg-[#4a8b6e] border-[#4a8b6e] text-white'
+                                        : 'bg-white border-gray-200 text-gray-600 hover:border-[#4a8b6e]/40 hover:text-[#4a8b6e]'
+                                ]">
+                                {{ option }}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

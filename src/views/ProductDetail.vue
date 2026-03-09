@@ -60,12 +60,36 @@ const seller = ref({
 const reviews = ref([]);
 const reviewCount = ref(0);
 
+const conditionLabelMap = {
+    NEW: '全新',
+    LIKE_NEW: '95新',
+    GOOD: '9成新',
+    FAIR: '8成新',
+    POOR: '战损版'
+};
+
+const inspectionGradeLabelMap = {
+    S: 'S级成色',
+    A: 'A级成色',
+    B: 'B级成色',
+    C: 'C级成色',
+    X: '未通过验货'
+};
+
 // --- Computed ---
 const displayImages = computed(() => {
     return product.value.images && product.value.images.length > 0
         ? product.value.images
         : ['https://via.placeholder.com/800x800?text=No+Image'];
 });
+
+const formatConditionLabel = (condition) => {
+    return conditionLabelMap[condition] || condition || '';
+};
+
+const formatInspectionGradeLabel = (grade) => {
+    return inspectionGradeLabelMap[grade] || (grade ? `${grade}级成色` : '');
+};
 
 // --- Methods ---
 const formatTime = (time) => {
@@ -210,6 +234,11 @@ const loadData = async () => {
 
         // Use real tradeModel from backend
         const isOfficial = res.tradeModel === 'OFFICIAL_INSPECTION';
+        const sellerClaimCondition = res.sellerClaimCondition || res.condition || '';
+        const sellerClaimLabel = formatConditionLabel(sellerClaimCondition);
+        const inspectionGrade = res.inspectionGrade || '';
+        const inspectionGradeLabel = formatInspectionGradeLabel(inspectionGrade);
+        const primaryConditionTag = isOfficial ? inspectionGradeLabel || '平台验货' : sellerClaimLabel;
 
         product.value = {
             id: res.id,
@@ -217,11 +246,14 @@ const loadData = async () => {
             price: res.price,
             originalPrice: res.originalPrice || (res.price * 1.2).toFixed(2),
             description: res.description,
-            tags: [res.condition, res.category?.name].filter(Boolean),
+            tags: [primaryConditionTag, res.category?.name].filter(Boolean),
             images: (res.images || []).map(img => img.url),
             viewsCount: res.viewsCount || 0,
             createdAt: res.createdAt,
-            condition: res.condition,
+            condition: sellerClaimCondition,
+            sellerClaimLabel: sellerClaimLabel,
+            inspectionGrade: inspectionGrade,
+            inspectionGradeLabel: inspectionGradeLabel,
             category: res.category,
             address: res.locationText || '上海 · 徐汇区',
             isOfficial: isOfficial,
@@ -293,7 +325,7 @@ onMounted(() => {
                         <div v-if="product.isOfficial"
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-[#4a8b6e]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
                             <ShieldCheck :size="14" />
-                            <span class="text-xs font-bold">官方已验货 · 正品保证</span>
+                            <span class="text-xs font-bold">{{ product.inspectionGradeLabel || '官方已验货 · 正品保障' }}</span>
                         </div>
                         <div v-else
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
@@ -398,6 +430,14 @@ onMounted(() => {
                             :class="['text-xs px-2 py-0.5 rounded font-bold', product.isOfficial ? 'bg-[#4a8b6e] text-white' : 'bg-orange-500 text-white']">
                             {{ product.isOfficial ? '官方验货' : '自由交易' }}
                         </span>
+                        <span v-if="product.isOfficial && product.inspectionGradeLabel"
+                            class="text-xs px-2 py-0.5 rounded font-bold bg-[#e8f5ef] text-[#2f6b53]">
+                            {{ product.inspectionGradeLabel }}
+                        </span>
+                        <span v-else-if="product.sellerClaimLabel"
+                            class="text-xs px-2 py-0.5 rounded font-bold bg-gray-100 text-gray-600">
+                            {{ product.isOfficial ? `卖家自报 ${product.sellerClaimLabel}` : product.sellerClaimLabel }}
+                        </span>
                         <span class="text-xs text-gray-400">发布于 {{ product.address }}</span>
                     </div>
 
@@ -441,6 +481,14 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <div v-if="product.isOfficial && (product.sellerClaimLabel || product.inspectionGradeLabel)"
+                        class="mb-6 rounded-xl border border-[#4a8b6e]/10 bg-[#f3fbf7] px-4 py-3 text-sm text-[#2c3e50]">
+                        <div class="flex items-center justify-between gap-4">
+                            <span>卖家自报：{{ product.sellerClaimLabel || '未填写' }}</span>
+                            <span class="font-bold text-[#2f6b53]">平台验货：{{ product.inspectionGradeLabel || '待更新' }}</span>
+                        </div>
+                    </div>
+
                     <!-- Inspection Banner (Official Only) -->
                     <div v-if="product.isOfficial"
                         class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6 cursor-pointer hover:bg-[#34495e] transition-colors">
@@ -451,7 +499,7 @@ onMounted(() => {
                             </div>
                             <div>
                                 <div class="font-bold text-sm">官方验货报告</div>
-                                <div class="text-[10px] text-gray-300">32项检测合格 · 正品无拆修</div>
+                                <div class="text-[10px] text-gray-300">{{ product.inspectionGradeLabel || '平台验货完成，结果已同步' }}</div>
                             </div>
                         </div>
                         <ChevronRight :size="16" class="text-gray-400" />
@@ -515,7 +563,9 @@ onMounted(() => {
                                         class="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100">芝麻信用
                                         {{ seller.credit }}</span>
                                 </div>
-                                <div class="text-xs text-gray-400 mt-0.5">回复快 · 发货快 · 评价优</div>
+                                <div class="text-xs text-gray-400 mt-0.5">
+                                    {{ product.sellerClaimLabel ? `卖家自报 ${product.sellerClaimLabel}` : '卖家已提交商品描述' }}
+                                </div>
                             </div>
                         </div>
                         <button @click="router.push(`/seller/${seller.id}`)"
