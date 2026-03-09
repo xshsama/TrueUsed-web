@@ -1,136 +1,130 @@
 <template>
-    <div class="min-h-screen bg-[#F9FAFB] pb-[60px]">
-        <div class="max-w-[1200px] mx-auto p-4">
-            <!-- 1. Hero Banner (官方验货) - REDESIGNED -->
+    <div class="min-h-screen bg-transparent pb-12">
+        <div class="mx-auto max-w-[1480px] px-8 py-6">
             <section
-                class="relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-[#143d2d] via-[#1B4032] to-[#2a5e4b] text-white shadow-2xl shadow-emerald-900/20 mb-6">
-
-                <!-- Background Decorative Elements (Trust Symbols) -->
+                class="relative mb-6 overflow-hidden rounded-[32px] bg-gradient-to-br from-[#143d2d] via-[#1B4032] to-[#2a5e4b] text-white shadow-2xl shadow-emerald-900/20">
                 <div
-                    class="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none">
+                    class="pointer-events-none absolute right-0 top-0 h-[520px] w-[520px] translate-x-1/4 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl">
                 </div>
                 <div
-                    class="i-lucide-shield-check absolute -right-12 -bottom-24 w-96 h-96 text-white/[0.03] rotate-12 pointer-events-none">
+                    class="i-lucide-shield-check pointer-events-none absolute -bottom-24 -right-12 h-96 w-96 rotate-12 text-white/[0.03]">
                 </div>
 
-                <div
-                    class="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 lg:p-16 min-h-[360px]">
-
-                    <!-- Left Content -->
-                    <div class="max-w-xl space-y-6 text-center md:text-left">
+                <div class="relative z-10 flex min-h-[360px] items-center justify-between gap-12 p-12 lg:p-16">
+                    <div class="max-w-xl space-y-6">
                         <div
-                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-900/40 backdrop-blur-md border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wider shadow-inner uppercase">
+                            class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-900/40 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 shadow-inner backdrop-blur-md">
                             <div class="i-lucide-check-circle-2 text-sm text-emerald-400"></div>
                             <span>Official Check · 官方全检</span>
                         </div>
 
-                        <h1
-                            class="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight drop-shadow-sm">
+                        <h1 class="text-5xl font-bold leading-[1.05] tracking-tight drop-shadow-sm lg:text-6xl">
                             怕踩雷？<br />
-                            <span
-                                class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-white">先验货</span>，再发货。
+                            <span class="bg-gradient-to-r from-emerald-200 to-white bg-clip-text text-transparent">先验货</span>，再发货。
                         </h1>
 
-                        <p
-                            class="text-emerald-100/80 text-base md:text-lg max-w-md mx-auto md:mx-0 font-light leading-relaxed">
+                        <p class="max-w-md text-base font-light leading-relaxed text-emerald-100/80 lg:text-lg">
                             TrueUsed 官方质检工程师为您层层把关，杜绝假货与隐形故障。
-                            <span class="block mt-1 text-emerald-300/60 text-sm">已累计为 12,403 位用户拦截翻新机</span>
+                            <span class="mt-1 block text-sm text-emerald-300/60">已累计为 12,403 位用户拦截翻新机</span>
                         </p>
 
-                        <div class="pt-4 flex justify-center md:justify-start">
+                        <div class="flex items-center gap-4 pt-4">
                             <button @click="router.push('/search?q=验货')"
-                                class="group bg-white text-[#1B4032] hover:bg-emerald-50 px-8 py-3.5 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] flex items-center gap-2 text-sm md:text-base cursor-pointer border-none">
+                                class="group flex cursor-pointer items-center gap-2 rounded-full border-none bg-white px-8 py-3.5 text-sm font-bold text-[#1B4032] shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:bg-emerald-50 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]">
                                 浏览验货商品
-                                <div
-                                    class="i-lucide-chevron-right text-lg text-emerald-600 group-hover:translate-x-1 transition-transform">
-                                </div>
+                                <div class="i-lucide-chevron-right text-lg text-emerald-600 transition-transform group-hover:translate-x-1"></div>
                             </button>
+                            <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-md">
+                                <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-200/70">交易模式</div>
+                                <div class="mt-1 text-sm font-semibold">自由交易 + 平台验货双模式</div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Right Side - CSS Constructed Illustration -->
-                    <div class="relative mt-10 md:mt-0 w-full max-w-sm flex justify-center [perspective:1000px]">
-                        <!-- Podium -->
-                        <div class="relative w-64 h-64">
-                            <!-- Glowing Platform -->
-                            <div
-                                class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-white/10 to-transparent rounded-[100%] blur-xl">
-                            </div>
-                            <div class="absolute inset-x-10 bottom-8 h-4 bg-emerald-400/20 rounded-[100%] blur-md">
-                            </div>
+                    <div class="relative flex w-full max-w-sm justify-center [perspective:1000px]">
+                        <div class="relative h-64 w-64">
+                            <div class="absolute inset-x-0 bottom-0 h-16 rounded-[100%] bg-gradient-to-b from-white/10 to-transparent blur-xl"></div>
+                            <div class="absolute inset-x-10 bottom-8 h-4 rounded-[100%] bg-emerald-400/20 blur-md"></div>
 
-                            <!-- Floating Elements (Composition) -->
                             <div
-                                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-tr from-white/10 to-white/5 backdrop-blur-sm rounded-2xl border border-white/10 rotate-3 shadow-2xl flex flex-col items-center justify-center gap-4 group hover:-translate-y-2 transition-transform duration-500">
-                                <div class="p-4 bg-emerald-900/50 rounded-full text-emerald-300 shadow-inner">
+                                class="group absolute left-1/2 top-1/2 flex h-48 w-48 -translate-x-1/2 -translate-y-1/2 rotate-3 flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-tr from-white/10 to-white/5 shadow-2xl backdrop-blur-sm transition-transform duration-500 hover:-translate-y-[54%]">
+                                <div class="rounded-full bg-emerald-900/50 p-4 text-emerald-300 shadow-inner">
                                     <div class="i-lucide-shield-check text-5xl"></div>
                                 </div>
                                 <div class="text-center">
                                     <div class="text-2xl font-bold text-white">100%</div>
-                                    <div class="text-xs text-emerald-200 uppercase tracking-widest">Authentic</div>
+                                    <div class="text-xs uppercase tracking-widest text-emerald-200">Authentic</div>
                                 </div>
-
-                                <!-- Decorative dots -->
-                                <div class="absolute top-3 right-3 w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse">
-                                </div>
+                                <div class="absolute right-3 top-3 h-1.5 w-1.5 animate-pulse rounded-full bg-red-400"></div>
                             </div>
 
-                            <!-- Floating Icons representing products -->
                             <div
-                                class="absolute -left-4 top-10 p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg animate-bounce [animation-duration:3s]">
-                                <div class="i-lucide-headphones text-white text-2xl"></div>
+                                class="absolute -left-4 top-10 rounded-xl border border-white/20 bg-white/10 p-3 shadow-lg backdrop-blur-md">
+                                <div class="i-lucide-headphones text-2xl text-white"></div>
                             </div>
                             <div
-                                class="absolute -right-4 bottom-10 p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg animate-bounce [animation-duration:4s]">
-                                <div class="i-lucide-mouse text-white text-2xl"></div>
+                                class="absolute -right-4 bottom-10 rounded-xl border border-white/20 bg-white/10 p-3 shadow-lg backdrop-blur-md">
+                                <div class="i-lucide-mouse text-2xl text-white"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
+            <section class="mb-6 grid grid-cols-4 gap-5">
+                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">在售商品</div>
+                    <div class="mt-2 text-3xl font-black text-slate-900">{{ totalProducts }}</div>
+                </div>
+                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">当前类目</div>
+                    <div class="mt-2 text-lg font-bold text-slate-900">{{ currentCategoryName }}</div>
+                </div>
+                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">排序策略</div>
+                    <div class="mt-2 text-lg font-bold text-slate-900">{{ currentSortLabel }}</div>
+                </div>
+                <div class="rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur">
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">浏览模式</div>
+                    <div class="mt-2 text-lg font-bold text-slate-900">桌面工作台</div>
+                </div>
+            </section>
 
-            <!-- 3. 分类筛选 (Category Chips) -->
-            <div class="flex gap-3 overflow-x-auto pb-4 scrollbar-hide mb-6">
+            <div class="mb-6 flex flex-wrap gap-3">
                 <div v-for="cat in categories" :key="cat.id"
-                    class="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-all hover:border-gray-300 hover:bg-gray-50"
-                    :class="{ '!bg-gray-800 !text-white !border-gray-800': activeCategory === cat.id }"
+                    class="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50"
+                    :class="{ '!border-gray-800 !bg-gray-800 !text-white': activeCategory === cat.id }"
                     @click="handleCategoryChange(cat.id)">
                     <div :class="cat.icon" class="text-base"></div>
                     {{ cat.name }}
                 </div>
-                <div
-                    class="bg-white border border-gray-200 px-3 py-2 rounded-xl text-gray-700 flex items-center justify-center cursor-pointer hover:bg-gray-50">
-                    <div class="i-lucide-more-horizontal text-lg"></div>
-                </div>
             </div>
 
-            <!-- 4. 最新上架 (New Arrivals) -->
             <div class="mb-8">
-                <div class="flex flex-col md:flex-row justify-between md:items-end mb-5 gap-3">
+                <div class="mb-5 flex items-end justify-between gap-3">
                     <div class="flex items-baseline gap-2">
                         <h2 class="text-2xl font-extrabold text-gray-900">最新上架</h2>
-                        <span class="bg-gray-200 px-2 py-0.5 rounded-full text-xs text-gray-600">{{ totalProducts
-                        }}件新商品</span>
+                        <span class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">{{ totalProducts }}件新商品</span>
                     </div>
-                    <div class="flex gap-4">
-                        <span class="text-sm text-gray-900 font-semibold cursor-pointer">综合排序</span>
-                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">价格最低</span>
-                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">信用最高</span>
-                        <span class="text-sm text-gray-500 cursor-pointer hover:text-gray-900">离我最近</span>
+                    <div class="flex gap-2 rounded-full border border-slate-200 bg-white/90 p-1.5 shadow-sm">
+                        <button v-for="option in sortOptions" :key="option.value" type="button"
+                            class="rounded-full px-4 py-2 text-sm font-semibold transition-colors"
+                            :class="activeSort === option.value ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+                            @click="handleSortChange(option.value)">
+                            {{ option.label }}
+                        </button>
                     </div>
                 </div>
 
-                <!-- Product Grid -->
                 <TransitionGroup name="product-list" tag="div"
-                    class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 relative min-h-[200px]">
+                    class="relative grid min-h-[200px] grid-cols-3 gap-6 xl:grid-cols-4 2xl:grid-cols-5">
                     <div v-if="loading && page === 0" key="loading-spinner"
-                        class="col-span-full absolute inset-0 flex items-center justify-center bg-white/50 z-10 backdrop-blur-sm rounded-xl">
+                        class="absolute inset-0 z-10 col-span-full flex items-center justify-center rounded-xl bg-white/50 backdrop-blur-sm">
                         <van-loading vertical color="#10B981">
                             <template #icon>
                                 <div class="i-lucide-loader-2 animate-spin text-3xl text-emerald-600"></div>
                             </template>
-                            <span class="text-emerald-600 mt-2 font-medium">加载好物中...</span>
+                            <span class="mt-2 font-medium text-emerald-600">加载好物中...</span>
                         </van-loading>
                     </div>
 
@@ -139,17 +133,14 @@
                 </TransitionGroup>
 
                 <div v-if="productList.length > 0 && hasMore" class="mt-8 text-center">
-                    <van-button round block plain type="primary" :loading="loading"
-                        @click="fetchProducts">加载更多</van-button>
+                    <van-button round block plain type="primary" :loading="loading" @click="fetchProducts">加载更多</van-button>
                 </div>
-                <div v-if="!hasMore && productList.length > 0" class="text-center text-gray-400 mt-8 text-sm">没有更多了
-                </div>
+                <div v-if="!hasMore && productList.length > 0" class="mt-8 text-center text-sm text-gray-400">没有更多了</div>
             </div>
         </div>
 
-        <!-- 5. 底部滚动 (To Top Only) -->
-        <div class="fixed bottom-0 right-0 p-6 z-50 md:bottom-0 bottom-[50px]">
-            <div class="w-10 h-10 bg-white border border-gray-200 shadow-lg rounded-full flex items-center justify-center cursor-pointer text-gray-500 hover:text-emerald-600 hover:border-emerald-600 transition-all"
+        <div class="fixed bottom-0 right-0 z-50 p-8">
+            <div class="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg transition-all hover:border-emerald-600 hover:text-emerald-600"
                 @click="scrollToTop">
                 <div class="i-lucide-arrow-up-to-line text-lg"></div>
             </div>
@@ -161,7 +152,7 @@
 import { listRootCategories } from '@/api/categories'
 import { listProducts } from '@/api/products'
 import ProductCard from '@/components/ProductCard.vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -170,20 +161,39 @@ const hasMore = ref(true)
 const page = ref(0)
 const size = ref(10)
 const totalProducts = ref(0)
+const activeSort = ref('created_desc')
+const sortOptions = [
+    { label: '最新上架', value: 'created_desc' },
+    { label: '关注最高', value: 'views_desc' },
+    { label: '价格最低', value: 'price_asc' },
+    { label: '价格最高', value: 'price_desc' }
+]
 
-// Categories
 const activeCategory = ref(0)
 const categories = ref([
     { id: 0, name: '全部', icon: 'i-lucide-layout-grid' }
 ])
 
+const currentCategoryName = computed(() => {
+    return categories.value.find(cat => cat.id === activeCategory.value)?.name || '全部'
+})
+
+const currentSortLabel = computed(() => {
+    return sortOptions.find(option => option.value === activeSort.value)?.label || '最新上架'
+})
+
 const handleCategoryChange = (id) => {
     if (activeCategory.value === id) return
     activeCategory.value = id
     page.value = 0
-    // Don't clear list immediately to avoid flickering. 
-    // The list will be cleared in fetchProducts when data arrives.
-    // productList.value = [] 
+    hasMore.value = true
+    fetchProducts()
+}
+
+const handleSortChange = (sort) => {
+    if (activeSort.value === sort) return
+    activeSort.value = sort
+    page.value = 0
     hasMore.value = true
     fetchProducts()
 }
@@ -191,19 +201,17 @@ const handleCategoryChange = (id) => {
 const fetchCategories = async () => {
     try {
         const res = await listRootCategories()
-        // Map icons based on category ID or name for a better visual
         const getIcon = (id) => {
             const icons = {
-                1: 'i-lucide-smartphone', // 数码
-                2: 'i-lucide-shirt',      // 服装
-                3: 'i-lucide-armchair',   // 家居
-                4: 'i-lucide-book',       // 书籍
-                5: 'i-lucide-dumbbell'    // 运动
+                1: 'i-lucide-smartphone',
+                2: 'i-lucide-shirt',
+                3: 'i-lucide-armchair',
+                4: 'i-lucide-book',
+                5: 'i-lucide-dumbbell'
             }
             return icons[id] || 'i-lucide-package'
         }
 
-        // Append to '全部'
         const fetched = (res || []).map(c => ({
             id: c.id,
             name: c.name,
@@ -215,7 +223,6 @@ const fetchCategories = async () => {
     }
 }
 
-// Products
 const productList = ref([])
 
 const fetchProducts = async () => {
@@ -225,7 +232,7 @@ const fetchProducts = async () => {
         const params = {
             page: page.value,
             size: size.value,
-            sort: 'created_desc',
+            sort: activeSort.value,
             categoryId: activeCategory.value === 0 ? undefined : activeCategory.value
         }
         const res = await listProducts(params)
@@ -239,7 +246,7 @@ const fetchProducts = async () => {
     } catch (e) {
         console.error(e)
     } finally {
-        loading.value = false;
+        loading.value = false
     }
 }
 
@@ -252,46 +259,3 @@ onMounted(() => {
     fetchProducts()
 })
 </script>
-
-<style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Product List Transitions */
-.product-list-move,
-.product-list-enter-active,
-.product-list-leave-active {
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.product-list-enter-from,
-.product-list-leave-to {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-}
-
-.product-list-leave-active {
-    position: absolute;
-    width: calc((100% - 1.25rem) / 2);
-    /* Adjust for grid gap */
-}
-
-/* Specific adjustments for leave-active in grid */
-@media (min-width: 768px) {
-    .product-list-leave-active {
-        width: calc((100% - 2.5rem) / 3);
-    }
-}
-
-@media (min-width: 1024px) {
-    .product-list-leave-active {
-        width: calc((100% - 3.75rem) / 4);
-    }
-}
-</style>

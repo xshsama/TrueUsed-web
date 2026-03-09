@@ -1,44 +1,18 @@
 <template>
     <div id="app">
-        <!-- 全局顶部导航 -->
-        <TopNavbar mode="buyer" v-if="!route.meta.hideNavbar" />
+        <div class="app-backdrop"></div>
 
-        <main class="app-main">
-            <router-view v-slot="{ Component }">
-                <transition name="page-fade" mode="out-in">
-                    <component :is="Component" />
-                </transition>
-            </router-view>
-        </main>
+        <div class="app-shell">
+            <TopNavbar mode="buyer" v-if="!route.meta.hideNavbar" />
 
-        <!-- 底部导航栏 (移动端) -->
-        <van-tabbar route class="mobile-tabbar" v-if="!route.meta.hideNavbar" active-color="#4CAF50" v-model="active">
-            <van-tabbar-item replace to="/home">
-                <span>首页</span>
-                <template #icon="{ active }">
-                    <van-icon :name="active ? 'wap-home' : 'wap-home-o'" />
-                </template>
-            </van-tabbar-item>
-            <van-tabbar-item replace to="/messages" :badge="unreadCount || null">
-                <span>消息</span>
-                <template #icon="{ active }">
-                    <van-icon :name="active ? 'chat' : 'chat-o'" />
-                </template>
-            </van-tabbar-item>
-            <van-tabbar-item replace to="/favorites">
-                <span>收藏</span>
-                <template #icon="{ active }">
-                    <van-icon :name="active ? 'like' : 'like-o'" />
-                </template>
-            </van-tabbar-item>
-            <van-tabbar-item replace to="/profile">
-                <span>我的</span>
-                <template #icon="{ active }">
-                    <van-icon :name="active ? 'user' : 'user-o'" />
-                </template>
-            </van-tabbar-item>
-        </van-tabbar>
-
+            <main class="app-main" :class="{ 'app-main--framed': !route.meta.hideNavbar }">
+                <router-view v-slot="{ Component }">
+                    <transition name="page-fade" mode="out-in">
+                        <component :is="Component" />
+                    </transition>
+                </router-view>
+            </main>
+        </div>
     </div>
 </template>
 
@@ -47,48 +21,22 @@ import TopNavbar from '@/components/TopNavbar.vue';
 import { useFavoritesStore } from '@/stores/favorites';
 import { useMessageStore } from '@/stores/message';
 import { useUserStore } from '@/stores/user';
-import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 export default {
     name: 'App',
     components: { TopNavbar },
     setup() {
-        const router = useRouter()
         const route = useRoute()
         const messageStore = useMessageStore()
         const favoritesStore = useFavoritesStore()
         const userStore = useUserStore()
 
-        const active = ref(0)
-        const unreadCount = computed(() => messageStore.unreadCount)
-
-        // 根据当前路由设置active值
-        const updateActiveTab = () => {
-            const path = route.path
-            if (path.startsWith('/home') || path === '/') {
-                active.value = 0
-            } else if (path.startsWith('/messages')) {
-                active.value = 1
-            } else if (path.startsWith('/favorites')) {
-                active.value = 2
-            } else if (path.startsWith('/profile')) {
-                active.value = 3
-            }
-        }
-
-        // 监听路由变化（确保直接跳转也更新）
-        watch(() => route.path, () => {
-            updateActiveTab()
-        })
-
-        // 初始化
-        updateActiveTab()
-
         onMounted(() => {
-            favoritesStore.fetchFavorites()
-            messageStore.fetchUnreadCount()
             if (userStore.isLoggedIn) {
+                favoritesStore.fetchFavorites()
+                messageStore.fetchUnreadCount()
                 userStore.loadMe().catch(() => { })
                 messageStore.connect()
             }
@@ -97,6 +45,8 @@ export default {
         // 监听登录状态变化，自动连接/断开 WebSocket
         watch(() => userStore.isLoggedIn, (newVal) => {
             if (newVal) {
+                favoritesStore.fetchFavorites()
+                messageStore.fetchUnreadCount()
                 messageStore.connect()
             } else {
                 messageStore.disconnect()
@@ -104,8 +54,6 @@ export default {
         })
 
         return {
-            active,
-            unreadCount,
             route,
             userStore
         }
@@ -115,11 +63,38 @@ export default {
 
 <style>
 #app {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    position: relative;
+    min-height: 100vh;
+    font-family: var(--font-family);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-page);
     color: var(--text-primary);
+    background:
+        radial-gradient(circle at top left, rgba(0, 135, 90, 0.08), transparent 30%),
+        linear-gradient(180deg, #f7faf8 0%, #f5f7fa 42%, #eef2f7 100%);
+}
+
+.app-backdrop {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.45), transparent 35%),
+        radial-gradient(circle at 85% 10%, rgba(0, 135, 90, 0.09), transparent 18%);
+}
+
+.app-shell {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+}
+
+.app-main {
+    padding: 24px 0 56px;
+}
+
+.app-main--framed {
+    padding-top: 18px;
 }
 
 /* 页面切换动画 */
@@ -131,24 +106,6 @@ export default {
 .page-fade-enter-from,
 .page-fade-leave-to {
     opacity: 0;
-    transform: translateY(5px);
-}
-
-/* 底部导航栏 */
-.mobile-tabbar {
-    display: none !important;
-}
-
-@media (max-width: 768px) {
-    .mobile-tabbar {
-        display: flex !important;
-        border-top: 1px solid #eee;
-        z-index: 1000;
-    }
-
-    /* 调整容器底部间距，防止被导航栏遮挡 */
-    .app-main {
-        padding-bottom: 80px;
-    }
+    transform: translateY(8px);
 }
 </style>

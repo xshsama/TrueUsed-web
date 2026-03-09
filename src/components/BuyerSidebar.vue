@@ -1,5 +1,5 @@
 <template>
-    <aside class="hidden lg:block lg:col-span-2">
+    <aside class="col-span-2">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-4 sticky top-24">
             <div class="flex items-center gap-3 mb-6 px-2">
                 <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">

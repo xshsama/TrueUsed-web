@@ -50,8 +50,6 @@ import {
   SwipeItem,
   Switch,
   Tab,
-  Tabbar,
-  TabbarItem,
   Tabs,
   Tag,
   Toast,
@@ -72,8 +70,6 @@ const pinia = createPinia()
 
 // 注册Vant组件
 app.use(ActionSheet)
-app.use(Tabbar)
-app.use(TabbarItem)
 app.use(NavBar)
 app.use(Search)
 app.use(Swipe)

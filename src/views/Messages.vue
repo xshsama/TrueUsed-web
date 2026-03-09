@@ -1,353 +1,525 @@
-<template>
-    <div class="flex h-[calc(100vh-64px)] bg-gray-50 font-sans">
-        <!-- Sidebar -->
-        <div class="w-80 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
-            <!-- Header -->
-            <div class="p-4 border-b border-gray-50 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h1 class="text-xl font-bold text-gray-800">消息</h1>
-                <div class="flex gap-3">
-                    <button
-                        class="p-2 hover:bg-gray-50 rounded-full transition-colors relative group border-none bg-transparent cursor-pointer">
-                        <div class="i-lucide-bell w-5 h-5 text-gray-600"></div>
-                        <span
-                            class="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
-                    <button
-                        class="p-2 hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                        <div class="i-lucide-plus w-5 h-5 text-gray-600"></div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Search -->
-            <div class="px-4 py-3">
-                <div class="relative group">
-                    <div
-                        class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#4a8b6e] transition-colors">
-                        <div class="i-lucide-search w-4 h-4"></div>
-                    </div>
-                    <input type="text" placeholder="搜索联系人/聊天记录"
-                        class="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm text-gray-700 focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all outline-none placeholder:text-gray-400" />
-                </div>
-            </div>
-
-            <!-- Chat List -->
-            <div class="flex-1 overflow-y-auto">
-                <div v-for="chat in chatList" :key="chat.id" @click="switchChat(chat)"
-                    class="px-4 py-3 flex gap-3 cursor-pointer transition-all border-l-4 hover:bg-gray-50"
-                    :class="activeChatId === chat.id ? 'bg-[#4a8b6e]/5 border-[#4a8b6e]' : 'border-transparent'">
-
-                    <div class="relative flex-shrink-0">
-                        <img :src="chat.avatar" class="w-12 h-12 rounded-full object-cover border border-gray-100" />
-                        <span v-if="chat.online"
-                            class="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-                    </div>
-
-                    <div class="flex-1 min-w-0 flex flex-col justify-center">
-                        <div class="flex justify-between items-baseline mb-1">
-                            <h3 class="font-bold text-gray-800 truncate text-sm"
-                                :class="activeChatId === chat.id ? 'text-[#4a8b6e]' : ''">
-                                {{ chat.name }}
-                            </h3>
-                            <span class="text-[10px] text-gray-400 flex-shrink-0">{{ chat.time }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <p class="text-xs text-gray-500 truncate max-w-[140px]"
-                                :class="chat.unread ? 'font-medium text-gray-700' : ''">
-                                {{ chat.lastMessage }}
-                            </p>
-                            <span v-if="chat.unread"
-                                class="min-w-[18px] h-[18px] flex items-center justify-center bg-[#ff4d4f] text-white text-[10px] font-bold rounded-full px-1">
-                                {{ chat.unread }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col bg-white relative min-w-0">
-            <div v-if="!activeChatId" class="flex-1 flex flex-col items-center justify-center text-gray-400">
-                <div class="i-lucide-message-square w-16 h-16 mb-4 opacity-20"></div>
-                <p>选择一个联系人开始聊天</p>
-            </div>
-
-            <div v-else class="flex flex-col h-full">
-                <!-- Chat Header -->
-                <div
-                    class="h-16 px-6 border-b border-gray-50 flex justify-between items-center bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-                    <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <img :src="activeChat?.avatar"
-                                class="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm" />
-                            <span v-if="activeChat?.online"
-                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="font-bold text-gray-800">{{ activeChat?.name }}</h2>
-                                <span
-                                    class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded flex items-center gap-1">
-                                    <div class="i-lucide-shield w-3 h-3"></div>
-                                    信用极好
-                                </span>
-                            </div>
-                            <div v-if="activeChat?.online" class="text-xs text-green-600 flex items-center gap-1">
-                                <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                在线
-                            </div>
-                            <div v-else class="text-xs text-gray-400 flex items-center gap-1">
-                                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
-                                离线
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <button
-                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-phone w-5 h-5"></div>
-                        </button>
-                        <button
-                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/5 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-more-horizontal w-5 h-5"></div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Product Context Card -->
-                <div v-if="relatedProduct"
-                    class="bg-white border-b border-gray-50 p-3 px-6 flex items-center justify-between gap-4 shadow-sm z-10">
-                    <div class="flex items-center gap-3">
-                        <img :src="relatedProduct.image" class="w-10 h-10 rounded-lg object-cover bg-gray-100" />
-                        <div>
-                            <div class="text-sm font-bold text-gray-800">¥{{ relatedProduct.price }}</div>
-                            <div class="text-xs text-gray-500 line-clamp-1 w-48">正在交易：{{ relatedProduct.title }}</div>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button
-                            class="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:border-[#4a8b6e] hover:text-[#4a8b6e] transition-colors bg-transparent cursor-pointer">
-                            发起砍价
-                        </button>
-                        <button
-                            class="text-xs px-3 py-1.5 rounded-full bg-[#4a8b6e] text-white hover:bg-[#3b755b] transition-colors border-none cursor-pointer">
-                            立即购买
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Messages Area -->
-                <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-[#f9fafb]" ref="messagesContainer">
-                    <template v-for="msg in messages" :key="msg.id">
-                        <!-- System Message -->
-                        <div v-if="msg.type === 'system'" class="flex justify-center mb-4">
-                            <div
-                                class="bg-[#fefce8] text-[#854d0e] text-xs px-4 py-2 rounded-full flex items-center gap-2 border border-[#fef08a] shadow-sm max-w-lg text-center">
-                                <div class="i-lucide-shield-alert w-3.5 h-3.5 flex-shrink-0"></div>
-                                {{ msg.content }}
-                            </div>
-                        </div>
-
-                        <!-- User Message -->
-                        <div v-else class="flex gap-3 group" :class="msg.type === 'me' ? 'flex-row-reverse' : ''">
-                            <img :src="msg.type === 'me' ? currentUser.avatar : activeChat?.avatar"
-                                class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-white shadow-sm mt-1" />
-
-                            <div class="max-w-[70%] space-y-1"
-                                :class="msg.type === 'me' ? 'items-end flex flex-col' : ''">
-                                <div class="px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm relative" :class="msg.type === 'me'
-                                    ? 'bg-[#4a8b6e] text-white rounded-tr-none'
-                                    : 'bg-white text-gray-700 border border-gray-100 rounded-tl-none'">
-                                    {{ msg.content }}
-                                </div>
-                                <div
-                                    class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity px-1">
-                                    <span class="text-[10px] text-gray-300">{{ msg.time }}</span>
-                                    <span v-if="msg.type === 'me'"
-                                        class="text-[10px] text-[#4a8b6e] font-medium">已读</span>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Input Area -->
-                <div class="bg-white border-t border-gray-100 p-4">
-                    <!-- Quick Replies -->
-                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
-                        <button v-for="text in quickReplies" :key="text" @click="handleQuickReply(text)"
-                            class="whitespace-nowrap px-3 py-1 bg-gray-50 text-gray-500 text-xs rounded-full border border-gray-100 hover:bg-[#4a8b6e]/10 hover:text-[#4a8b6e] hover:border-[#4a8b6e]/20 transition-all cursor-pointer">
-                            {{ text }}
-                        </button>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <button
-                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-image w-[22px] h-[22px]"></div>
-                        </button>
-                        <button
-                            class="p-2 text-gray-400 hover:text-[#4a8b6e] hover:bg-gray-50 rounded-full transition-colors border-none bg-transparent cursor-pointer">
-                            <div class="i-lucide-smile w-[22px] h-[22px]"></div>
-                        </button>
-
-                        <div class="flex-1 relative">
-                            <input type="text" v-model="inputText" @keydown.enter="handleSend" placeholder="输入消息..."
-                                class="w-full bg-gray-100 border-none rounded-full py-2.5 pl-4 pr-10 text-sm focus:ring-2 focus:ring-[#4a8b6e]/20 focus:bg-white transition-all outline-none" />
-                        </div>
-
-                        <button @click="handleSend"
-                            class="p-2.5 rounded-full transition-all border-none cursor-pointer flex items-center justify-center"
-                            :class="inputText.trim() ? 'bg-[#4a8b6e] text-white shadow-lg shadow-[#4a8b6e]/30' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
-                            :disabled="!inputText.trim()">
-                            <div class="i-lucide-send w-5 h-5" :class="inputText.trim() ? 'translate-x-0.5' : ''"></div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-</template>
-
 <script setup>
-import { useMessageStore } from '@/stores/message'
-import { useUserStore } from '@/stores/user'
-import { resolveAvatar } from '@/utils/avatar'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useMessageStore } from '@/stores/message';
+import { useUserStore } from '@/stores/user';
+import { resolveAvatar } from '@/utils/avatar';
+import {
+    Bell,
+    Clock3,
+    MessageSquare,
+    Phone,
+    Search,
+    Send,
+    ShieldCheck,
+    Sparkles,
+    Store,
+    UserRound
+} from 'lucide-vue-next';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
-const router = useRouter()
-const route = useRoute()
-const messageStore = useMessageStore()
-const userStore = useUserStore()
+const router = useRouter();
+const route = useRoute();
+const messageStore = useMessageStore();
+const userStore = useUserStore();
 
-const inputText = ref('')
-const messagesContainer = ref(null)
+const inputText = ref('');
+const searchKeyword = ref('');
+const messagesContainer = ref(null);
+const activeChatId = ref(null);
 
-// Current User
+const quickReplies = ['还在吗？', '支持平台验货吗？', '什么时候可以发货？', '成色细节能再拍一下吗？', '价格还有空间吗？'];
+
 const currentUser = computed(() => {
-    const u = userStore.user
+    const user = userStore.user;
     return {
-        id: u?.id || 'me',
-        avatar: resolveAvatar(u?.avatarUrl, u?.avatar)
+        id: user?.id || 'me',
+        avatar: resolveAvatar(user?.avatarUrl, user?.avatar)
+    };
+});
+
+const chatList = computed(() => {
+    return messageStore.conversations.map(conversation => ({
+        id: conversation.id,
+        name: conversation.otherUserName || '未知用户',
+        avatar: resolveAvatar(conversation.otherUserAvatar),
+        lastMessage: conversation.lastMessage || '点击开始沟通',
+        time: formatTime(conversation.lastMessageTime),
+        unread: conversation.unreadCount || 0,
+        otherUserId: conversation.otherUserId,
+        online: messageStore.onlineUsers.has(conversation.otherUserId)
+    }));
+});
+
+const filteredChatList = computed(() => {
+    const keyword = searchKeyword.value.trim().toLowerCase();
+
+    if (!keyword) {
+        return chatList.value;
     }
-})
 
-// Chat List from Store
-const chatList = computed(() => messageStore.conversations.map(c => ({
-    id: c.id,
-    name: c.otherUserName || '未知用户',
-    avatar: resolveAvatar(c.otherUserAvatar),
-    lastMessage: c.lastMessage,
-    time: formatTime(c.lastMessageTime),
-    unread: c.unreadCount,
-    otherUserId: c.otherUserId,
-    online: messageStore.onlineUsers.has(c.otherUserId)
-})))
+    return chatList.value.filter(chat => {
+        return `${chat.name} ${chat.lastMessage}`.toLowerCase().includes(keyword);
+    });
+});
 
-// Messages from Store
-const messages = computed(() => messageStore.messages.map(m => ({
-    id: m.id,
-    type: m.isSelf ? 'me' : 'other',
-    content: m.content,
-    time: formatTime(m.timestamp)
-})))
+const messages = computed(() => {
+    return messageStore.messages.map(message => ({
+        id: message.id,
+        type: message.isSelf ? 'me' : 'other',
+        content: message.content,
+        time: formatTime(message.timestamp)
+    }));
+});
 
-const activeChatId = ref(null)
 const activeChat = computed(() => {
-    if (!activeChatId.value) return null
-    return chatList.value.find(c => c.id === activeChatId.value) || {
-        name: '未知用户',
-        avatar: resolveAvatar(),
-        online: false
+    return chatList.value.find(chat => chat.id === activeChatId.value) || null;
+});
+
+const unreadConversationCount = computed(() => {
+    return chatList.value.filter(chat => chat.unread > 0).length;
+});
+
+const onlineConversationCount = computed(() => {
+    return chatList.value.filter(chat => chat.online).length;
+});
+
+const workspaceStats = computed(() => {
+    return [
+        {
+            label: '会话总数',
+            value: `${chatList.value.length}`,
+            note: '当前账号下的全部对话'
+        },
+        {
+            label: '待回复',
+            value: `${unreadConversationCount.value}`,
+            note: '需要优先处理的未读会话'
+        },
+        {
+            label: '在线联系人',
+            value: `${onlineConversationCount.value}`,
+            note: '可以即时沟通的卖家/买家'
+        }
+    ];
+});
+
+const conversationSignals = computed(() => {
+    if (!activeChat.value) {
+        return [
+            { label: '当前状态', value: '未选会话', note: '从左侧选择联系人后开始沟通' },
+            { label: '交易模式', value: '待识别', note: '这里预留给商品上下文或验货状态' },
+            { label: '风险提示', value: '先看成色', note: '卖家自出和平台验货要分开判断' }
+        ];
     }
-})
 
-// Related product (Mock for now)
-const relatedProduct = ref(null)
-
-const quickReplies = ['还在吗？', '可以刀吗？', '什么时候能发货？', '成色怎么样？', '有瑕疵吗？']
+    return [
+        {
+            label: '当前状态',
+            value: activeChat.value.online ? '在线沟通' : '等待回复',
+            note: activeChat.value.unread ? `还有 ${activeChat.value.unread} 条未读` : '本会话暂无未读'
+        },
+        {
+            label: '交易模式',
+            value: '待确认',
+            note: '当前会话未绑定真实商品，先展示桌面侧栏占位信息'
+        },
+        {
+            label: '风险提示',
+            value: '确认成色',
+            note: '建议先确认卖家自出成色，再决定是否需要平台验货'
+        }
+    ];
+});
 
 function formatTime(timestamp) {
-    if (!timestamp) return ''
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diff = now - date
-    if (diff < 86400000) { // Less than 24h
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    if (!timestamp) return '';
+
+    const date = new Date(timestamp);
+    const diff = Date.now() - date.getTime();
+
+    if (diff < 86400000) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    return date.toLocaleDateString()
+
+    return date.toLocaleDateString();
 }
 
-const scrollToBottom = () => {
+function scrollToBottom() {
     nextTick(() => {
         if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
         }
-    })
+    });
 }
 
-const handleSend = async () => {
-    if (!inputText.value.trim() || !activeChatId.value) return
+async function handleSend() {
+    if (!inputText.value.trim() || !activeChat.value?.otherUserId) return;
 
-    const chat = chatList.value.find(c => c.id === activeChatId.value)
-    if (!chat || !chat.otherUserId) return
-
-    await messageStore.sendMessage(chat.otherUserId, inputText.value)
-    inputText.value = ''
-    scrollToBottom()
+    await messageStore.sendMessage(activeChat.value.otherUserId, inputText.value.trim());
+    inputText.value = '';
+    scrollToBottom();
 }
 
-const handleQuickReply = (text) => {
-    inputText.value = text
-    handleSend()
+function handleQuickReply(text) {
+    inputText.value = text;
+    handleSend();
 }
 
-const switchChat = async (chat) => {
-    if (activeChatId.value === chat.id) return
-    activeChatId.value = chat.id
+async function openConversation(chat, syncRoute = true) {
+    if (!chat) return;
 
-    messageStore.markConversationAsRead(chat.id)
+    activeChatId.value = chat.id;
+    messageStore.markConversationAsRead(chat.id);
 
-    await messageStore.fetchMessages(chat.id)
-    scrollToBottom()
+    if (messageStore.currentConversationId !== chat.id) {
+        await messageStore.fetchMessages(chat.id);
+    }
 
-    router.replace(`/messages/chat/${chat.id}`)
+    scrollToBottom();
+
+    if (syncRoute && route.path !== `/messages/chat/${chat.id}`) {
+        router.replace(`/messages/chat/${chat.id}`);
+    }
 }
+
+async function syncConversationFromRoute() {
+    const routeId = route.params.id ? Number(route.params.id) : null;
+
+    if (!routeId) {
+        if (!activeChatId.value && chatList.value.length) {
+            await openConversation(chatList.value[0]);
+        }
+        return;
+    }
+
+    const existingChat = chatList.value.find(chat => Number(chat.id) === routeId);
+
+    if (existingChat) {
+        await openConversation(existingChat, false);
+        return;
+    }
+
+    activeChatId.value = routeId;
+
+    if (messageStore.currentConversationId !== routeId) {
+        await messageStore.fetchMessages(routeId);
+    }
+
+    scrollToBottom();
+}
+
+watch(() => route.params.id, () => {
+    syncConversationFromRoute();
+});
+
+watch(() => chatList.value.length, () => {
+    syncConversationFromRoute();
+});
 
 watch(() => messageStore.messages.length, () => {
-    scrollToBottom()
-})
+    scrollToBottom();
+});
 
 onMounted(async () => {
-    messageStore.connect()
-    await messageStore.fetchConversations()
-
-    const paramId = route.params.id ? parseInt(route.params.id) : null
-    if (paramId) {
-        const chat = chatList.value.find(c => c.id === paramId)
-        if (chat) {
-            switchChat(chat)
-        } else {
-            activeChatId.value = paramId
-            await messageStore.fetchMessages(paramId)
-        }
-    }
-})
+    messageStore.connect();
+    await messageStore.fetchConversations();
+    await syncConversationFromRoute();
+});
 
 onUnmounted(() => {
-    messageStore.clearCurrentConversation()
-})
+    messageStore.clearCurrentConversation();
+});
 </script>
 
-<style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
+<template>
+    <div class="min-h-screen bg-transparent">
+        <div class="mx-auto max-w-[1480px] px-8 py-6">
+            <section
+                class="relative overflow-hidden rounded-[32px] border border-white/70 bg-gradient-to-br from-[#111d21] via-[#172d34] to-[#274852] px-8 py-8 text-white shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
+                <div class="absolute right-0 top-0 h-72 w-72 rounded-full bg-white/8 blur-3xl"></div>
 
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-</style>
+                <div class="relative z-10 flex items-end justify-between gap-10">
+                    <div>
+                        <div class="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">
+                            <MessageSquare :size="14" />
+                            Messaging Desk
+                        </div>
+                        <h1 class="mt-4 text-4xl font-black tracking-tight">消息中心</h1>
+                        <p class="mt-3 max-w-2xl text-sm leading-7 text-slate-100/72">
+                            这里不再按移动端聊天框思路堆按钮，而是拆成桌面三栏结构，让会话、正文和交易侧栏同时可见。
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div v-for="card in workspaceStats" :key="card.label"
+                            class="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur">
+                            <div class="text-xs uppercase tracking-[0.18em] text-slate-200/60">{{ card.label }}</div>
+                            <div class="mt-2 text-3xl font-black">{{ card.value }}</div>
+                            <div class="mt-2 text-xs text-slate-100/60">{{ card.note }}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mt-6 grid grid-cols-[340px_minmax(0,1fr)_320px] gap-6">
+                <aside
+                    class="overflow-hidden rounded-[32px] border border-white/70 bg-white/92 shadow-[0_24px_54px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <div class="border-b border-slate-100 px-5 py-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Conversations</div>
+                                <h2 class="mt-2 text-2xl font-black text-slate-950">会话列表</h2>
+                            </div>
+                            <button type="button"
+                                class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:border-emerald-200 hover:text-emerald-700">
+                                <Bell :size="16" />
+                            </button>
+                        </div>
+
+                        <div class="mt-5 rounded-[24px] bg-slate-50 px-4 py-4">
+                            <label class="relative block">
+                                <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input v-model="searchKeyword" type="text" placeholder="搜索联系人或聊天内容"
+                                    class="w-full rounded-2xl border border-transparent bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition-colors focus:border-emerald-200" />
+                            </label>
+
+                            <div class="mt-4 grid grid-cols-2 gap-3">
+                                <div class="rounded-2xl bg-white px-4 py-3">
+                                    <div class="text-xs uppercase tracking-[0.18em] text-slate-400">未读会话</div>
+                                    <div class="mt-2 text-2xl font-black text-slate-950">{{ unreadConversationCount }}</div>
+                                </div>
+                                <div class="rounded-2xl bg-white px-4 py-3">
+                                    <div class="text-xs uppercase tracking-[0.18em] text-slate-400">在线联系</div>
+                                    <div class="mt-2 text-2xl font-black text-slate-950">{{ onlineConversationCount }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-[calc(100vh-360px)] overflow-y-auto px-3 py-3">
+                        <button v-for="chat in filteredChatList" :key="chat.id" type="button"
+                            class="mb-2 grid w-full grid-cols-[56px_minmax(0,1fr)_48px] items-center gap-3 rounded-[24px] px-3 py-3 text-left transition-all"
+                            :class="activeChatId === chat.id
+                                ? 'bg-emerald-50 shadow-[0_14px_28px_rgba(16,185,129,0.10)]'
+                                : 'hover:bg-slate-50'"
+                            @click="openConversation(chat)">
+                            <div class="relative">
+                                <img :src="chat.avatar"
+                                    class="h-14 w-14 rounded-2xl border border-slate-100 object-cover shadow-sm" />
+                                <span v-if="chat.online"
+                                    class="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500"></span>
+                            </div>
+
+                            <div class="min-w-0">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="truncate text-sm font-bold text-slate-900">{{ chat.name }}</div>
+                                    <div class="text-[11px] text-slate-400">{{ chat.time }}</div>
+                                </div>
+                                <div class="mt-1 truncate text-xs leading-6"
+                                    :class="chat.unread ? 'font-semibold text-slate-700' : 'text-slate-500'">
+                                    {{ chat.lastMessage }}
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-end gap-2">
+                                <span v-if="chat.unread"
+                                    class="inline-flex min-w-[22px] items-center justify-center rounded-full bg-rose-500 px-2 py-1 text-[10px] font-bold text-white">
+                                    {{ chat.unread > 99 ? '99+' : chat.unread }}
+                                </span>
+                                <span class="text-[10px] text-slate-300">
+                                    {{ chat.online ? '在线' : '离线' }}
+                                </span>
+                            </div>
+                        </button>
+
+                        <div v-if="!filteredChatList.length"
+                            class="flex h-full flex-col items-center justify-center text-center text-slate-400">
+                            <div class="mb-4 rounded-full bg-slate-50 p-4">
+                                <Search :size="22" />
+                            </div>
+                            <div class="text-sm font-semibold text-slate-700">没有匹配的会话</div>
+                            <div class="mt-2 text-xs">换个关键词试试，或者清空搜索。</div>
+                        </div>
+                    </div>
+                </aside>
+
+                <main
+                    class="overflow-hidden rounded-[32px] border border-white/70 bg-white/92 shadow-[0_24px_54px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <div v-if="activeChat" class="flex h-full min-h-[calc(100vh-240px)] flex-col">
+                        <div class="border-b border-slate-100 px-6 py-5">
+                            <div class="flex items-center justify-between gap-5">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative">
+                                        <img :src="activeChat.avatar"
+                                            class="h-14 w-14 rounded-2xl border border-slate-100 object-cover shadow-sm" />
+                                        <span v-if="activeChat.online"
+                                            class="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500"></span>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-3">
+                                            <h2 class="text-2xl font-black text-slate-950">{{ activeChat.name }}</h2>
+                                            <span
+                                                class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                <ShieldCheck :size="14" />
+                                                沟通中
+                                            </span>
+                                        </div>
+                                        <div class="mt-2 flex items-center gap-4 text-sm text-slate-400">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <Clock3 :size="14" />
+                                                最近活跃 {{ activeChat.time || '刚刚' }}
+                                            </span>
+                                            <span>{{ activeChat.online ? '当前在线' : '当前离线' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <button type="button"
+                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:border-emerald-200 hover:text-emerald-700">
+                                        <Phone :size="16" />
+                                        语音协商
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:border-emerald-200 hover:text-emerald-700">
+                                        <Store :size="16" />
+                                        打开商品
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div ref="messagesContainer" class="flex-1 space-y-5 overflow-y-auto bg-slate-50 px-6 py-6">
+                            <div
+                                class="mx-auto max-w-max rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-700">
+                                建议先确认成色描述，再判断是否需要走平台验货流程。
+                            </div>
+
+                            <div v-for="message in messages" :key="message.id"
+                                class="flex gap-3"
+                                :class="message.type === 'me' ? 'justify-end' : 'justify-start'">
+                                <template v-if="message.type !== 'me'">
+                                    <img :src="activeChat.avatar"
+                                        class="h-10 w-10 rounded-full border border-white object-cover shadow-sm" />
+                                </template>
+
+                                <div class="max-w-[68%]">
+                                    <div class="rounded-[24px] px-4 py-3 text-sm leading-7 shadow-sm"
+                                        :class="message.type === 'me'
+                                            ? 'rounded-tr-md bg-emerald-600 text-white'
+                                            : 'rounded-tl-md border border-slate-100 bg-white text-slate-700'">
+                                        {{ message.content }}
+                                    </div>
+                                    <div class="mt-2 px-2 text-[11px] text-slate-400"
+                                        :class="message.type === 'me' ? 'text-right' : 'text-left'">
+                                        {{ message.time }}
+                                    </div>
+                                </div>
+
+                                <template v-if="message.type === 'me'">
+                                    <img :src="currentUser.avatar"
+                                        class="h-10 w-10 rounded-full border border-white object-cover shadow-sm" />
+                                </template>
+                            </div>
+
+                            <div v-if="!messages.length"
+                                class="flex h-full min-h-[260px] flex-col items-center justify-center text-center text-slate-400">
+                                <div class="mb-4 rounded-full bg-white p-5 shadow-sm">
+                                    <MessageSquare :size="26" />
+                                </div>
+                                <div class="text-base font-semibold text-slate-700">会话还没有消息</div>
+                                <div class="mt-2 text-sm">右下角输入内容后即可开始沟通。</div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-slate-100 px-6 py-5">
+                            <div class="flex flex-wrap gap-2">
+                                <button v-for="text in quickReplies" :key="text" type="button"
+                                    class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-emerald-200 hover:text-emerald-700"
+                                    @click="handleQuickReply(text)">
+                                    {{ text }}
+                                </button>
+                            </div>
+
+                            <div class="mt-4 flex items-center gap-3">
+                                <label class="relative flex-1">
+                                    <input v-model="inputText" type="text" placeholder="输入消息，按 Enter 发送"
+                                        class="w-full rounded-full border border-slate-200 bg-slate-50 py-3 pl-5 pr-12 text-sm text-slate-700 outline-none transition-colors focus:border-emerald-200 focus:bg-white"
+                                        @keydown.enter.prevent="handleSend" />
+                                    <UserRound :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                                </label>
+
+                                <button type="button"
+                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full transition-all"
+                                    :class="inputText.trim()
+                                        ? 'bg-emerald-600 text-white shadow-[0_14px_28px_rgba(16,185,129,0.24)]'
+                                        : 'bg-slate-200 text-slate-400'"
+                                    :disabled="!inputText.trim()"
+                                    @click="handleSend">
+                                    <Send :size="18" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="flex min-h-[calc(100vh-240px)] flex-col items-center justify-center text-center text-slate-400">
+                        <div class="mb-5 rounded-full bg-slate-50 p-6 shadow-sm">
+                            <MessageSquare :size="34" />
+                        </div>
+                        <div class="text-xl font-semibold text-slate-700">从左侧选择一个联系人</div>
+                        <div class="mt-2 max-w-md text-sm leading-7">
+                            桌面端会同时展示会话列表、聊天正文和交易侧栏，所以选中一个会话后信息会完整铺开。
+                        </div>
+                    </div>
+                </main>
+
+                <aside
+                    class="overflow-hidden rounded-[32px] border border-white/70 bg-white/92 shadow-[0_24px_54px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <div class="border-b border-slate-100 px-5 py-5">
+                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                            <Sparkles :size="14" />
+                            Trade Panel
+                        </div>
+                        <h2 class="mt-3 text-2xl font-black text-slate-950">交易侧栏</h2>
+                        <div class="mt-2 text-sm leading-7 text-slate-500">
+                            这里为桌面端预留商品上下文、验货提醒和快捷话术，不再把这些信息都挤在聊天头部。
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 px-5 py-5">
+                        <div class="rounded-[24px] bg-slate-950 p-5 text-white">
+                            <div class="text-xs uppercase tracking-[0.18em] text-white/55">当前联系人</div>
+                            <div class="mt-2 text-2xl font-black">
+                                {{ activeChat?.name || '未选择会话' }}
+                            </div>
+                            <div class="mt-2 text-sm text-white/68">
+                                {{ activeChat ? `最近消息：${activeChat.lastMessage}` : '左侧选中会话后，这里会展示对话摘要。' }}
+                            </div>
+                        </div>
+
+                        <div v-for="signal in conversationSignals" :key="signal.label"
+                            class="rounded-2xl border border-slate-200 px-4 py-4">
+                            <div class="text-xs uppercase tracking-[0.18em] text-slate-400">{{ signal.label }}</div>
+                            <div class="mt-2 text-lg font-bold text-slate-950">{{ signal.value }}</div>
+                            <div class="mt-2 text-xs leading-6 text-slate-500">{{ signal.note }}</div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 px-4 py-4">
+                            <div class="text-xs uppercase tracking-[0.18em] text-slate-400">沟通建议</div>
+                            <div class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+                                <div class="flex items-start gap-2">
+                                    <ShieldCheck :size="16" class="mt-1 text-emerald-600" />
+                                    <span>先确认卖家描述的是“自出成色”还是“平台验货等级”，避免两个概念混用。</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <Clock3 :size="16" class="mt-1 text-sky-600" />
+                                    <span>如果是高客单价商品，建议尽早确认是否支持平台验货，减少后续扯皮。</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </div>
+    </div>
+</template>

@@ -1,249 +1,513 @@
-<template>
-    <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50]">
-
-        <!-- --- Top Navigation --- -->
-
-        <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Sidebar -->
-            <BuyerSidebar active-menu="我的收藏" />
-
-            <!-- Right Content -->
-            <div class="lg:col-span-10">
-
-                <!-- --- Header & Tabs --- -->
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div class="flex items-center gap-3">
-                        <h1 class="text-2xl font-bold text-[#2c3e50]">我的收藏</h1>
-                        <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs font-medium">{{
-                            favorites.length }}</span>
-                    </div>
-
-                    <div class="flex items-center gap-4">
-                        <!-- Filter Tabs -->
-                        <div class="bg-white p-1 rounded-full border border-gray-100 shadow-sm flex">
-                            <button v-for="tab in ['全部', '降价', '失效']" :key="tab" @click="activeTab = tab"
-                                class="px-4 py-1.5 rounded-full text-sm font-medium transition-all border-none cursor-pointer"
-                                :class="activeTab === tab ? 'bg-[#4a8b6e] text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-[#4a8b6e] hover:bg-gray-50'">
-                                {{ tab }}
-                            </button>
-                        </div>
-
-                        <!-- Batch Manage Button -->
-                        <button @click="isEditMode = !isEditMode"
-                            class="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors cursor-pointer"
-                            :class="isEditMode ? 'bg-red-50 text-red-500 border-red-200' : 'bg-white text-gray-600 border-gray-200 hover:border-[#4a8b6e] hover:text-[#4a8b6e]'">
-                            {{ isEditMode ? '完成管理' : '批量管理' }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- --- Favorites Grid --- -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div v-for="item in filteredItems" :key="item.id"
-                        class="bg-white rounded-2xl border transition-all duration-300 group relative overflow-hidden flex flex-col"
-                        :class="[
-                            isEditMode ? 'ring-2 ring-transparent cursor-pointer hover:ring-red-400' : 'hover:border-[#4a8b6e]/30 hover:shadow-lg hover:-translate-y-1',
-                            item.status === 'invalid' ? 'opacity-75 grayscale-[0.5]' : 'border-gray-100'
-                        ]" @click="handleItemClick(item)">
-
-                        <!-- Image Section -->
-                        <div class="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                            <img :src="item.image || 'https://via.placeholder.com/400'" :alt="item.title"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-
-                            <!-- 状态遮罩 -->
-                            <div v-if="item.status === 'invalid'"
-                                class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <span
-                                    class="text-white font-bold bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">已失效</span>
-                            </div>
-
-                            <!-- 降价提醒 Tag -->
-                            <div v-if="item.status === 'price_drop'"
-                                class="absolute bottom-2 left-2 bg-[#ff5e57] text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-                                <div class="i-lucide-arrow-down-right text-xs stroke-[3]"></div>
-                                直降 ¥{{ item.priceDrop }}
-                            </div>
-
-                            <!-- Edit Mode Checkbox Placeholder -->
-                            <div v-if="isEditMode"
-                                class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center shadow-md">
-                                <div class="w-3 h-3 rounded-full bg-transparent"></div>
-                            </div>
-                        </div>
-
-                        <!-- Content Section -->
-                        <div class="p-4 flex-1 flex flex-col">
-                            <h3
-                                class="text-[#2c3e50] font-bold text-[15px] leading-snug line-clamp-2 mb-2 group-hover:text-[#4a8b6e] transition-colors">
-                                {{ item.title }}
-                            </h3>
-
-                            <!-- Tags -->
-                            <div class="flex flex-wrap gap-1.5 mb-3">
-                                <span v-for="tag in item.tags" :key="tag"
-                                    class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
-                                    {{ tag }}
-                                </span>
-                            </div>
-
-                            <!-- Price -->
-                            <div class="mt-auto flex items-baseline gap-2 mb-3">
-                                <span class="text-lg font-bold font-mono"
-                                    :class="item.status === 'price_drop' ? 'text-[#ff5e57]' : 'text-[#2c3e50]'">
-                                    ¥{{ item.price }}
-                                </span>
-                                <span v-if="item.status === 'price_drop'"
-                                    class="text-xs text-gray-400 line-through decoration-gray-300">¥{{
-                                        item.originalPrice
-                                    }}</span>
-                            </div>
-
-                            <!-- Seller Info & Actions Divider -->
-                            <div class="border-t border-gray-50 pt-3 flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <img :src="resolveAvatar(item.seller.avatar)"
-                                        class="w-6 h-6 rounded-full border border-gray-100" />
-                                    <div class="flex flex-col">
-                                        <span class="text-xs text-gray-600 font-medium scale-95 origin-left">{{
-                                            item.seller.name }}</span>
-                                        <span class="text-[10px] text-[#4a8b6e] scale-90 origin-left">信用{{
-                                            item.seller.credit }}</span>
-                                    </div>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div
-                                    class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        class="p-1.5 text-gray-400 hover:text-[#4a8b6e] hover:bg-[#4a8b6e]/10 rounded-full transition-colors border-none bg-transparent cursor-pointer"
-                                        title="联系卖家" @click.stop>
-                                        <div class="i-lucide-message-square text-base"></div>
-                                    </button>
-                                    <button
-                                        class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border-none bg-transparent cursor-pointer"
-                                        title="删除" @click.stop="handleRemove(item)">
-                                        <div class="i-lucide-trash-2 text-base"></div>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- Empty State Mockup (Visual placeholder) -->
-                    <div v-if="filteredItems.length === 0"
-                        class="col-span-full py-20 flex flex-col items-center justify-center text-gray-400">
-                        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <div class="i-lucide-heart text-[40px] text-gray-300"></div>
-                        </div>
-                        <p>暂无此类商品</p>
-                    </div>
-                </div>
-
-                <!-- Bottom Status -->
-                <div class="mt-12 text-center">
-                    <span class="text-xs text-gray-300">没有更多了</span>
-                </div>
-
-            </div>
-        </main>
-        <div v-if="isEditMode"
-            class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-2xl border border-gray-100 flex items-center gap-6 z-50 animate-in slide-in-from-bottom-4">
-            <div class="text-sm text-gray-600 font-medium">已选 0 件</div>
-            <div class="h-4 w-px bg-gray-200"></div>
-            <button
-                class="text-sm font-bold text-gray-500 hover:text-gray-800 border-none bg-transparent cursor-pointer">取消收藏</button>
-            <button
-                class="text-sm font-bold text-red-500 hover:text-red-600 border-none bg-transparent cursor-pointer">删除失效</button>
-        </div>
-
-    </div>
-</template>
-
 <script setup>
 import { listMyFavorites, removeFavorite } from '@/api/favorites';
 import BuyerSidebar from '@/components/BuyerSidebar.vue';
 import { resolveAvatar } from '@/utils/avatar';
+import {
+    CheckCheck,
+    Eye,
+    Heart,
+    LayoutGrid,
+    ShieldCheck,
+    Sparkles,
+    Trash2,
+    TriangleAlert
+} from 'lucide-vue-next';
 import { showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const activeTab = ref('全部')
-const isEditMode = ref(false)
-const favorites = ref([])
-const loading = ref(false)
+const router = useRouter();
 
-const fetchFavorites = async () => {
-    loading.value = true
-    try {
-        const res = await listMyFavorites({ page: 0, size: 100 })
-        favorites.value = res.content.map(item => {
-            const p = item.product
-            if (!p) return null // Should not happen if data integrity is good
-            return {
-                id: p.id,
-                favoriteId: item.id,
-                title: p.title,
-                price: p.price,
-                originalPrice: p.originalPrice,
-                image: p.images && p.images.length > 0 ? p.images[0].url : '',
-                seller: {
-                    name: p.seller ? (p.seller.nickname || p.seller.username) : 'Unknown',
-                    avatar: p.seller ? p.seller.avatarUrl : '',
-                    credit: '良好'
-                },
-                status: mapStatus(p.status),
-                tags: p.condition ? [p.condition] : [],
-                priceDrop: 0
-            }
-        }).filter(Boolean)
-    } catch (error) {
-        console.error(error)
-        showFailToast('加载失败')
-    } finally {
-        loading.value = false
-    }
-}
+const activeTab = ref('全部');
+const isEditMode = ref(false);
+const favorites = ref([]);
+const selectedIds = ref([]);
+const loading = ref(false);
+const actionLoading = ref(false);
 
-const mapStatus = (status) => {
-    if (status === 'ON_SALE') return 'normal'
-    if (status === 'SOLD' || status === 'OFF_SHELF') return 'invalid'
-    return 'normal'
-}
+const tabOptions = ['全部', '降价', '失效'];
 
-const handleRemove = async (item) => {
-    try {
-        await removeFavorite(item.id)
-        favorites.value = favorites.value.filter(i => i.id !== item.id)
-        showSuccessToast('已取消收藏')
-    } catch (error) {
-        showFailToast('操作失败')
-    }
-}
+const totalCount = computed(() => favorites.value.length);
+const priceDropCount = computed(() => favorites.value.filter(item => item.status === 'price_drop').length);
+const invalidCount = computed(() => favorites.value.filter(item => item.status === 'invalid').length);
+const officialCount = computed(() => favorites.value.filter(item => item.isOfficialTrade).length);
+const totalSaved = computed(() => favorites.value.reduce((sum, item) => sum + item.priceDrop, 0));
 
-// 筛选逻辑
 const filteredItems = computed(() => {
-    if (activeTab.value === '全部') return favorites.value
-    if (activeTab.value === '降价') return favorites.value.filter(i => i.status === 'price_drop')
-    if (activeTab.value === '失效') return favorites.value.filter(i => i.status === 'invalid')
-    return favorites.value
-})
-
-const handleItemClick = (item) => {
-    if (isEditMode.value) {
-        // Toggle selection logic would go here
-    } else {
-        router.push(`/product/${item.id}`)
+    if (activeTab.value === '降价') {
+        return favorites.value.filter(item => item.status === 'price_drop');
     }
+
+    if (activeTab.value === '失效') {
+        return favorites.value.filter(item => item.status === 'invalid');
+    }
+
+    return favorites.value;
+});
+
+const visibleSelectedCount = computed(() => {
+    return filteredItems.value.filter(item => selectedIds.value.includes(item.id)).length;
+});
+
+const selectedVisibleIds = computed(() => {
+    return filteredItems.value.filter(item => selectedIds.value.includes(item.id)).map(item => item.id);
+});
+
+const allVisibleSelected = computed(() => {
+    return filteredItems.value.length > 0 && visibleSelectedCount.value === filteredItems.value.length;
+});
+
+const summaryCards = computed(() => {
+    return [
+        {
+            label: '收藏总数',
+            value: `${totalCount.value}`,
+            note: '桌面工作台当前关注的商品'
+        },
+        {
+            label: '降价提醒',
+            value: `${priceDropCount.value}`,
+            note: `累计可比原价少花 ¥${totalSaved.value}`
+        },
+        {
+            label: '平台验货',
+            value: `${officialCount.value}`,
+            note: '平台背书商品占比更适合高客单价'
+        },
+        {
+            label: '失效条目',
+            value: `${invalidCount.value}`,
+            note: '建议定期清理，避免干扰筛选'
+        }
+    ];
+});
+
+function resolveConditionLabel(product) {
+    if (product.inspectionGrade) {
+        return `${product.inspectionGrade}级验货`;
+    }
+
+    const condition = product.sellerClaimCondition || product.condition;
+    const labels = {
+        NEW: '全新',
+        LIKE_NEW: '95新',
+        GOOD: '9成新',
+        FAIR: '8成新',
+        POOR: '战损版'
+    };
+
+    return labels[condition] || condition || '成色待补充';
+}
+
+function mapStatus(product) {
+    if (product.status === 'SOLD' || product.status === 'OFF_SHELF') {
+        return 'invalid';
+    }
+
+    if (Number(product.originalPrice || 0) > Number(product.price || 0)) {
+        return 'price_drop';
+    }
+
+    return 'normal';
+}
+
+function mapFavoriteItem(item) {
+    const product = item.product;
+    const originalPrice = Number(product.originalPrice || 0);
+    const price = Number(product.price || 0);
+    const priceDrop = Math.max(0, originalPrice - price);
+    const isOfficialTrade = product.tradeModel === 'OFFICIAL_INSPECTION' || product.isOfficial === true;
+
+    return {
+        id: product.id,
+        favoriteId: item.id,
+        title: product.title || '未命名商品',
+        price,
+        originalPrice,
+        priceDrop,
+        image: product.image || (product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : 'https://via.placeholder.com/640x480?text=TrueUsed'),
+        seller: {
+            name: product.seller ? (product.seller.nickname || product.seller.username || '匿名卖家') : '匿名卖家',
+            avatar: product.seller ? product.seller.avatarUrl || product.seller.avatar : '',
+            city: product.locationText || product.seller?.city || '全国'
+        },
+        views: product.viewsCount || 0,
+        status: mapStatus(product),
+        isOfficialTrade,
+        tradeLabel: isOfficialTrade ? '平台验货' : '卖家自出',
+        conditionLabel: resolveConditionLabel(product),
+        tags: [resolveConditionLabel(product), product.categoryName].filter(Boolean)
+    };
+}
+
+async function fetchFavorites() {
+    loading.value = true;
+
+    try {
+        const res = await listMyFavorites({ page: 0, size: 100 });
+        favorites.value = (res.content || []).filter(item => item.product).map(item => mapFavoriteItem(item));
+        selectedIds.value = selectedIds.value.filter(id => favorites.value.some(item => item.id === id));
+    } catch (error) {
+        console.error(error);
+        showFailToast('加载收藏失败');
+    } finally {
+        loading.value = false;
+    }
+}
+
+function toggleEditMode() {
+    isEditMode.value = !isEditMode.value;
+
+    if (!isEditMode.value) {
+        selectedIds.value = [];
+    }
+}
+
+function toggleSelection(id) {
+    if (!isEditMode.value) return;
+
+    if (selectedIds.value.includes(id)) {
+        selectedIds.value = selectedIds.value.filter(itemId => itemId !== id);
+        return;
+    }
+
+    selectedIds.value = [...selectedIds.value, id];
+}
+
+function toggleSelectAllVisible() {
+    if (!filteredItems.value.length) return;
+
+    if (allVisibleSelected.value) {
+        selectedIds.value = selectedIds.value.filter(id => !filteredItems.value.some(item => item.id === id));
+        return;
+    }
+
+    const merged = new Set(selectedIds.value);
+    filteredItems.value.forEach(item => merged.add(item.id));
+    selectedIds.value = Array.from(merged);
+}
+
+async function removeByIds(ids) {
+    if (!ids.length) return;
+
+    actionLoading.value = true;
+
+    try {
+        const results = await Promise.allSettled(ids.map(id => removeFavorite(id)));
+        const successIds = ids.filter((id, index) => results[index].status === 'fulfilled');
+        const failedCount = results.length - successIds.length;
+
+        if (successIds.length) {
+            favorites.value = favorites.value.filter(item => !successIds.includes(item.id));
+            selectedIds.value = selectedIds.value.filter(id => !successIds.includes(id));
+        }
+
+        if (failedCount > 0 && successIds.length > 0) {
+            showFailToast(`已取消 ${successIds.length} 件，${failedCount} 件失败`);
+        } else if (failedCount > 0) {
+            showFailToast('批量操作失败');
+        } else {
+            showSuccessToast(`已取消 ${successIds.length} 件收藏`);
+        }
+    } catch (error) {
+        console.error(error);
+        showFailToast('操作失败');
+    } finally {
+        actionLoading.value = false;
+    }
+}
+
+async function handleRemove(item) {
+    await removeByIds([item.id]);
+}
+
+async function removeInvalidItems() {
+    const invalidIds = favorites.value.filter(item => item.status === 'invalid').map(item => item.id);
+
+    if (!invalidIds.length) {
+        showFailToast('当前没有失效收藏');
+        return;
+    }
+
+    await removeByIds(invalidIds);
+}
+
+function openItem(item) {
+    if (isEditMode.value) {
+        toggleSelection(item.id);
+        return;
+    }
+
+    router.push(`/product/${item.id}`);
 }
 
 onMounted(() => {
-    fetchFavorites()
-})
+    fetchFavorites();
+});
 </script>
 
-<style scoped>
-/* Add any custom styles if UnoCSS is not enough, but mostly relying on utility classes */
-</style>
+<template>
+    <div class="min-h-screen bg-transparent">
+        <div class="mx-auto grid max-w-[1480px] grid-cols-12 gap-8 px-8 py-6">
+            <BuyerSidebar active-menu="我的收藏" />
+
+            <main class="col-span-10 space-y-6">
+                <section
+                    class="relative overflow-hidden rounded-[32px] border border-white/70 bg-gradient-to-br from-[#10201a] via-[#18362d] to-[#255948] px-8 py-8 text-white shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
+                    <div class="absolute right-0 top-0 h-72 w-72 rounded-full bg-white/8 blur-3xl"></div>
+
+                    <div class="relative z-10 flex items-end justify-between gap-8">
+                        <div>
+                            <div class="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                                <Heart :size="14" />
+                                Favorites Desk
+                            </div>
+                            <h1 class="mt-4 text-4xl font-black tracking-tight">我的收藏</h1>
+                            <p class="mt-3 max-w-2xl text-sm leading-7 text-emerald-50/72">
+                                这页现在按桌面工作台来组织，不再只是一排卡片。你可以先看降价和失效状态，再决定批量清理还是继续跟进。
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur">
+                                <div class="text-xs uppercase tracking-[0.18em] text-emerald-100/60">当前视图</div>
+                                <div class="mt-2 text-lg font-bold">{{ activeTab }}</div>
+                            </div>
+                            <div class="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur">
+                                <div class="text-xs uppercase tracking-[0.18em] text-emerald-100/60">选中条目</div>
+                                <div class="mt-2 text-lg font-bold">{{ visibleSelectedCount }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-4 gap-5">
+                    <div v-for="card in summaryCards" :key="card.label"
+                        class="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_18px_38px_rgba(15,23,42,0.05)] backdrop-blur">
+                        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{{ card.label }}</div>
+                        <div class="mt-3 text-3xl font-black tracking-tight text-slate-950">{{ card.value }}</div>
+                        <div class="mt-2 text-sm text-slate-500">{{ card.note }}</div>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-[minmax(0,1fr)_320px] gap-6">
+                    <div class="space-y-6">
+                        <div
+                            class="rounded-[32px] border border-white/70 bg-white/92 p-6 shadow-[0_24px_54px_rgba(15,23,42,0.06)] backdrop-blur">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <h2 class="text-2xl font-black text-slate-950">收藏清单</h2>
+                                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                                        {{ filteredItems.length }} 项
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <div class="flex rounded-full border border-slate-200 bg-slate-50 p-1.5">
+                                        <button v-for="tab in tabOptions" :key="tab" type="button"
+                                            class="rounded-full px-4 py-2 text-sm font-semibold transition-colors"
+                                            :class="activeTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+                                            @click="activeTab = tab">
+                                            {{ tab }}
+                                        </button>
+                                    </div>
+
+                                    <button type="button"
+                                        class="inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors"
+                                        :class="isEditMode
+                                            ? 'border-rose-200 bg-rose-50 text-rose-600'
+                                            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700'"
+                                        @click="toggleEditMode">
+                                        <LayoutGrid :size="16" />
+                                        {{ isEditMode ? '退出管理' : '批量管理' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-between rounded-[24px] bg-slate-50 px-5 py-4">
+                                <div class="text-sm text-slate-500">
+                                    <span class="font-semibold text-slate-900">{{ activeTab }}</span>
+                                    视图下，平台验货与卖家自出会分开展示，便于快速判断是否值得继续跟进。
+                                </div>
+
+                                <button v-if="isEditMode" type="button"
+                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-emerald-200 hover:text-emerald-700"
+                                    @click="toggleSelectAllVisible">
+                                    <CheckCheck :size="16" />
+                                    {{ allVisibleSelected ? '取消全选' : '全选当前结果' }}
+                                </button>
+                            </div>
+
+                            <div v-if="loading"
+                                class="mt-6 flex min-h-[320px] items-center justify-center rounded-[28px] bg-slate-50">
+                                <van-loading vertical color="#0b8a61">收藏加载中...</van-loading>
+                            </div>
+
+                            <div v-else-if="filteredItems.length"
+                                class="mt-6 grid grid-cols-3 gap-5">
+                                <button v-for="item in filteredItems" :key="item.id" type="button"
+                                    class="group relative overflow-hidden rounded-[28px] border bg-white text-left shadow-sm transition-all"
+                                    :class="[
+                                        isEditMode && selectedIds.includes(item.id)
+                                            ? 'border-emerald-300 shadow-[0_18px_34px_rgba(16,185,129,0.16)]'
+                                            : 'border-slate-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_34px_rgba(15,23,42,0.08)]',
+                                        item.status === 'invalid' ? 'opacity-80' : ''
+                                    ]"
+                                    @click="openItem(item)">
+                                    <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                                        <img :src="item.image"
+                                            class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+
+                                        <div class="absolute left-3 top-3 flex flex-wrap gap-2">
+                                            <span
+                                                class="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur"
+                                                :class="item.isOfficialTrade ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white'">
+                                                {{ item.tradeLabel }}
+                                            </span>
+                                            <span v-if="item.status === 'invalid'"
+                                                class="rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white">
+                                                已失效
+                                            </span>
+                                        </div>
+
+                                        <div v-if="item.priceDrop > 0"
+                                            class="absolute bottom-3 left-3 rounded-full bg-rose-500/92 px-3 py-1 text-xs font-semibold text-white shadow-lg">
+                                            直降 ¥{{ item.priceDrop }}
+                                        </div>
+
+                                        <div v-if="isEditMode"
+                                            class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/90 shadow-md">
+                                            <div class="h-4 w-4 rounded-full transition-colors"
+                                                :class="selectedIds.includes(item.id) ? 'bg-emerald-500' : 'bg-slate-200'"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-5">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <h3 class="line-clamp-2 text-base font-bold leading-7 text-slate-950">{{ item.title }}</h3>
+                                            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                                                {{ item.conditionLabel }}
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-3 flex flex-wrap gap-2">
+                                            <span v-for="tag in item.tags" :key="tag"
+                                                class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
+                                                {{ tag }}
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-5 flex items-end gap-3">
+                                            <div class="text-3xl font-black tracking-tight text-slate-950">¥{{ item.price }}</div>
+                                            <div v-if="item.originalPrice" class="pb-1 text-sm text-slate-400 line-through">
+                                                ¥{{ item.originalPrice }}
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                                            <div class="flex items-center gap-3">
+                                                <img :src="resolveAvatar(item.seller.avatar)"
+                                                    class="h-9 w-9 rounded-full border border-slate-100 object-cover" />
+                                                <div>
+                                                    <div class="text-sm font-semibold text-slate-900">{{ item.seller.name }}</div>
+                                                    <div class="text-xs text-slate-400">{{ item.seller.city }}</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <div class="inline-flex items-center gap-1 text-xs text-slate-400">
+                                                    <Eye :size="14" />
+                                                    {{ item.views }}
+                                                </div>
+                                                <button type="button"
+                                                    class="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-rose-200 hover:text-rose-600"
+                                                    @click.stop="handleRemove(item)">
+                                                    <Trash2 :size="14" />
+                                                    取消收藏
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div v-else
+                                class="mt-6 flex min-h-[320px] flex-col items-center justify-center rounded-[28px] bg-slate-50 text-center text-slate-400">
+                                <div class="mb-4 rounded-full bg-white p-5 shadow-sm">
+                                    <Heart :size="28" />
+                                </div>
+                                <div class="text-lg font-semibold text-slate-700">当前筛选没有收藏商品</div>
+                                <div class="mt-2 text-sm">可以回到首页继续挑选，或者切换到其他状态视图。</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="space-y-6">
+                        <div
+                            class="sticky top-28 rounded-[30px] border border-white/70 bg-white/92 p-6 shadow-[0_24px_54px_rgba(15,23,42,0.06)] backdrop-blur">
+                            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                <Sparkles :size="14" />
+                                Desk Actions
+                            </div>
+                            <h3 class="mt-3 text-2xl font-black text-slate-950">批量操作</h3>
+
+                            <div class="mt-5 rounded-[24px] bg-slate-950 p-5 text-white">
+                                <div class="text-xs uppercase tracking-[0.18em] text-white/55">当前选中</div>
+                                <div class="mt-2 text-4xl font-black">{{ visibleSelectedCount }}</div>
+                                <div class="mt-2 text-sm text-white/68">
+                                    批量模式会直接围绕当前筛选结果工作，不需要在桌面端来回切换页面。
+                                </div>
+                            </div>
+
+                            <div class="mt-5 space-y-3">
+                                <button type="button"
+                                    class="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-45"
+                                    :disabled="!visibleSelectedCount || actionLoading"
+                                    @click="removeByIds(selectedVisibleIds)">
+                                    <span class="inline-flex items-center gap-2">
+                                        <CheckCheck :size="16" />
+                                        取消选中收藏
+                                    </span>
+                                    <span>{{ visibleSelectedCount }}</span>
+                                </button>
+
+                                <button type="button"
+                                    class="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-colors hover:border-rose-200 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-45"
+                                    :disabled="!invalidCount || actionLoading"
+                                    @click="removeInvalidItems">
+                                    <span class="inline-flex items-center gap-2">
+                                        <Trash2 :size="16" />
+                                        清理失效条目
+                                    </span>
+                                    <span>{{ invalidCount }}</span>
+                                </button>
+                            </div>
+
+                            <div class="mt-6 space-y-3">
+                                <div class="flex items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+                                    <ShieldCheck :size="18" class="mt-0.5 text-emerald-600" />
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900">验货优先级</div>
+                                        <div class="mt-1 text-xs leading-6 text-slate-500">
+                                            高客单价收藏建议优先保留平台验货商品，减少沟通成本和成色争议。
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+                                    <TriangleAlert :size="18" class="mt-0.5 text-amber-500" />
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900">失效清理</div>
+                                        <div class="mt-1 text-xs leading-6 text-slate-500">
+                                            失效条目会拖慢桌面筛选效率，建议直接批量移除，只保留真正要跟进的商品。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+            </main>
+        </div>
+    </div>
+</template>
