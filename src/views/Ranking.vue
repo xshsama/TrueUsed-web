@@ -1,5 +1,6 @@
 <script setup>
 import { listProducts } from '@/api/products';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import {
     ArrowRight,
     BadgePercent,
@@ -104,23 +105,6 @@ const boardInsights = computed(() => {
     ];
 });
 
-function resolveConditionLabel(product) {
-    if (product.inspectionGrade) {
-        return `${product.inspectionGrade}级验货`;
-    }
-
-    const condition = product.sellerClaimCondition || product.condition;
-    const labels = {
-        NEW: '全新',
-        LIKE_NEW: '95新',
-        GOOD: '9成新',
-        FAIR: '8成新',
-        POOR: '战损版'
-    };
-
-    return labels[condition] || condition || '成色待补充';
-}
-
 function formatTime(time) {
     if (!time) return '刚刚上架';
 
@@ -140,7 +124,7 @@ function mapRankingItem(product, index) {
     const originalPrice = Number(product.originalPrice || Math.round(price * 1.12) || 0);
     const drop = Math.max(0, Math.round(originalPrice - price));
     const heat = product.wantCount || product.favoritesCount || product.viewsCount || 0;
-    const isOfficialTrade = product.tradeModel === 'OFFICIAL_INSPECTION' || product.isOfficial === true;
+    const trade = normalizeProductTrade(product);
 
     return {
         id: product.id,
@@ -155,10 +139,15 @@ function mapRankingItem(product, index) {
         sellerCity: product.locationText || product.seller?.city || '全国',
         views: product.viewsCount || 0,
         time: formatTime(product.createdAt),
-        conditionLabel: resolveConditionLabel(product),
-        inspectionGrade: product.inspectionGrade || '',
-        isOfficialTrade,
-        tradeLabel: isOfficialTrade ? '平台验货' : '卖家自出',
+        tradeMode: trade.tradeMode,
+        tradeModeLabel: trade.tradeModeLabel,
+        sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
+        platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
+        conditionLabel: trade.primaryConditionLabel,
+        secondaryConditionLabel: trade.secondaryConditionLabel,
+        inspectionGrade: trade.platformInspectionGradeCode,
+        isOfficialTrade: trade.hasPlatformInspection,
+        tradeLabel: trade.tradeModeLabel,
         savingsRate: originalPrice > 0 ? Math.round((drop / originalPrice) * 100) : 0
     };
 }
@@ -303,6 +292,10 @@ onMounted(() => {
                                         <div class="mb-3 flex flex-wrap gap-2">
                                             <span class="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold">{{ topItems[0].tradeLabel }}</span>
                                             <span class="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold">{{ topItems[0].conditionLabel }}</span>
+                                            <span v-if="topItems[0].secondaryConditionLabel"
+                                                class="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold">
+                                                {{ topItems[0].secondaryConditionLabel }}
+                                            </span>
                                             <span v-if="topItems[0].drop > 0"
                                                 class="rounded-full bg-red-500/85 px-3 py-1 text-xs font-semibold">直降 ¥{{ topItems[0].drop }}</span>
                                         </div>
@@ -352,6 +345,9 @@ onMounted(() => {
 
                                             <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
                                                 <span class="rounded-full bg-slate-100 px-3 py-1">{{ item.conditionLabel }}</span>
+                                                <span v-if="item.secondaryConditionLabel" class="rounded-full bg-slate-100 px-3 py-1">
+                                                    {{ item.secondaryConditionLabel }}
+                                                </span>
                                                 <span v-if="item.savingsRate > 0" class="rounded-full bg-rose-50 px-3 py-1 text-rose-600">
                                                     节省 {{ item.savingsRate }}%
                                                 </span>
@@ -406,6 +402,9 @@ onMounted(() => {
                                         <div class="line-clamp-1 text-base font-bold text-slate-900">{{ item.title }}</div>
                                         <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
                                             <span class="rounded-full bg-white px-3 py-1">{{ item.conditionLabel }}</span>
+                                            <span v-if="item.secondaryConditionLabel" class="rounded-full bg-white px-3 py-1">
+                                                {{ item.secondaryConditionLabel }}
+                                            </span>
                                             <span class="rounded-full bg-white px-3 py-1">{{ item.seller }}</span>
                                         </div>
                                     </div>

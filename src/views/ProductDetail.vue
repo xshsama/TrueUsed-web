@@ -2,10 +2,10 @@
 import { createConversation } from '@/api/chat';
 import { getProduct } from '@/api/products';
 import { createProductComment, getProductComments } from '@/api/reviews';
-import TopNavbar from '@/components/TopNavbar.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useFavoritesStore } from '@/stores/favorites';
 import { resolveAvatar } from '@/utils/avatar';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import {
     AlertTriangle,
     Camera,
@@ -42,10 +42,18 @@ const product = ref({
     images: [],
     viewsCount: 0,
     createdAt: '',
-    condition: '',
     category: null,
     address: '上海 · 徐汇区', // Placeholder
-    isOfficial: false,
+    tradeMode: 'FREE_TRADING',
+    tradeModeLabel: '卖家自出',
+    hasPlatformInspection: false,
+    inspectionStatus: 'not_applicable',
+    sellerClaimConditionCode: '',
+    sellerClaimConditionLabel: '',
+    platformInspectionGradeCode: '',
+    platformInspectionGradeLabel: '',
+    primaryConditionLabel: '',
+    secondaryConditionLabel: '',
     inspectionFee: 0
 });
 
@@ -60,36 +68,12 @@ const seller = ref({
 const reviews = ref([]);
 const reviewCount = ref(0);
 
-const conditionLabelMap = {
-    NEW: '全新',
-    LIKE_NEW: '95新',
-    GOOD: '9成新',
-    FAIR: '8成新',
-    POOR: '战损版'
-};
-
-const inspectionGradeLabelMap = {
-    S: 'S级成色',
-    A: 'A级成色',
-    B: 'B级成色',
-    C: 'C级成色',
-    X: '未通过验货'
-};
-
 // --- Computed ---
 const displayImages = computed(() => {
     return product.value.images && product.value.images.length > 0
         ? product.value.images
         : ['https://via.placeholder.com/800x800?text=No+Image'];
 });
-
-const formatConditionLabel = (condition) => {
-    return conditionLabelMap[condition] || condition || '';
-};
-
-const formatInspectionGradeLabel = (grade) => {
-    return inspectionGradeLabelMap[grade] || (grade ? `${grade}级成色` : '');
-};
 
 // --- Methods ---
 const formatTime = (time) => {
@@ -232,13 +216,7 @@ const loadData = async () => {
         // Load product details
         const res = await getProduct(productId);
 
-        // Use real tradeModel from backend
-        const isOfficial = res.tradeModel === 'OFFICIAL_INSPECTION';
-        const sellerClaimCondition = res.sellerClaimCondition || res.condition || '';
-        const sellerClaimLabel = formatConditionLabel(sellerClaimCondition);
-        const inspectionGrade = res.inspectionGrade || '';
-        const inspectionGradeLabel = formatInspectionGradeLabel(inspectionGrade);
-        const primaryConditionTag = isOfficial ? inspectionGradeLabel || '平台验货' : sellerClaimLabel;
+        const trade = normalizeProductTrade(res);
 
         product.value = {
             id: res.id,
@@ -246,18 +224,23 @@ const loadData = async () => {
             price: res.price,
             originalPrice: res.originalPrice || (res.price * 1.2).toFixed(2),
             description: res.description,
-            tags: [primaryConditionTag, res.category?.name].filter(Boolean),
+            tags: [trade.primaryConditionLabel, trade.secondaryConditionLabel, res.category?.name].filter(Boolean),
             images: (res.images || []).map(img => img.url),
             viewsCount: res.viewsCount || 0,
             createdAt: res.createdAt,
-            condition: sellerClaimCondition,
-            sellerClaimLabel: sellerClaimLabel,
-            inspectionGrade: inspectionGrade,
-            inspectionGradeLabel: inspectionGradeLabel,
             category: res.category,
             address: res.locationText || '上海 · 徐汇区',
-            isOfficial: isOfficial,
-            inspectionFee: isOfficial ? 29 : 0
+            tradeMode: trade.tradeMode,
+            tradeModeLabel: trade.tradeModeLabel,
+            hasPlatformInspection: trade.hasPlatformInspection,
+            inspectionStatus: trade.inspectionStatus,
+            sellerClaimConditionCode: trade.sellerClaimConditionCode,
+            sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
+            platformInspectionGradeCode: trade.platformInspectionGradeCode,
+            platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
+            primaryConditionLabel: trade.primaryConditionLabel,
+            secondaryConditionLabel: trade.secondaryConditionLabel,
+            inspectionFee: trade.inspectionFee
         };
 
         if (res.seller) {
@@ -304,12 +287,8 @@ onMounted(() => {
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
-
         <!-- --- Main Layout --- -->
-        <main v-if="!loading" class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <main v-if="!loading" class="mx-auto grid max-w-[1480px] grid-cols-1 gap-8 px-8 py-6 lg:grid-cols-12">
 
             <!-- Left Column: Gallery & Details (col-span-8) -->
             <div class="lg:col-span-8 space-y-6">
@@ -322,10 +301,10 @@ onMounted(() => {
                         <img :src="displayImages[currentImageIndex]" class="w-full h-full object-contain" />
 
                         <!-- Visual Identity: Trust Badges -->
-                        <div v-if="product.isOfficial"
+                        <div v-if="product.hasPlatformInspection"
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-[#4a8b6e]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
                             <ShieldCheck :size="14" />
-                            <span class="text-xs font-bold">{{ product.inspectionGradeLabel || '官方已验货 · 正品保障' }}</span>
+                            <span class="text-xs font-bold">{{ product.platformInspectionGradeLabel || '平台验货 · 正品保障' }}</span>
                         </div>
                         <div v-else
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
@@ -423,20 +402,20 @@ onMounted(() => {
             <div class="lg:col-span-4 space-y-4">
 
                 <!-- 1. Primary Info Card -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 sticky top-24">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 sticky top-[118px]">
 
                     <div class="flex items-center gap-2 mb-4">
                         <span
-                            :class="['text-xs px-2 py-0.5 rounded font-bold', product.isOfficial ? 'bg-[#4a8b6e] text-white' : 'bg-orange-500 text-white']">
-                            {{ product.isOfficial ? '官方验货' : '自由交易' }}
+                            :class="['text-xs px-2 py-0.5 rounded font-bold', product.hasPlatformInspection ? 'bg-[#4a8b6e] text-white' : 'bg-orange-500 text-white']">
+                            {{ product.tradeModeLabel }}
                         </span>
-                        <span v-if="product.isOfficial && product.inspectionGradeLabel"
+                        <span v-if="product.hasPlatformInspection && product.platformInspectionGradeLabel"
                             class="text-xs px-2 py-0.5 rounded font-bold bg-[#e8f5ef] text-[#2f6b53]">
-                            {{ product.inspectionGradeLabel }}
+                            {{ product.platformInspectionGradeLabel }}
                         </span>
-                        <span v-else-if="product.sellerClaimLabel"
+                        <span v-else-if="product.sellerClaimConditionLabel"
                             class="text-xs px-2 py-0.5 rounded font-bold bg-gray-100 text-gray-600">
-                            {{ product.isOfficial ? `卖家自报 ${product.sellerClaimLabel}` : product.sellerClaimLabel }}
+                            {{ product.hasPlatformInspection ? `卖家自述 ${product.sellerClaimConditionLabel}` : product.sellerClaimConditionLabel }}
                         </span>
                         <span class="text-xs text-gray-400">发布于 {{ product.address }}</span>
                     </div>
@@ -452,7 +431,7 @@ onMounted(() => {
                         }}</span>
 
                         <!-- Official: Fee Hint -->
-                        <span v-if="product.isOfficial"
+                        <span v-if="product.hasPlatformInspection"
                             class="text-xs text-[#4a8b6e] bg-[#4a8b6e]/10 px-1.5 py-0.5 rounded">
                             含￥{{ product.inspectionFee }} 验货费
                         </span>
@@ -465,7 +444,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Free Trading: Price Advantage -->
-                    <div v-if="!product.isOfficial" class="text-xs text-[#4a8b6e] mb-4 flex items-center gap-1">
+                    <div v-if="!product.hasPlatformInspection" class="text-xs text-[#4a8b6e] mb-4 flex items-center gap-1">
                         <TrendingDown :size="12" />
                         比官方验货省 ￥{{ (product.price * 0.15).toFixed(0) }}
                     </div>
@@ -481,16 +460,16 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <div v-if="product.isOfficial && (product.sellerClaimLabel || product.inspectionGradeLabel)"
+                    <div v-if="product.hasPlatformInspection && (product.sellerClaimConditionLabel || product.platformInspectionGradeLabel)"
                         class="mb-6 rounded-xl border border-[#4a8b6e]/10 bg-[#f3fbf7] px-4 py-3 text-sm text-[#2c3e50]">
                         <div class="flex items-center justify-between gap-4">
-                            <span>卖家自报：{{ product.sellerClaimLabel || '未填写' }}</span>
-                            <span class="font-bold text-[#2f6b53]">平台验货：{{ product.inspectionGradeLabel || '待更新' }}</span>
+                            <span>卖家自述：{{ product.sellerClaimConditionLabel || '未填写' }}</span>
+                            <span class="font-bold text-[#2f6b53]">平台验货：{{ product.platformInspectionGradeLabel || '待更新' }}</span>
                         </div>
                     </div>
 
                     <!-- Inspection Banner (Official Only) -->
-                    <div v-if="product.isOfficial"
+                    <div v-if="product.hasPlatformInspection"
                         class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6 cursor-pointer hover:bg-[#34495e] transition-colors">
                         <div class="flex items-center gap-3">
                             <div
@@ -499,7 +478,7 @@ onMounted(() => {
                             </div>
                             <div>
                                 <div class="font-bold text-sm">官方验货报告</div>
-                                <div class="text-[10px] text-gray-300">{{ product.inspectionGradeLabel || '平台验货完成，结果已同步' }}</div>
+                                <div class="text-[10px] text-gray-300">{{ product.platformInspectionGradeLabel || '平台验货完成，结果已同步' }}</div>
                             </div>
                         </div>
                         <ChevronRight :size="16" class="text-gray-400" />
@@ -547,7 +526,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Seller Mini Profile (Official Mode - Simplified) -->
-                    <div v-if="product.isOfficial" class="mt-8 pt-6 border-t border-gray-50">
+                    <div v-if="product.hasPlatformInspection" class="mt-8 pt-6 border-t border-gray-50">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="relative">
                                 <img :src="seller.avatar"
@@ -564,7 +543,7 @@ onMounted(() => {
                                         {{ seller.credit }}</span>
                                 </div>
                                 <div class="text-xs text-gray-400 mt-0.5">
-                                    {{ product.sellerClaimLabel ? `卖家自报 ${product.sellerClaimLabel}` : '卖家已提交商品描述' }}
+                                    {{ product.sellerClaimConditionLabel ? `卖家自述 ${product.sellerClaimConditionLabel}` : '卖家已提交商品描述' }}
                                 </div>
                             </div>
                         </div>

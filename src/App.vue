@@ -34,7 +34,10 @@ export default {
         const messageStore = useMessageStore()
         const favoritesStore = useFavoritesStore()
         const userStore = useUserStore()
-        const navbarMode = computed(() => route.meta.navbarMode === 'seller' ? 'seller' : 'buyer')
+        const navbarMode = computed(() => {
+            const queryMode = Array.isArray(route.query.mode) ? route.query.mode[0] : route.query.mode
+            return route.meta.navbarMode === 'seller' || queryMode === 'seller' ? 'seller' : 'buyer'
+        })
 
         onMounted(() => {
             if (userStore.isLoggedIn) {

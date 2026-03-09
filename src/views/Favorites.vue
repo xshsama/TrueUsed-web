@@ -1,6 +1,7 @@
 <script setup>
 import { listMyFavorites, removeFavorite } from '@/api/favorites';
 import { resolveAvatar } from '@/utils/avatar';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import {
     CheckCheck,
     Eye,
@@ -81,23 +82,6 @@ const summaryCards = computed(() => {
     ];
 });
 
-function resolveConditionLabel(product) {
-    if (product.inspectionGrade) {
-        return `${product.inspectionGrade}级验货`;
-    }
-
-    const condition = product.sellerClaimCondition || product.condition;
-    const labels = {
-        NEW: '全新',
-        LIKE_NEW: '95新',
-        GOOD: '9成新',
-        FAIR: '8成新',
-        POOR: '战损版'
-    };
-
-    return labels[condition] || condition || '成色待补充';
-}
-
 function mapStatus(product) {
     if (product.status === 'SOLD' || product.status === 'OFF_SHELF') {
         return 'invalid';
@@ -115,7 +99,7 @@ function mapFavoriteItem(item) {
     const originalPrice = Number(product.originalPrice || 0);
     const price = Number(product.price || 0);
     const priceDrop = Math.max(0, originalPrice - price);
-    const isOfficialTrade = product.tradeModel === 'OFFICIAL_INSPECTION' || product.isOfficial === true;
+    const trade = normalizeProductTrade(product);
 
     return {
         id: product.id,
@@ -132,10 +116,16 @@ function mapFavoriteItem(item) {
         },
         views: product.viewsCount || 0,
         status: mapStatus(product),
-        isOfficialTrade,
-        tradeLabel: isOfficialTrade ? '平台验货' : '卖家自出',
-        conditionLabel: resolveConditionLabel(product),
-        tags: [resolveConditionLabel(product), product.categoryName].filter(Boolean)
+        tradeMode: trade.tradeMode,
+        tradeModeLabel: trade.tradeModeLabel,
+        sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
+        platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
+        primaryConditionLabel: trade.primaryConditionLabel,
+        secondaryConditionLabel: trade.secondaryConditionLabel,
+        isOfficialTrade: trade.hasPlatformInspection,
+        tradeLabel: trade.tradeModeLabel,
+        conditionLabel: trade.primaryConditionLabel,
+        tags: [trade.secondaryConditionLabel, product.categoryName].filter(Boolean)
     };
 }
 

@@ -36,7 +36,7 @@
                             </button>
                             <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-md">
                                 <div class="text-[11px] uppercase tracking-[0.18em] text-emerald-200/70">交易模式</div>
-                                <div class="mt-1 text-sm font-semibold">自由交易 + 平台验货双模式</div>
+                                <div class="mt-1 text-sm font-semibold">卖家自出 + 平台验货双模式</div>
                             </div>
                         </div>
                     </div>

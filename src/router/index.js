@@ -1,38 +1,6 @@
 import { useUserStore } from '@/stores/user'
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 导入页面组件
-import About from '@/views/About.vue'
-import Address from '@/views/Address.vue'
-import AddressEdit from '@/views/AddressEdit.vue'
-import CouponCenter from '@/views/CouponCenter.vue'
-import Favorites from '@/views/Favorites.vue'
-import Feedback from '@/views/Feedback.vue'
-import Help from '@/views/Help.vue'
-import Home from '@/views/Home.vue'
-import InspectionReport from '@/views/InspectionReport.vue'
-import InspectionDetail from '@/views/InspectionDetail.vue'
-import Login from '@/views/Login.vue'
-import Messages from '@/views/Messages.vue'
-import MyProducts from '@/views/MyProducts.vue'
-import OrderManage from '@/views/OrderManage.vue'
-import Orders from '@/views/Orders.vue'
-import Payment from '@/views/Payment.vue'
-import PaymentSuccess from '@/views/PaymentSuccess.vue'
-import PostCreate from '@/views/PostCreate.vue'
-import ProductDetail from '@/views/ProductDetail.vue'
-import Profile from '@/views/Profile.vue'
-import Search from '@/views/Search.vue'
-import SellerDataCenter from '@/views/SellerDataCenter.vue'
-import SellerProfile from '@/views/SellerProfile.vue'
-import ServiceCenter from '@/views/ServiceCenter.vue'
-import ServiceMessages from '@/views/ServiceMessages.vue'
-import Settings from '@/views/Settings.vue'
-import Settlement from '@/views/Settlement.vue'
-import ShopSettings from '@/views/ShopSettings.vue'
-import SoldProducts from '@/views/SoldProducts.vue'
-import Verification from '@/views/Verification.vue'
-
 const routes = [
   {
     path: '/',
@@ -41,24 +9,24 @@ const routes = [
   {
     path: '/coupon-center',
     name: 'CouponCenter',
-    component: CouponCenter,
+    component: () => import('@/views/CouponCenter.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/inspection-reports',
     name: 'InspectionReport',
-    component: InspectionReport,
+    component: () => import('@/views/InspectionReport.vue'),
   },
   {
     path: '/inspection-report/:id',
     name: 'InspectionDetail',
-    component: InspectionDetail,
+    component: () => import('@/views/InspectionDetail.vue'),
     meta: { hideNavbar: true },
   },
   {
     path: '/home',
     name: 'Home',
-    component: Home,
+    component: () => import('@/views/Home.vue'),
   },
   {
     path: '/ranking',
@@ -68,119 +36,118 @@ const routes = [
   {
     path: '/favorites',
     name: 'Favorites',
-    component: Favorites,
+    component: () => import('@/views/Favorites.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/post/create',
     name: 'PostCreate',
-    component: PostCreate,
+    component: () => import('@/views/PostCreate.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/messages',
     name: 'Messages',
-    component: Messages,
+    component: () => import('@/views/Messages.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/messages/chat/:id',
     name: 'MessageChat',
-    component: Messages,
+    component: () => import('@/views/Messages.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/profile',
     name: 'Profile',
-    component: Profile,
+    component: () => import('@/views/Profile.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/login',
     name: 'Login',
-    component: Login,
+    component: () => import('@/views/Login.vue'),
     meta: { hideNavbar: true },
   },
   {
     path: '/register',
     name: 'Register',
-    component: Login,
+    component: () => import('@/views/Login.vue'),
     meta: { hideNavbar: true },
   },
   {
     path: '/seller/:id',
     name: 'SellerProfile',
-    component: SellerProfile,
+    component: () => import('@/views/SellerProfile.vue'),
     meta: { hideNavbar: true },
   },
   {
     path: '/product/:id',
     name: 'ProductDetail',
-    component: ProductDetail,
-    meta: { hideNavbar: true },
+    component: () => import('@/views/ProductDetail.vue'),
   },
   {
     path: '/search',
     name: 'Search',
-    component: Search,
+    component: () => import('@/views/Search.vue'),
     meta: { hideNavbar: true },
   },
   {
     path: '/orders',
     name: 'Orders',
-    component: Orders,
+    component: () => import('@/views/Orders.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/address',
     name: 'Address',
-    component: Address,
+    component: () => import('@/views/Address.vue'),
     meta: { requiresAuth: true },
   },
   {
     path: '/verification',
     name: 'Verification',
-    component: Verification,
+    component: () => import('@/views/Verification.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/address-edit/:id?',
     name: 'AddressEdit',
-    component: AddressEdit,
+    component: () => import('@/views/AddressEdit.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/service',
     name: 'ServiceCenter',
-    component: ServiceCenter,
+    component: () => import('@/views/ServiceCenter.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
-  { path: '/help', name: 'Help', component: Help },
-  { path: '/feedback', name: 'Feedback', component: Feedback },
+  { path: '/help', name: 'Help', component: () => import('@/views/Help.vue') },
+  { path: '/feedback', name: 'Feedback', component: () => import('@/views/Feedback.vue') },
   {
     path: '/settings',
     name: 'Settings',
-    component: Settings,
-    meta: { requiresAuth: true, hideNavbar: true },
+    component: () => import('@/views/Settings.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/shop-settings',
     name: 'ShopSettings',
-    component: ShopSettings,
+    component: () => import('@/views/ShopSettings.vue'),
     meta: { requiresAuth: true, navbarMode: 'seller' },
   },
-  { path: '/about', name: 'About', component: About },
+  { path: '/about', name: 'About', component: () => import('@/views/About.vue') },
   {
     path: '/my-products',
     name: 'MyProducts',
-    component: MyProducts,
+    component: () => import('@/views/MyProducts.vue'),
     meta: { requiresAuth: true, navbarMode: 'seller' },
   },
 
   {
     path: '/sold-products',
     name: 'SoldProducts',
-    component: SoldProducts,
+    component: () => import('@/views/SoldProducts.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
@@ -192,37 +159,37 @@ const routes = [
   {
     path: '/order-manage',
     name: 'OrderManage',
-    component: OrderManage,
+    component: () => import('@/views/OrderManage.vue'),
     meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   {
     path: '/seller/data-center',
     name: 'SellerDataCenter',
-    component: SellerDataCenter,
+    component: () => import('@/views/SellerDataCenter.vue'),
     meta: { requiresAuth: true, navbarMode: 'seller' },
   },
   {
     path: '/settlement',
     name: 'Settlement',
-    component: Settlement,
+    component: () => import('@/views/Settlement.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/service-messages',
     name: 'ServiceMessages',
-    component: ServiceMessages,
+    component: () => import('@/views/ServiceMessages.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/payment/success',
     name: 'PaymentSuccess',
-    component: PaymentSuccess,
+    component: () => import('@/views/PaymentSuccess.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {
     path: '/payment/:id',
     name: 'Payment',
-    component: Payment,
+    component: () => import('@/views/Payment.vue'),
     meta: { requiresAuth: true, hideNavbar: true },
   },
   {

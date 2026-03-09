@@ -14,7 +14,7 @@
                 <van-icon name="photograph" /> 实拍图
             </div>
             <div class="img-tag top-right" :class="isOfficialTrade ? 'img-tag-official' : 'img-tag-direct'">
-                {{ isOfficialTrade ? '平台验货' : '自由交易' }}
+                {{ isOfficialTrade ? '平台验货' : '卖家自出' }}
             </div>
             <div class="img-tag bottom-right" v-if="timeAgo">
                 <van-icon name="clock-o" /> {{ timeAgo }}
@@ -56,6 +56,7 @@
 
 <script>
 import defaultAvatarUrl from '@/assets/icons/user.svg';
+import { normalizeProductTrade } from '@/utils/productTrade';
 
 export default {
     name: 'ProductCard',
@@ -84,23 +85,14 @@ export default {
         hasRealShot() {
             return this.product.tags?.includes('实拍图') || false
         },
+        tradeMeta() {
+            return normalizeProductTrade(this.product)
+        },
         isOfficialTrade() {
-            return this.product.tradeModel === 'OFFICIAL_INSPECTION' || this.product.isOfficial === true
+            return this.tradeMeta.hasPlatformInspection
         },
         conditionLabel() {
-            if (this.product.inspectionGrade) {
-                return `${this.product.inspectionGrade}级验货`
-            }
-
-            const condition = this.product.sellerClaimCondition || this.product.condition
-            const map = {
-                NEW: '全新',
-                LIKE_NEW: '95新',
-                GOOD: '9成新',
-                FAIR: '8成新',
-                POOR: '战损版',
-            }
-            return map[condition] || condition || ''
+            return this.tradeMeta.primaryConditionLabel || ''
         },
         timeAgo() {
             return this.product.timeAgo || ''

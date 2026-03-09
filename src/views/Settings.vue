@@ -1,5 +1,4 @@
 <script setup>
-import TopNavbar from '@/components/TopNavbar.vue';
 import { useUserStore } from '@/stores/user';
 import {
     Bell,
@@ -12,14 +11,11 @@ import {
     Trash2
 } from 'lucide-vue-next';
 import { showConfirmDialog, showSuccessToast, showToast } from 'vant';
-import { computed, onMounted, ref, watchEffect } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, ref, watchEffect } from 'vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const route = useRoute();
 const userStore = useUserStore();
-
-const mode = computed(() => route.query.mode === 'seller' ? 'seller' : 'buyer');
 
 // --- State ---
 const settings = ref({
@@ -116,11 +112,7 @@ watchEffect(saveSettings);
 
 <template>
     <div class="min-h-screen bg-[#f7f9fa] font-sans text-[#2c3e50] pb-12">
-
-        <!-- --- Top Navigation --- -->
-        <TopNavbar mode="buyer" />
-
-        <main class="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <main class="mx-auto max-w-[960px] space-y-6 px-8 py-6">
 
             <!-- --- Header --- -->
             <div class="mb-2">

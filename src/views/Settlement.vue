@@ -5,6 +5,7 @@ import { createOrder } from '@/api/orders';
 import { getProduct } from '@/api/products';
 import { getMyWallet } from '@/api/wallet';
 import { resolveAvatar } from '@/utils/avatar';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import { Check, ChevronRight, FileCheck, MapPin, ShieldCheck, Wallet } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast, showToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
@@ -25,6 +26,10 @@ const product = ref({
     price: 0,
     image: '',
     tags: [],
+    tradeModeLabel: '卖家自出',
+    hasPlatformInspection: false,
+    sellerClaimConditionLabel: '',
+    platformInspectionGradeLabel: '',
 });
 
 const seller = ref({
@@ -74,12 +79,17 @@ const loadData = async () => {
         if (productId) {
             try {
                 const res = await getProduct(productId);
+                const trade = normalizeProductTrade(res);
                 product.value = {
                     id: res.id,
                     title: res.title,
                     price: res.price,
                     image: res.images?.[0]?.url || route.query.image || '',
-                    tags: [res.condition, res.category?.name].filter(Boolean)
+                    tags: [trade.primaryConditionLabel, trade.secondaryConditionLabel, res.category?.name].filter(Boolean),
+                    tradeModeLabel: trade.tradeModeLabel,
+                    hasPlatformInspection: trade.hasPlatformInspection,
+                    sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
+                    platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
                 };
                 if (res.seller) {
                     seller.value = {
@@ -94,7 +104,11 @@ const loadData = async () => {
                     title: route.query.title,
                     price: route.query.price,
                     image: route.query.image,
-                    tags: []
+                    tags: [],
+                    tradeModeLabel: '卖家自出',
+                    hasPlatformInspection: false,
+                    sellerClaimConditionLabel: '',
+                    platformInspectionGradeLabel: '',
                 };
             }
         }
@@ -201,7 +215,7 @@ onMounted(() => {
                     <div class="w-px h-3 bg-gray-300 mx-1"></div>
                     <div class="flex items-center gap-1">
                         <FileCheck :size="16" class="text-[#4a8b6e]" />
-                        <span>官方验货</span>
+                        <span>{{ product.tradeModeLabel }}</span>
                     </div>
                 </div>
             </div>
@@ -271,9 +285,16 @@ onMounted(() => {
                             </div>
                         </div>
                         <div
-                            class="flex items-center gap-1 text-xs text-[#4a8b6e] bg-[#4a8b6e]/5 w-fit px-2 py-1 rounded">
+                            :class="[
+                                'flex items-center gap-1 text-xs w-fit px-2 py-1 rounded',
+                                product.hasPlatformInspection
+                                    ? 'text-[#4a8b6e] bg-[#4a8b6e]/5'
+                                    : 'text-orange-600 bg-orange-50'
+                            ]">
                             <ShieldCheck :size="12" />
-                            <span>官方验货 · 正品保证</span>
+                            <span>{{ product.hasPlatformInspection
+                                ? `平台验货 · ${product.platformInspectionGradeLabel || '等待报告同步'}`
+                                : `卖家自出 · ${product.sellerClaimConditionLabel || '成色待确认'}` }}</span>
                         </div>
                     </div>
                 </div>

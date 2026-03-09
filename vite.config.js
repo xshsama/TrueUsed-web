@@ -5,6 +5,33 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [vue(), UnoCSS()],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (id.includes('chart.js')) return 'vendor-chart'
+          if (id.includes('lucide')) return 'vendor-icons'
+          if (
+            id.includes('/vue/') ||
+            id.includes('/@vue/') ||
+            id.includes('pinia') ||
+            id.includes('vue-router')
+          ) {
+            return 'vendor-vue'
+          }
+          if (id.includes('vant') || id.includes('@vant')) return 'vendor-ui'
+          if (id.includes('@stomp') || id.includes('sockjs') || id.includes('socketjs')) {
+            return 'vendor-realtime'
+          }
+
+          return 'vendor-misc'
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
