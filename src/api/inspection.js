@@ -15,6 +15,13 @@ export function getInspectionFlow(orderId) {
   })
 }
 
+export function getOrderInspectionReport(orderId) {
+  return request({
+    url: `/inspections/orders/${orderId}/report`,
+    method: 'get',
+  })
+}
+
 export function getMyInspections() {
   return request({
     url: '/inspections/my',

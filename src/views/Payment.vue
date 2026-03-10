@@ -2,6 +2,7 @@
 import { getOrderById, payOrderByWallet } from '@/api/orders';
 import { createPayment } from '@/api/payments';
 import { getMyWallet } from '@/api/wallet';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import { Check, Clock, Loader2, Lock, ShieldCheck, Wallet } from 'lucide-vue-next';
 import { showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -29,6 +30,14 @@ const orderAmount = computed(() => {
 
 const orderTitle = computed(() => {
     return order.value ? `订单号：${order.value.id}` : '';
+});
+
+const trade = computed(() => normalizeProductTrade(order.value?.product || {}));
+const paymentSuccessHint = computed(() => {
+    if (trade.value.hasPlatformInspection) {
+        return '平台仓将尽快安排出库，验货报告可在订单详情查看。';
+    }
+    return '卖家将尽快为您发货，请留意消息通知。';
 });
 
 // --- Methods ---
@@ -69,7 +78,7 @@ const loadOrder = async () => {
 
         if (res.status === 'PENDING_PAYMENT') {
             startCountdown(res.createdAt);
-        } else if (res.status === 'PAID') {
+        } else if (['PAID', 'PENDING_SHIPMENT', 'SHIPPED', 'COMPLETED'].includes(res.status)) {
             // If already paid, redirect or show success
             showSuccess.value = true;
         }
@@ -333,7 +342,7 @@ onUnmounted(() => {
                     <Check class="text-green-500 w-10 h-10" />
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">支付成功!</h2>
-                <p class="text-gray-500 mb-8">卖家将尽快为您发货，请留意消息通知。</p>
+                <p class="text-gray-500 mb-8">{{ paymentSuccessHint }}</p>
                 <button @click="goToOrderDetail"
                     class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">
                     查看订单详情

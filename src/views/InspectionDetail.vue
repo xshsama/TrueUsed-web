@@ -9,7 +9,7 @@
                     <div class="i-lucide-arrow-left text-xl"></div>
                     <span class="text-sm font-bold">返回列表</span>
                 </div>
-                <div class="font-bold text-lg">官方验货报告</div>
+                <div class="font-bold text-lg">{{ route.query.type === 'order' ? '本单验货报告' : '平台验货报告' }}</div>
                 <div class="flex items-center gap-3">
                     <button v-if="!reportUnavailable && report.id" @click="handleDownload"
                         class="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors flex items-center gap-1.5 cursor-pointer">
@@ -23,12 +23,12 @@
             加载中...
         </main>
 
-        <main v-else-if="!report.id" class="max-w-4xl mx-auto p-10 text-center text-gray-400">
-            未找到该验货报告
-        </main>
-
         <main v-else-if="reportUnavailable" class="max-w-4xl mx-auto p-10 text-center text-gray-400">
             {{ unavailableMessage }}
+        </main>
+
+        <main v-else-if="!report.id" class="max-w-4xl mx-auto p-10 text-center text-gray-400">
+            未找到该验货报告
         </main>
 
         <main v-else class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
@@ -152,8 +152,8 @@
 
             <!-- Footer Statement -->
             <div class="text-center text-xs text-gray-400 py-8 leading-relaxed">
-                <p>TrueUsed 官方验货报告 · 真实客观 · 拒绝隐瞒</p>
-                <p>如对报告结果有异议，请在收货后 24 小时内联系客服复检</p>
+                <p>当前报告基于后端验货流接口的实际字段渲染，摘要和检测项来自当前验货记录。</p>
+                <p>如后续补充更多结构化字段，可继续扩展报告编号、检测员信息与 PDF 元数据展示。</p>
             </div>
 
         </main>
@@ -161,7 +161,7 @@
 </template>
 
 <script setup>
-import { getMyInspections } from '@/api/inspection';
+import { getMyInspections, getOrderInspectionReport } from '@/api/inspection';
 import request from '@/utils/request';
 import { showFailToast } from 'vant';
 import { onMounted, ref } from 'vue';
@@ -173,53 +173,81 @@ const report = ref({});
 const checklist = ref([]);
 const loading = ref(true);
 const reportUnavailable = ref(false);
-const unavailableMessage = ref('检测中，暂不提供验货报告');
+const unavailableMessage = ref('检测流程未完成，报告内容暂不可查看');
 
-onMounted(async () => {
+const mapInspectionToReport = (found) => {
+    report.value = {
+        id: found.inspectionId,
+        grade: found.grade || 'A',
+        title: found.productTitle,
+        image: found.productImage,
+        category: found.categoryName,
+        reportId: `R-${new Date(found.createdAt).getFullYear()}${String(new Date(found.createdAt).getMonth() + 1).padStart(2, '0')}-${String(found.inspectionId).padStart(3, '0')}`,
+        inspectDate: new Date(found.updatedAt || found.createdAt).toLocaleString(),
+        status: found.status,
+        statusDisplay: toStatusDisplay(found.status),
+        summary: sanitizeSummary(found.resultSummary) || '暂无详细摘要'
+    };
+    checklist.value = found.items || [];
+};
+
+const handleUnavailableReport = (status, type) => {
+    if (status === 'PENDING' || status === 'IN_PROGRESS') {
+        reportUnavailable.value = true;
+        unavailableMessage.value = type === 'order'
+            ? '本单关联的验货流程尚未完成，报告内容暂不可查看'
+            : '检测流程未完成，报告内容暂不可查看';
+        return true;
+    }
+    return false;
+};
+
+const loadReport = async () => {
     const id = route.params.id;
+    const type = route.query.type === 'order' ? 'order' : 'inspection';
     if (!id) {
         showFailToast('报告ID不存在');
         loading.value = false;
         return;
     }
 
+    reportUnavailable.value = false;
+    report.value = {};
+    checklist.value = [];
+
     try {
-        // Since we don't have a direct getById API yet, we fetch all user inspections
-        // and filter by the ID. This is a temporary solution.
+        if (type === 'order') {
+            const found = await getOrderInspectionReport(id);
+            if (found && !handleUnavailableReport(found.status, type)) {
+                mapInspectionToReport(found);
+            }
+            return;
+        }
+
         const res = await getMyInspections();
         if (res) {
             const found = res.find(r => String(r.inspectionId) === String(id));
-            if (found) {
-                if (found.status === 'PENDING' || found.status === 'IN_PROGRESS') {
-                    reportUnavailable.value = true;
-                    unavailableMessage.value = '检测中，暂不提供验货报告';
-                    return;
-                }
+            if (!found) {
+                return;
+            }
 
-                // Map Backend DTO to Frontend
-                report.value = {
-                    id: found.inspectionId,
-                    grade: found.grade || 'A',
-                    title: found.productTitle,
-                    image: found.productImage,
-                    category: found.categoryName,
-                    reportId: `R-${new Date(found.createdAt).getFullYear()}${String(new Date(found.createdAt).getMonth() + 1).padStart(2, '0')}-${String(found.inspectionId).padStart(3, '0')}`,
-                    inspectDate: new Date(found.updatedAt || found.createdAt).toLocaleString(),
-                    status: found.status,
-                    statusDisplay: toStatusDisplay(found.status),
-                    summary: sanitizeSummary(found.resultSummary) || '暂无详细摘要'
-                };
-                checklist.value = found.items || [];
-            } else {
-                showFailToast('未找到该验货报告');
+            if (!handleUnavailableReport(found.status, type)) {
+                mapInspectionToReport(found);
             }
         }
     } catch (e) {
+        if (e?.response?.status === 404) {
+            return;
+        }
         console.error('Fetch inspection detail failed', e);
         showFailToast('加载报告失败');
     } finally {
         loading.value = false;
     }
+};
+
+onMounted(() => {
+    loadReport();
 });
 
 const getGradeColor = (grade) => {

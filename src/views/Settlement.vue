@@ -28,8 +28,13 @@ const product = ref({
     tags: [],
     tradeModeLabel: '卖家自出',
     hasPlatformInspection: false,
+    saleStatus: '',
+    saleStatusLabel: '',
     sellerClaimConditionLabel: '',
     platformInspectionGradeLabel: '',
+    fulfillmentModeLabel: '卖家发货',
+    canBuy: true,
+    buyDisabledReason: '',
 });
 
 const seller = ref({
@@ -65,6 +70,15 @@ const savedAmount = computed(() => {
     return selectedCoupon.value ? selectedCoupon.value.coupon.discountAmount : 0;
 });
 
+const isOfficialTrade = computed(() => product.value.hasPlatformInspection);
+const submitDisabled = computed(() => isSubmitting.value || !product.value.canBuy);
+const deliveryHint = computed(() => {
+    if (product.value.hasPlatformInspection) {
+        return '平台验货商品由平台仓统一出库，仅支持快递配送。';
+    }
+    return '卖家自出商品默认快递配送，线下自提为当前演示流程。';
+});
+
 // --- Methods ---
 const formatPhone = (phone) => {
     if (!phone) return '';
@@ -88,9 +102,15 @@ const loadData = async () => {
                     tags: [trade.primaryConditionLabel, trade.secondaryConditionLabel, res.category?.name].filter(Boolean),
                     tradeModeLabel: trade.tradeModeLabel,
                     hasPlatformInspection: trade.hasPlatformInspection,
+                    saleStatus: trade.saleStatus,
+                    saleStatusLabel: trade.saleStatusLabel,
                     sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
                     platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
+                    fulfillmentModeLabel: trade.fulfillmentModeLabel,
+                    canBuy: trade.canBuy,
+                    buyDisabledReason: trade.buyDisabledReason,
                 };
+                deliveryType.value = trade.hasPlatformInspection ? 'express' : deliveryType.value;
                 if (res.seller) {
                     seller.value = {
                         name: res.seller.username || res.seller.nickname || '卖家',
@@ -107,8 +127,13 @@ const loadData = async () => {
                     tags: [],
                     tradeModeLabel: '卖家自出',
                     hasPlatformInspection: false,
+                    saleStatus: 'ON_SALE',
+                    saleStatusLabel: '在售',
                     sellerClaimConditionLabel: '',
                     platformInspectionGradeLabel: '',
+                    fulfillmentModeLabel: '卖家发货',
+                    canBuy: true,
+                    buyDisabledReason: '',
                 };
             }
         }
@@ -157,6 +182,13 @@ const handleAddressClick = () => {
 };
 
 const handleSubmit = async () => {
+    if (!product.value.canBuy) {
+        showFailToast(product.value.buyDisabledReason || '该商品当前不可购买');
+        if (product.value.id) {
+            router.replace({ name: 'ProductDetail', params: { id: product.value.id } });
+        }
+        return;
+    }
     if (!address.value) {
         showToast('请选择收货地址');
         return;
@@ -222,6 +254,11 @@ onMounted(() => {
         </nav>
 
         <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+            <section v-if="!product.canBuy"
+                class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+                {{ product.buyDisabledReason || '该商品当前不可下单，请返回商品详情查看最新状态。' }}
+            </section>
 
             <!-- 1. Address Card -->
             <section
@@ -293,7 +330,7 @@ onMounted(() => {
                             ]">
                             <ShieldCheck :size="12" />
                             <span>{{ product.hasPlatformInspection
-                                ? `平台验货 · ${product.platformInspectionGradeLabel || '等待报告同步'}`
+                                ? `平台验货 · ${product.platformInspectionGradeLabel || '验货已完成，等待结果同步'}`
                                 : `卖家自出 · ${product.sellerClaimConditionLabel || '成色待确认'}` }}</span>
                         </div>
                     </div>
@@ -302,19 +339,39 @@ onMounted(() => {
                 <!-- Order Options -->
                 <div class="px-6 py-4 space-y-6">
 
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium text-gray-700">履约方式</span>
+                        <span class="font-bold text-[#2c3e50]">{{ product.fulfillmentModeLabel }}</span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium text-gray-700">商品状态</span>
+                        <span class="text-gray-500">{{ product.saleStatusLabel || '状态同步中' }}</span>
+                    </div>
+
                     <!-- Delivery Method -->
-                    <div class="flex items-center justify-between">
-                        <label class="font-medium text-gray-700">配送方式</label>
-                        <div class="flex bg-gray-50 p-1 rounded-lg">
-                            <button @click="deliveryType = 'express'"
-                                :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'express' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                                快递配送
-                            </button>
-                            <button @click="deliveryType = 'meetup'"
-                                :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'meetup' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
-                                线下自提
-                            </button>
+                    <div v-if="isOfficialTrade" class="rounded-xl border border-[#4a8b6e]/15 bg-[#f3fbf7] p-4">
+                        <div class="flex items-center justify-between">
+                            <label class="font-medium text-gray-700">配送方式</label>
+                            <span class="text-xs font-bold text-[#2f6b53]">仅快递配送</span>
                         </div>
+                        <p class="mt-2 text-sm text-[#2f6b53]">{{ deliveryHint }}</p>
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-medium text-gray-700">配送方式</label>
+                            <div class="flex bg-gray-50 p-1 rounded-lg">
+                                <button @click="deliveryType = 'express'"
+                                    :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'express' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                                    快递配送
+                                </button>
+                                <button @click="deliveryType = 'meetup'"
+                                    :class="['px-4 py-1.5 rounded-md text-xs font-bold transition-all', deliveryType === 'meetup' ? 'bg-white text-[#4a8b6e] shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                                    线下自提
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400">{{ deliveryHint }}</p>
                     </div>
 
                     <!-- Freight Insurance -->
@@ -397,9 +454,9 @@ onMounted(() => {
                         ¥{{ savedAmount }}</span>
                 </div>
 
-                <button @click="handleSubmit" :disabled="isSubmitting"
+                <button @click="handleSubmit" :disabled="submitDisabled"
                     class="bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white px-8 py-3 rounded-full font-bold text-base shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    {{ isSubmitting ? '提交中...' : '提交订单' }}
+                    {{ isSubmitting ? '提交中...' : (product.canBuy ? '提交订单' : '暂不可下单') }}
                 </button>
             </div>
         </div>

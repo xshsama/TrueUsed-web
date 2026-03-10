@@ -2,7 +2,8 @@
 import { cancelOrder, confirmDelivery, getOrderById, getOrderShipping, shipOrder } from '@/api/orders';
 import { useUserStore } from '@/stores/user';
 import { resolveAvatar } from '@/utils/avatar';
-import { Check, ChevronRight, Copy, MapPin, PackageSearch, Store, Truck } from 'lucide-vue-next';
+import { normalizeProductTrade } from '@/utils/productTrade';
+import { Check, ChevronRight, Copy, FileCheck2, MapPin, PackageSearch, Store, Truck } from 'lucide-vue-next';
 import { showConfirmDialog, showFailToast, showSuccessToast } from 'vant';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -19,41 +20,66 @@ const shippingInfo = ref(null);
 // --- Computed ---
 const isCurrentUserBuyer = computed(() => userStore.userInfo && order.value?.buyer.id === userStore.userInfo.id);
 const isCurrentUserSeller = computed(() => userStore.userInfo && order.value?.seller.id === userStore.userInfo.id);
+const trade = computed(() => normalizeProductTrade(order.value?.product || {}));
+const isOfficialTrade = computed(() => trade.value.hasPlatformInspection);
+const canApplyRefund = computed(() => order.value && ['PAID', 'PENDING_SHIPMENT', 'SHIPPED'].includes(order.value.status));
+const canSellerShip = computed(() => isCurrentUserSeller.value && !isOfficialTrade.value && order.value?.status === 'PAID');
+const productTags = computed(() => [
+    trade.value.tradeModeLabel,
+    trade.value.primaryConditionLabel,
+    trade.value.secondaryConditionLabel
+].filter(Boolean));
 
 const statusText = computed(() => {
     if (!order.value) return '';
-    const map = {
-        PENDING_PAYMENT: '待付款',
-        PAID: '待发货',
-        SHIPPED: '已发货',
-        COMPLETED: '已完成',
-        CANCELLED: '已取消',
-        REFUNDING: '售后中',
-        REFUNDED: '已退款'
-    };
-    return map[order.value.status] || order.value.status;
+    if (order.value.status === 'PENDING_PAYMENT') return '待付款';
+    if (order.value.status === 'PAID' || order.value.status === 'PENDING_SHIPMENT') {
+        return isOfficialTrade.value ? '待平台出库' : '待发货';
+    }
+    if (order.value.status === 'SHIPPED') return '已发货';
+    if (order.value.status === 'COMPLETED') return '已完成';
+    if (order.value.status === 'CANCELLED') return '已取消';
+    if (order.value.status === 'REFUNDING') return '售后中';
+    if (order.value.status === 'REFUNDED') return '已退款';
+    return order.value.status;
 });
 
 const statusDesc = computed(() => {
     if (!order.value) return '';
-    const map = {
-        PENDING_PAYMENT: '请尽快完成支付',
-        PAID: '等待卖家发货',
-        SHIPPED: '商品正在运输中',
-        COMPLETED: '交易已完成',
-        CANCELLED: '订单已取消',
-        REFUNDING: '正在处理退款',
-        REFUNDED: '退款已完成'
-    };
-    return map[order.value.status] || '';
+    const modeText = isOfficialTrade.value ? '平台仓' : '卖家';
+
+    if (order.value.status === 'PENDING_PAYMENT') {
+        return '请尽快完成支付，超时后订单会自动取消';
+    }
+    if (order.value.status === 'PAID' || order.value.status === 'PENDING_SHIPMENT') {
+        return isOfficialTrade.value
+            ? '平台仓正在准备出库，验货报告可在本单查看'
+            : `等待${modeText}发货`;
+    }
+    if (order.value.status === 'SHIPPED') {
+        return isOfficialTrade.value ? '平台已出库，商品正在运输中' : '商品正在运输中';
+    }
+    if (order.value.status === 'COMPLETED') {
+        return '交易已完成';
+    }
+    if (order.value.status === 'CANCELLED') {
+        return '订单已取消';
+    }
+    if (order.value.status === 'REFUNDING') {
+        return '正在处理退款';
+    }
+    if (order.value.status === 'REFUNDED') {
+        return '退款已完成';
+    }
+    return '';
 });
 
-const steps = [
+const steps = computed(() => [
     { label: '买家付款', status: 'PENDING_PAYMENT' },
-    { label: '卖家发货', status: 'PAID' },
+    { label: isOfficialTrade.value ? '平台出库' : '卖家发货', status: 'PAID' },
     { label: '确认收货', status: 'SHIPPED' },
     { label: '交易成功', status: 'COMPLETED' }
-];
+]);
 
 const currentStep = computed(() => {
     if (!order.value) return 0;
@@ -65,7 +91,7 @@ const currentStep = computed(() => {
     }
 
     if (s === 'PENDING_PAYMENT') return 1;
-    if (s === 'PAID') return 2;
+    if (s === 'PAID' || s === 'PENDING_SHIPMENT') return 2;
     if (s === 'SHIPPED') return 3;
     if (s === 'COMPLETED') return 4;
     return 0;
@@ -126,6 +152,15 @@ const handleUpdateStatus = (action) => {
 const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
         showSuccessToast('复制成功');
+    });
+};
+
+const viewInspectionReport = () => {
+    if (!order.value) return;
+    router.push({
+        name: 'InspectionDetail',
+        params: { id: order.value.id },
+        query: { type: 'order' }
     });
 };
 
@@ -190,6 +225,16 @@ onMounted(() => {
                     </div>
                     <p class="text-gray-300 text-sm">{{ statusDesc }}</p>
 
+                    <div class="mt-4 flex flex-wrap gap-2 justify-center lg:justify-start">
+                        <span
+                            :class="['px-3 py-1 rounded-full text-xs font-bold', isOfficialTrade ? 'bg-[#4a8b6e]/15 text-[#8bd2b3]' : 'bg-white/10 text-white']">
+                            {{ trade.tradeModeLabel }}
+                        </span>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white">
+                            {{ trade.fulfillmentModeLabel }}
+                        </span>
+                    </div>
+
                     <div class="mt-6 flex gap-3 justify-center lg:justify-start">
                         <!-- Buyer Actions -->
                         <template v-if="isCurrentUserBuyer">
@@ -202,10 +247,15 @@ onMounted(() => {
                                 class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95">
                                 确认收货
                             </button>
-                            <button v-if="['PAID', 'SHIPPED'].includes(order.status)"
+                            <button v-if="canApplyRefund"
                                 @click="router.push(`/order/${order.id}/refund-apply`)"
                                 class="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-full font-bold text-sm backdrop-blur-md transition-all">
                                 申请退款
+                            </button>
+                            <button v-if="isOfficialTrade" @click="viewInspectionReport"
+                                class="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-full font-bold text-sm backdrop-blur-md transition-all flex items-center gap-2">
+                                <FileCheck2 :size="16" />
+                                查看验货报告
                             </button>
                             <button v-if="order.status === 'COMPLETED'"
                                 @click="router.push({ path: '/review/create', query: { orderId: order.id } })"
@@ -216,7 +266,7 @@ onMounted(() => {
 
                         <!-- Seller Actions -->
                         <template v-if="isCurrentUserSeller">
-                            <button v-if="order.status === 'PAID'" @click="handleUpdateStatus('ship')"
+                            <button v-if="canSellerShip" @click="handleUpdateStatus('ship')"
                                 class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95">
                                 确认发货
                             </button>
@@ -322,16 +372,32 @@ onMounted(() => {
                                         }}</span>
                                     </div>
                                     <div class="flex flex-wrap gap-2 mt-2">
-                                        <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">官方验货</span>
+                                        <span v-for="tag in productTags" :key="tag"
+                                            class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                                            {{ tag }}
+                                        </span>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center justify-between mt-4">
                                     <div class="flex items-center gap-2">
                                         <span
-                                            class="text-xs text-[#4a8b6e] border border-[#4a8b6e] px-2 py-0.5 rounded">官方验货服务</span>
-                                        <span class="text-xs text-[#4a8b6e] font-bold">免费</span>
+                                            :class="[
+                                                'text-xs px-2 py-0.5 rounded border',
+                                                isOfficialTrade
+                                                    ? 'text-[#4a8b6e] border-[#4a8b6e]'
+                                                    : 'text-orange-600 border-orange-200'
+                                            ]">
+                                            {{ isOfficialTrade ? '平台验货履约' : '卖家自主发货' }}
+                                        </span>
+                                        <span :class="['text-xs font-bold', isOfficialTrade ? 'text-[#4a8b6e]' : 'text-orange-600']">
+                                            {{ trade.fulfillmentModeLabel }}
+                                        </span>
                                     </div>
+                                    <button v-if="isOfficialTrade" @click="viewInspectionReport"
+                                        class="text-xs text-[#4a8b6e] font-bold hover:underline">
+                                        查看本单验货报告
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -2,6 +2,7 @@
 import { getSoldOrders, shipOrder } from '@/api/orders';
 import { getMyWallet } from '@/api/wallet';
 import SearchBar from '@/components/SearchBar.vue';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import {
     AlertCircle,
     CheckCircle2,
@@ -50,24 +51,30 @@ const expressCompanies = [
     '顺丰速运', '中通快递', '圆通速递', '韵达快递',
     '申通快递', '极兔速递', '邮政EMS', '京东物流'
 ];
+const pendingFulfillmentStatuses = ['PAID', 'PENDING_SHIPMENT'];
 
-// --- Status Mapping ---
-const statusMap = {
-    'PENDING_PAYMENT': '待付款',
-    'PAID': '待发货',
-    'SHIPPED': '已发货',
-    'COMPLETED': '已完成',
-    'CANCELLED': '已取消',
-    'REFUNDING': '售后中',
-    'REFUNDED': '已退款'
+const getTrade = (order) => normalizeProductTrade(order?.product || {});
+
+const getStatusText = (order) => {
+    if (!order) return '';
+    const trade = getTrade(order);
+    if (order.status === 'PENDING_PAYMENT') return '待付款';
+    if (pendingFulfillmentStatuses.includes(order.status)) {
+        return trade.hasPlatformInspection ? '平台待出库' : '待发货';
+    }
+    if (order.status === 'SHIPPED') return '已发货';
+    if (order.status === 'COMPLETED') return '已完成';
+    if (order.status === 'CANCELLED') return '已取消';
+    if (order.status === 'REFUNDING') return '售后中';
+    if (order.status === 'REFUNDED') return '已退款';
+    return order.status;
 };
-
-const getStatusText = (status) => statusMap[status] || status;
 
 const getStatusColor = (status) => {
     switch (status) {
         case 'PENDING_PAYMENT': return 'text-[#ff5e57]';
         case 'PAID': return 'text-[#1989fa]';
+        case 'PENDING_SHIPMENT': return 'text-[#1989fa]';
         case 'SHIPPED': return 'text-[#4a8b6e]';
         case 'REFUNDING': return 'text-orange-500';
         case 'COMPLETED': return 'text-gray-500';
@@ -77,7 +84,7 @@ const getStatusColor = (status) => {
 
 // --- Computed Stats ---
 const stats = computed(() => {
-    const paid = orders.value.filter(o => o.status === 'PAID').length;
+    const paid = orders.value.filter(o => pendingFulfillmentStatuses.includes(o.status)).length;
     const refund = orders.value.filter(o => ['REFUNDING', 'REFUNDED'].includes(o.status)).length;
     const completed = orders.value.filter(o => o.status === 'COMPLETED').length;
 
@@ -102,6 +109,10 @@ const tabCounts = computed(() => {
     tabs.forEach(tab => {
         if (tab.key === 'all') {
             counts[tab.key] = orders.value.length;
+        } else if (tab.key === 'PAID') {
+            counts[tab.key] = orders.value.filter(o => pendingFulfillmentStatuses.includes(o.status)).length;
+        } else if (tab.key === 'REFUNDING') {
+            counts[tab.key] = orders.value.filter(o => ['REFUNDING', 'REFUNDED'].includes(o.status)).length;
         } else {
             counts[tab.key] = orders.value.filter(o => o.status === tab.key).length;
         }
@@ -113,7 +124,13 @@ const filteredOrders = computed(() => {
     let result = orders.value;
 
     if (activeTab.value !== 'all') {
-        result = result.filter(o => o.status === activeTab.value);
+        if (activeTab.value === 'PAID') {
+            result = result.filter(o => pendingFulfillmentStatuses.includes(o.status));
+        } else if (activeTab.value === 'REFUNDING') {
+            result = result.filter(o => ['REFUNDING', 'REFUNDED'].includes(o.status));
+        } else {
+            result = result.filter(o => o.status === activeTab.value);
+        }
     }
 
     if (searchQuery.value) {
@@ -249,14 +266,14 @@ watch(() => route.query.status, (newStatus) => {
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-3xl font-bold font-mono">{{ stats.pendingShip }}</div>
-                                <div class="text-xs font-medium text-white/80 mt-1">待发货订单</div>
+                                <div class="text-xs font-medium text-white/80 mt-1">待履约订单</div>
                             </div>
                             <div class="bg-white/20 p-2 rounded-lg">
                                 <Package :size="20" />
                             </div>
                         </div>
                         <div class="mt-4 text-[10px] bg-white/20 w-fit px-2 py-0.5 rounded">
-                            请尽快发货
+                            卖家发货 / 平台出库
                         </div>
                     </div>
 
@@ -346,10 +363,10 @@ watch(() => route.query.status, (newStatus) => {
                                     </div>
                                 </div>
                                 <!-- Countdown -->
-                                <div v-if="order.status === 'PAID'"
+                                <div v-if="pendingFulfillmentStatuses.includes(order.status)"
                                     class="flex items-center gap-1 text-[#ff5e57] font-bold bg-[#ff5e57]/5 px-2 py-0.5 rounded">
                                     <Clock :size="12" />
-                                    剩余发货时间: 12小时30分
+                                    {{ getTrade(order).hasPlatformInspection ? '平台仓准备出库中' : '剩余发货时间: 12小时30分' }}
                                 </div>
                             </div>
 
@@ -369,6 +386,13 @@ watch(() => route.query.status, (newStatus) => {
                                         </h3>
                                         <div class="text-xs text-gray-400">
                                             {{ order.product?.description?.slice(0, 20) }}...
+                                        </div>
+                                        <div class="mt-2">
+                                            <span
+                                                class="text-[10px] px-2 py-0.5 rounded font-medium"
+                                                :class="getTrade(order).hasPlatformInspection ? 'text-[#4a8b6e] bg-[#4a8b6e]/8' : 'text-orange-600 bg-orange-50'">
+                                                {{ getTrade(order).tradeModeLabel }}
+                                            </span>
                                         </div>
                                         <div class="mt-2 font-bold text-[#2c3e50]">¥{{ order.price }}</div>
                                     </div>
@@ -398,17 +422,24 @@ watch(() => route.query.status, (newStatus) => {
                                 <div
                                     class="md:col-span-4 flex flex-col items-end justify-center gap-3 pl-6 border-l border-gray-100">
                                     <div :class="['font-bold text-sm', getStatusColor(order.status)]">{{
-                                        getStatusText(order.status) }}</div>
+                                        getStatusText(order) }}</div>
 
                                     <!-- Actions based on status -->
                                     <div class="flex gap-2 w-full justify-end" @click.stop>
 
                                         <!-- Pending Shipment -->
-                                        <template v-if="order.status === 'PAID'">
+                                        <template v-if="pendingFulfillmentStatuses.includes(order.status) && !getTrade(order).hasPlatformInspection">
                                             <button @click="handleShip(order)"
                                                 class="bg-[#4a8b6e] hover:bg-[#3b755b] text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow-lg shadow-[#4a8b6e]/20 transition-all flex-1 md:flex-none">
                                                 去发货
                                             </button>
+                                        </template>
+
+                                        <template v-if="pendingFulfillmentStatuses.includes(order.status) && getTrade(order).hasPlatformInspection">
+                                            <span
+                                                class="text-xs font-bold text-[#1989fa] bg-[#1989fa]/8 px-4 py-2 rounded-lg">
+                                                平台仓处理中
+                                            </span>
                                         </template>
 
                                         <!-- Shipped -->

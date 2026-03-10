@@ -1,30 +1,39 @@
 <script setup>
 import { getOrderById } from '@/api/orders';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import { Check, Loader2, XCircle } from 'lucide-vue-next';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
 const router = useRouter();
 const orderId = ref(null);
+const order = ref(null);
 const loading = ref(true);
 const status = ref('checking'); // checking, success, pending, failed
 const errorMsg = ref('');
 let pollInterval = null;
 let pollCount = 0;
 const MAX_POLL_COUNT = 10; // Poll for 20 seconds (2s interval)
+const trade = computed(() => normalizeProductTrade(order.value?.product || {}));
+const successHint = computed(() => {
+    if (trade.value.hasPlatformInspection) {
+        return '平台仓将尽快安排出库，验货报告可在订单详情中查看。';
+    }
+    return '卖家将尽快为您发货。';
+});
 
 const checkOrderStatus = async () => {
     try {
         if (!orderId.value) return;
 
-        const order = await getOrderById(orderId.value);
+        order.value = await getOrderById(orderId.value);
 
-        if (order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'COMPLETED') {
+        if (['PAID', 'PENDING_SHIPMENT', 'SHIPPED', 'COMPLETED'].includes(order.value.status)) {
             status.value = 'success';
             loading.value = false;
             stopPolling();
-        } else if (order.status === 'PENDING') {
+        } else if (order.value.status === 'PENDING_PAYMENT') {
             // Still pending, keep polling
             status.value = 'pending';
             pollCount++;
@@ -36,7 +45,7 @@ const checkOrderStatus = async () => {
         } else {
             // Cancelled or other status
             status.value = 'failed';
-            errorMsg.value = `订单状态异常: ${order.status}`;
+            errorMsg.value = `订单状态异常: ${order.value.status}`;
             loading.value = false;
             stopPolling();
         }
@@ -115,7 +124,7 @@ const retryCheck = () => {
                     <Check class="text-green-500 w-10 h-10" />
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">支付成功!</h2>
-                <p class="text-gray-500 mb-8">订单 {{ orderId }} 支付完成。<br>卖家将尽快为您发货。</p>
+                <p class="text-gray-500 mb-8">订单 {{ orderId }} 支付完成。<br>{{ successHint }}</p>
                 <button @click="goToOrderDetail"
                     class="w-full bg-[#4a8b6e] text-white font-bold py-3 rounded-xl hover:bg-[#3b755b] transition-colors">
                     查看订单详情

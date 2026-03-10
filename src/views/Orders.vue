@@ -2,6 +2,7 @@
 import { cancelOrder, confirmDelivery, getMyOrders } from '@/api/orders';
 import SearchBar from '@/components/SearchBar.vue';
 import { resolveAvatar } from '@/utils/avatar';
+import { normalizeProductTrade } from '@/utils/productTrade';
 import {
     ChevronRight,
     Clock,
@@ -26,28 +27,33 @@ const nowTs = ref(Date.now());
 let countdownTimer = null;
 
 const tabs = ['全部', '待付款', '待发货', '待收货', '售后/退款'];
+const pendingShipStatuses = ['PAID', 'PENDING_SHIPMENT'];
 
 // --- Status Mapping ---
 const statusMap = {
     '全部': 'all',
     '待付款': 'PENDING_PAYMENT',
-    '待发货': 'PAID',
+    '待发货': 'pendingShipment',
     '待收货': 'SHIPPED',
     '售后/退款': 'afterSale'
 };
 
-const reverseStatusMap = {
-    'PENDING_PAYMENT': '待付款',
-    'PAID': '待发货',
-    'SHIPPED': '待收货',
-    'COMPLETED': '已完成',
-    'CANCELLED': '已取消',
-    'REFUNDING': '售后中',
-    'REFUNDED': '已退款'
-};
+const getTrade = (order) => normalizeProductTrade(order?.product || {});
 
-const getStatusText = (status) => {
-    return reverseStatusMap[status] || status;
+const getStatusText = (order) => {
+    if (!order) return '';
+
+    const trade = getTrade(order);
+    if (order.status === 'PENDING_PAYMENT') return '待付款';
+    if (pendingShipStatuses.includes(order.status)) {
+        return trade.hasPlatformInspection ? '待平台出库' : '待发货';
+    }
+    if (order.status === 'SHIPPED') return '待收货';
+    if (order.status === 'COMPLETED') return '已完成';
+    if (order.status === 'CANCELLED') return '已取消';
+    if (order.status === 'REFUNDING') return '售后中';
+    if (order.status === 'REFUNDED') return '已退款';
+    return order.status;
 };
 
 const getStatusColor = (status) => {
@@ -57,6 +63,7 @@ const getStatusColor = (status) => {
         case 'COMPLETED': return 'text-gray-500';
         case 'CANCELLED': return 'text-gray-400';
         case 'PAID': return 'text-[#1989fa]';
+        case 'PENDING_SHIPMENT': return 'text-[#1989fa]';
         default: return 'text-gray-500';
     }
 };
@@ -93,6 +100,8 @@ const filteredOrders = computed(() => {
         if (targetStatus === 'afterSale') {
             const refundStatuses = ['REFUNDING', 'REFUNDED'];
             result = result.filter(o => refundStatuses.includes(o.status));
+        } else if (targetStatus === 'pendingShipment') {
+            result = result.filter(o => pendingShipStatuses.includes(o.status));
         } else {
             result = result.filter(o => o.status === targetStatus);
         }
@@ -142,12 +151,11 @@ const viewDetail = (order) => {
 
 const viewLogistics = (order) => {
     // Placeholder for logistics view
-    showSuccessToast('查看物流功能开发中');
+    showSuccessToast('物流详情待接入');
 };
 
 const applyRefund = (order) => {
-    // Placeholder for refund
-    router.push({ name: 'RefundApply', query: { orderId: order.id } });
+    router.push({ name: 'RefundApply', params: { id: order.id } });
 };
 
 const review = (order) => {
@@ -258,7 +266,7 @@ onUnmounted(() => {
                                         <Clock :size="12" /> 剩余 {{ getRemainingTime(order.createdAt) }}
                                     </span>
                                     <span :class="['text-sm font-bold', getStatusColor(order.status)]">
-                                        {{ getStatusText(order.status) }}
+                                        {{ getStatusText(order) }}
                                     </span>
                                 </div>
                             </div>
@@ -280,6 +288,11 @@ onUnmounted(() => {
                                         <h3 class="font-bold text-[#2c3e50] line-clamp-2 leading-snug mb-2">{{
                                             order.product?.title }}</h3>
                                         <div class="flex flex-wrap gap-1.5">
+                                            <span
+                                                class="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                                :class="getTrade(order).hasPlatformInspection ? 'text-[#4a8b6e] bg-[#4a8b6e]/8' : 'text-orange-600 bg-orange-50'">
+                                                {{ getTrade(order).tradeModeLabel }}
+                                            </span>
                                             <span v-for="tag in (order.product?.tags || [])" :key="tag"
                                                 class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
                                                 {{ tag }}
@@ -333,6 +346,13 @@ onUnmounted(() => {
                                         <button @click="confirm(order)"
                                             class="px-4 py-1.5 rounded-full bg-[#4a8b6e] text-white text-xs font-bold shadow-md shadow-emerald-100 hover:bg-[#3b755b] transition-colors">
                                             确认收货
+                                        </button>
+                                    </template>
+
+                                    <template v-if="pendingShipStatuses.includes(order.status)">
+                                        <button @click="applyRefund(order)"
+                                            class="px-3 py-1.5 rounded-full border border-gray-200 text-xs text-gray-500 hover:border-gray-300 transition-colors">
+                                            申请退款
                                         </button>
                                     </template>
 

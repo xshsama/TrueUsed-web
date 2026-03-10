@@ -47,6 +47,8 @@ const product = ref({
     tradeMode: 'FREE_TRADING',
     tradeModeLabel: '卖家自出',
     hasPlatformInspection: false,
+    saleStatus: '',
+    saleStatusLabel: '',
     inspectionStatus: 'not_applicable',
     sellerClaimConditionCode: '',
     sellerClaimConditionLabel: '',
@@ -54,7 +56,11 @@ const product = ref({
     platformInspectionGradeLabel: '',
     primaryConditionLabel: '',
     secondaryConditionLabel: '',
-    inspectionFee: 0
+    fulfillmentMode: 'SELLER_SHIP',
+    fulfillmentModeLabel: '卖家发货',
+    inspectionFee: 0,
+    canBuy: false,
+    buyDisabledReason: ''
 });
 
 const seller = ref({
@@ -73,6 +79,16 @@ const displayImages = computed(() => {
     return product.value.images && product.value.images.length > 0
         ? product.value.images
         : ['https://via.placeholder.com/800x800?text=No+Image'];
+});
+
+const buyButtonLabel = computed(() => product.value.canBuy ? '立即购买' : '暂不可购买');
+
+const officialReportHint = computed(() => {
+    if (!product.value.hasPlatformInspection) return '';
+    if (product.value.canBuy) {
+        return '下单后可在订单详情查看本单验货报告';
+    }
+    return product.value.buyDisabledReason || '平台验货通过后才会上架';
 });
 
 // --- Methods ---
@@ -154,6 +170,11 @@ const handleChat = async () => {
 };
 
 const handleBuy = async () => {
+    if (!product.value.canBuy) {
+        showFailToast(product.value.buyDisabledReason || '该商品当前不可购买');
+        return;
+    }
+
     const loggedIn = await requireLogin({ message: '购买商品需要登录，是否立即登录？' });
     if (!loggedIn) return;
 
@@ -233,6 +254,8 @@ const loadData = async () => {
             tradeMode: trade.tradeMode,
             tradeModeLabel: trade.tradeModeLabel,
             hasPlatformInspection: trade.hasPlatformInspection,
+            saleStatus: trade.saleStatus,
+            saleStatusLabel: trade.saleStatusLabel,
             inspectionStatus: trade.inspectionStatus,
             sellerClaimConditionCode: trade.sellerClaimConditionCode,
             sellerClaimConditionLabel: trade.sellerClaimConditionLabel,
@@ -240,7 +263,11 @@ const loadData = async () => {
             platformInspectionGradeLabel: trade.platformInspectionGradeLabel,
             primaryConditionLabel: trade.primaryConditionLabel,
             secondaryConditionLabel: trade.secondaryConditionLabel,
-            inspectionFee: trade.inspectionFee
+            fulfillmentMode: trade.fulfillmentMode,
+            fulfillmentModeLabel: trade.fulfillmentModeLabel,
+            inspectionFee: trade.inspectionFee,
+            canBuy: trade.canBuy,
+            buyDisabledReason: trade.buyDisabledReason
         };
 
         if (res.seller) {
@@ -304,12 +331,12 @@ onMounted(() => {
                         <div v-if="product.hasPlatformInspection"
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-[#4a8b6e]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
                             <ShieldCheck :size="14" />
-                            <span class="text-xs font-bold">{{ product.platformInspectionGradeLabel || '平台验货 · 正品保障' }}</span>
+                            <span class="text-xs font-bold">{{ product.platformInspectionGradeLabel || '平台验货中' }}</span>
                         </div>
                         <div v-else
                             class="absolute top-4 left-4 flex items-center gap-1.5 bg-orange-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg">
                             <Camera :size="14" />
-                            <span class="text-xs font-bold">卖家实拍 · 真实生活感</span>
+                            <span class="text-xs font-bold">卖家自出 · 以卖家描述为准</span>
                         </div>
                     </div>
 
@@ -409,6 +436,10 @@ onMounted(() => {
                             :class="['text-xs px-2 py-0.5 rounded font-bold', product.hasPlatformInspection ? 'bg-[#4a8b6e] text-white' : 'bg-orange-500 text-white']">
                             {{ product.tradeModeLabel }}
                         </span>
+                        <span v-if="product.saleStatusLabel"
+                            class="text-xs px-2 py-0.5 rounded font-bold bg-gray-100 text-gray-600">
+                            {{ product.saleStatusLabel }}
+                        </span>
                         <span v-if="product.hasPlatformInspection && product.platformInspectionGradeLabel"
                             class="text-xs px-2 py-0.5 rounded font-bold bg-[#e8f5ef] text-[#2f6b53]">
                             {{ product.platformInspectionGradeLabel }}
@@ -446,7 +477,7 @@ onMounted(() => {
                     <!-- Free Trading: Price Advantage -->
                     <div v-if="!product.hasPlatformInspection" class="text-xs text-[#4a8b6e] mb-4 flex items-center gap-1">
                         <TrendingDown :size="12" />
-                        比官方验货省 ￥{{ (product.price * 0.15).toFixed(0) }}
+                        当前价格不含平台验货服务费
                     </div>
                     <div v-else class="mb-4">
                         <span class="text-sm text-gray-400 line-through">¥{{ product.originalPrice }}</span>
@@ -468,20 +499,25 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <div v-if="!product.canBuy"
+                        class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        {{ product.buyDisabledReason || '该商品当前暂不可购买' }}
+                    </div>
+
                     <!-- Inspection Banner (Official Only) -->
                     <div v-if="product.hasPlatformInspection"
-                        class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6 cursor-pointer hover:bg-[#34495e] transition-colors">
+                        class="bg-[#2c3e50] rounded-xl p-4 text-white flex items-center justify-between mb-6">
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#4a8b6e]">
                                 <FileCheck2 :size="18" />
                             </div>
                             <div>
-                                <div class="font-bold text-sm">官方验货报告</div>
-                                <div class="text-[10px] text-gray-300">{{ product.platformInspectionGradeLabel || '平台验货完成，结果已同步' }}</div>
+                                <div class="font-bold text-sm">平台验货结果</div>
+                                <div class="text-[10px] text-gray-300">{{ officialReportHint }}</div>
                             </div>
                         </div>
-                        <ChevronRight :size="16" class="text-gray-400" />
+                        <span class="text-[10px] text-gray-400">{{ product.fulfillmentModeLabel }}</span>
                     </div>
 
                     <!-- Seller Trust (Free Trading - Enhanced) -->
@@ -496,9 +532,9 @@ onMounted(() => {
                             </div>
                         </div>
                         <div class="flex justify-between text-xs border-t border-orange-200/50 pt-2 mb-3">
-                            <span>回复率 100%</span>
-                            <span>24h内发货</span>
-                            <span>无差评</span>
+                            <span>响应数据待接入</span>
+                            <span>发货时效待接入</span>
+                            <span>评价数据待接入</span>
                         </div>
                         <button @click="router.push(`/seller/${seller.id}`)"
                             class="w-full bg-white border border-orange-200 text-orange-800 text-xs font-bold py-2 rounded-lg hover:bg-orange-100 transition-colors">
@@ -509,8 +545,14 @@ onMounted(() => {
                     <!-- Action Buttons -->
                     <div class="flex flex-col gap-3">
                         <button @click="handleBuy"
-                            class="w-full bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white font-bold py-3.5 rounded-full text-base shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                            立即购买
+                            :disabled="!product.canBuy"
+                            :class="[
+                                'w-full font-bold py-3.5 rounded-full text-base transition-all flex items-center justify-center gap-2',
+                                product.canBuy
+                                    ? 'bg-gradient-to-r from-[#4a8b6e] to-[#3b755b] text-white shadow-lg shadow-[#4a8b6e]/20 hover:shadow-xl active:scale-95'
+                                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            ]">
+                            {{ buyButtonLabel }}
                         </button>
                         <div class="flex gap-3">
                             <button @click="handleChat"
@@ -543,7 +585,7 @@ onMounted(() => {
                                         {{ seller.credit }}</span>
                                 </div>
                                 <div class="text-xs text-gray-400 mt-0.5">
-                                    {{ product.sellerClaimConditionLabel ? `卖家自述 ${product.sellerClaimConditionLabel}` : '卖家已提交商品描述' }}
+                                    {{ product.canBuy ? '平台验货已完成，商品由平台仓履约发货' : (product.buyDisabledReason || '平台验货完成后会同步上架状态') }}
                                 </div>
                             </div>
                         </div>
