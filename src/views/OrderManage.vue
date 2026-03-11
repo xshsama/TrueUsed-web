@@ -215,6 +215,10 @@ const viewDetail = (order) => {
     router.push({ name: 'OrderDetail', params: { id: order.id } });
 };
 
+const viewLogistics = (order) => {
+    router.push({ name: 'OrderDetail', params: { id: order.id }, query: { focus: 'logistics' } });
+};
+
 const copyInfo = (text) => {
     navigator.clipboard.writeText(text).then(() => {
         showSuccessToast('复制成功');
@@ -366,7 +370,7 @@ watch(() => route.query.status, (newStatus) => {
                                 <div v-if="pendingFulfillmentStatuses.includes(order.status)"
                                     class="flex items-center gap-1 text-[#ff5e57] font-bold bg-[#ff5e57]/5 px-2 py-0.5 rounded">
                                     <Clock :size="12" />
-                                    {{ getTrade(order).hasPlatformInspection ? '平台仓准备出库中' : '剩余发货时间: 12小时30分' }}
+                                    {{ getTrade(order).hasPlatformInspection ? '平台仓自动出库中' : '剩余发货时间: 12小时30分' }}
                                 </div>
                             </div>
 
@@ -444,7 +448,7 @@ watch(() => route.query.status, (newStatus) => {
 
                                         <!-- Shipped -->
                                         <template v-if="order.status === 'SHIPPED'">
-                                            <button
+                                            <button @click.stop="viewLogistics(order)"
                                                 class="border border-gray-200 text-gray-600 hover:text-[#4a8b6e] hover:border-[#4a8b6e] text-xs font-bold px-4 py-2 rounded-lg transition-colors">
                                                 查看物流
                                             </button>

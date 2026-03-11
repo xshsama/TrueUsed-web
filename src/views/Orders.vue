@@ -40,6 +40,10 @@ const statusMap = {
 
 const getTrade = (order) => normalizeProductTrade(order?.product || {});
 
+const getActionErrorMessage = (error, fallback) => {
+    return error?.response?.data?.message || error?.message || fallback;
+};
+
 const getStatusText = (order) => {
     if (!order) return '';
 
@@ -138,9 +142,13 @@ const cancel = (order) => {
 const confirm = (order) => {
     showConfirmDialog({ title: '确认收货', message: '确认收到货物？' })
         .then(async () => {
-            await confirmDelivery(order.id);
-            showSuccessToast('已确认收货');
-            order.status = 'COMPLETED';
+            try {
+                await confirmDelivery(order.id);
+                showSuccessToast('已确认收货');
+                order.status = 'COMPLETED';
+            } catch (error) {
+                showFailToast(getActionErrorMessage(error, '当前物流状态暂不可确认收货'));
+            }
         })
         .catch(() => { });
 };
@@ -150,8 +158,7 @@ const viewDetail = (order) => {
 };
 
 const viewLogistics = (order) => {
-    // Placeholder for logistics view
-    showSuccessToast('物流详情待接入');
+    router.push({ name: 'OrderDetail', params: { id: order.id }, query: { focus: 'logistics' } });
 };
 
 const applyRefund = (order) => {
@@ -180,6 +187,29 @@ const getRemainingTime = (createdAt) => {
     const minutes = Math.floor(remainMs / 60000).toString().padStart(2, '0');
     const seconds = Math.floor((remainMs % 60000) / 1000).toString().padStart(2, '0');
     return `${minutes}:${seconds}`;
+};
+
+const getLogisticsTitle = (order) => {
+    if (pendingShipStatuses.includes(order.status)) {
+        return getTrade(order).hasPlatformInspection ? '平台处理中' : '等待发货';
+    }
+    return '物流追踪';
+};
+
+const getLogisticsPreview = (order) => {
+    const trade = getTrade(order);
+    if (order.status === 'PENDING_SHIPMENT' && trade.hasPlatformInspection) {
+        return '平台仓将在支付后自动出库，并生成一条模拟物流时间线';
+    }
+    if (order.status === 'PAID') {
+        return '等待卖家录入快递信息';
+    }
+    if (order.status === 'SHIPPED') {
+        return trade.hasPlatformInspection
+            ? '平台已出库，点击查看完整物流轨迹'
+            : '卖家已发货，点击查看完整物流轨迹';
+    }
+    return '物流节点同步中';
 };
 
 // --- Lifecycle ---
@@ -308,14 +338,14 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Logistics Info -->
-                            <div v-if="order.status === 'SHIPPED'"
+                            <div v-if="order.status === 'SHIPPED' || pendingShipStatuses.includes(order.status)"
                                 class="mt-4 bg-gray-50 rounded-lg p-3 flex items-start gap-3 text-xs text-gray-600">
                                 <div class="text-[#4a8b6e] mt-0.5 flex-shrink-0">
                                     <Truck :size="14" />
                                 </div>
                                 <div class="flex-1">
-                                    <p class="font-medium text-[#4a8b6e] mb-0.5">运输中</p>
-                                    <p class="text-gray-500 line-clamp-1">{{ order.logistics || '物流信息更新中...' }}</p>
+                                    <p class="font-medium text-[#4a8b6e] mb-0.5">{{ getLogisticsTitle(order) }}</p>
+                                    <p class="text-gray-500 line-clamp-1">{{ getLogisticsPreview(order) }}</p>
                                 </div>
                                 <ChevronRight :size="12" class="text-gray-400 self-center" />
                             </div>
