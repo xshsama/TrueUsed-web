@@ -151,6 +151,17 @@ export function requestRefund(id, data) {
 }
 
 /**
+ * 获取退款详情
+ * @param {number} id 订单ID
+ */
+export function getRefundDetail(id) {
+  return request({
+    url: `/orders/${id}/refund-detail`,
+    method: 'get',
+  })
+}
+
+/**
  * 同意退款
  * @param {number} id 订单ID
  */
@@ -168,6 +179,17 @@ export function approveRefund(id) {
 export function rejectRefund(id) {
   return request({
     url: `/orders/${id}/refund-reject`,
+    method: 'put',
+  })
+}
+
+/**
+ * 完成退款
+ * @param {number} id 订单ID
+ */
+export function completeRefund(id) {
+  return request({
+    url: `/orders/${id}/refund-complete`,
     method: 'put',
   })
 }

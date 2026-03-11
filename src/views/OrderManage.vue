@@ -219,6 +219,10 @@ const viewLogistics = (order) => {
     router.push({ name: 'OrderDetail', params: { id: order.id }, query: { focus: 'logistics' } });
 };
 
+const viewRefundDetail = (order) => {
+    router.push({ name: 'RefundDetail', params: { id: order.id } });
+};
+
 const copyInfo = (text) => {
     navigator.clipboard.writeText(text).then(() => {
         showSuccessToast('复制成功');
@@ -455,10 +459,10 @@ watch(() => route.query.status, (newStatus) => {
                                         </template>
 
                                         <!-- Refund -->
-                                        <template v-if="order.status === 'REFUND_PENDING'">
-                                            <button
+                                        <template v-if="order.status === 'REFUNDING' || order.status === 'REFUNDED'">
+                                            <button @click.stop="viewRefundDetail(order)"
                                                 class="bg-[#ff5e57] hover:bg-[#e04f49] text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition-colors">
-                                                处理退款
+                                                {{ order.status === 'REFUNDING' ? '处理售后' : '查看退款' }}
                                             </button>
                                         </template>
 

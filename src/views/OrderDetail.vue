@@ -242,6 +242,11 @@ const handleConfirmReceipt = async () => {
         .catch(() => { });
 };
 
+const viewRefundDetail = () => {
+    if (!order.value) return;
+    router.push({ name: 'RefundDetail', params: { id: order.value.id } });
+};
+
 const copyToClipboard = async (text) => {
     try {
         await navigator.clipboard.writeText(String(text ?? ''));
@@ -370,6 +375,12 @@ onMounted(() => {
                                     @click="router.push({ path: '/review/create', query: { orderId: order.id } })">
                                     评价商品
                                 </button>
+                                <button
+                                    v-if="['REFUNDING', 'REFUNDED'].includes(order.status)"
+                                    class="rounded-full border border-white/15 bg-white/10 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/20"
+                                    @click="viewRefundDetail">
+                                    {{ order.status === 'REFUNDING' ? '查看售后进度' : '查看退款结果' }}
+                                </button>
                             </template>
 
                             <template v-if="isCurrentUserSeller && canSellerShip">
@@ -377,6 +388,14 @@ onMounted(() => {
                                     class="rounded-full bg-[#4a8b6e] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#4a8b6e]/20 transition-colors hover:bg-[#3b755b]"
                                     @click="handleShip">
                                     确认发货
+                                </button>
+                            </template>
+
+                            <template v-if="isCurrentUserSeller && ['REFUNDING', 'REFUNDED'].includes(order.status)">
+                                <button
+                                    class="rounded-full border border-white/15 bg-white/10 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/20"
+                                    @click="viewRefundDetail">
+                                    {{ order.status === 'REFUNDING' ? '处理售后' : '查看退款结果' }}
                                 </button>
                             </template>
                         </div>

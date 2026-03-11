@@ -161,6 +161,10 @@ const viewLogistics = (order) => {
     router.push({ name: 'OrderDetail', params: { id: order.id }, query: { focus: 'logistics' } });
 };
 
+const viewRefundDetail = (order) => {
+    router.push({ name: 'RefundDetail', params: { id: order.id } });
+};
+
 const applyRefund = (order) => {
     router.push({ name: 'RefundApply', params: { id: order.id } });
 };
@@ -392,6 +396,13 @@ onUnmounted(() => {
                                         <button @click="review(order)"
                                             class="px-3 py-1.5 rounded-full border border-[#4a8b6e] text-[#4a8b6e] text-xs font-medium hover:bg-[#4a8b6e]/5 transition-colors">
                                             评价
+                                        </button>
+                                    </template>
+
+                                    <template v-if="['REFUNDING', 'REFUNDED'].includes(order.status)">
+                                        <button @click="viewRefundDetail(order)"
+                                            class="px-3 py-1.5 rounded-full border border-[#4a8b6e]/25 bg-[#4a8b6e]/5 text-xs font-medium text-[#4a8b6e] hover:bg-[#4a8b6e]/10 transition-colors">
+                                            {{ order.status === 'REFUNDING' ? '查看售后进度' : '查看退款结果' }}
                                         </button>
                                     </template>
 
