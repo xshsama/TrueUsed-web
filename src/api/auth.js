@@ -12,7 +12,11 @@ export function registerApi(data) {
 
 export function logoutApi() {
   // 调用后端登出以清除 HttpOnly 刷新 Cookie；跨域时需要携带凭据
-  return request.post('/auth/logout', null, { withCredentials: true })
+  const token = localStorage.getItem('token')
+  return request.post('/auth/logout', null, {
+    withCredentials: true,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
 }
 
 // 用户信息相关接口

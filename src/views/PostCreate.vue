@@ -513,7 +513,7 @@ onMounted(() => {
                             <span>- ¥{{ serviceFee }}</span>
                         </div>
                         <div class="flex justify-between text-gray-500">
-                            <span class="flex items-center gap-1">官方验货费
+                            <span class="flex items-center gap-1">平台验货服务费
                                 <HelpCircle :size="12" />
                             </span>
                             <div class="flex flex-col items-end">

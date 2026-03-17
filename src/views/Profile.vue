@@ -286,14 +286,14 @@ const walletBalance = ref(0)
 
 // 1. Stats
 const buyerStats = ref([
-    { label: '累计节省', value: '¥0', sub: '击败0%用户' }, // Still mock/placeholder as backend doesn't track "saved"
+    { label: '累计节省', value: '¥0', sub: '待接真实节省统计' },
     { label: '我的闲置', value: '0', sub: '去变现' },
     { label: '可用优惠券', value: '0', sub: '即将过期' }
 ])
 const sellerStats = ref([
-    { label: '累计收益', value: '¥0', sub: '本月+0%' },
+    { label: '累计收益', value: '¥0', sub: '待接真实收益趋势' },
     { label: '在售商品', value: '0', sub: '库存正常' },
-    { label: '今日访客', value: '0', sub: '新增关注+0' }
+    { label: '今日访客', value: '0', sub: '待接真实访客来源' }
 ])
 const currentStats = computed(() => isSellerMode.value ? sellerStats.value : buyerStats.value)
 

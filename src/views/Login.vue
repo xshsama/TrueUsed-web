@@ -24,7 +24,7 @@
                 <!-- Slogan -->
                 <div class="relative z-10">
                     <div class="inline-block px-3 py-1 mb-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-emerald-100">
-                        ✨ 官方验货 · 正品保障
+                        ✨ 平台验货流程展示
                     </div>
                     <h1 class="text-4xl font-bold leading-[1.15] mb-6 tracking-tight">
                         让闲置好物<br>再次<span class="text-emerald-300">闪闪发光</span>。
