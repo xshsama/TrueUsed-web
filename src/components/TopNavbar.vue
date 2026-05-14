@@ -141,13 +141,19 @@ const navItems = computed(() => {
 
 const menuSections = computed(() => {
     if (props.mode === 'seller') {
-        return [[
+        const sections = [[
             { label: '个人中心', to: '/profile', match: '/profile' },
             { label: '系统设置', to: { path: '/settings', query: { mode: 'seller' } }, match: '/settings' }
         ]];
+        if (userStore.isAdmin) {
+            sections.push([
+                { label: '管理控制台', to: '/admin', match: '/admin' }
+            ]);
+        }
+        return sections;
     }
 
-    return [
+    const sections = [
         [
             { label: '个人中心', to: '/profile', match: '/profile' },
             { label: '我的订单', to: '/orders', match: '/orders' },
@@ -159,6 +165,12 @@ const menuSections = computed(() => {
             { label: '设置', to: '/settings', match: '/settings' }
         ]
     ];
+    if (userStore.isAdmin) {
+        sections.push([
+            { label: '管理控制台', to: '/admin', match: '/admin' }
+        ]);
+    }
+    return sections;
 });
 
 const navigate = (to) => {

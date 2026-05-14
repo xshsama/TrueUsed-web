@@ -1,12 +1,26 @@
 import { fetchMe, logoutApi, updateMe } from '@/api/auth'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+function normalizeRoles(u) {
+  if (!u || typeof u !== 'object') return []
+  if (Array.isArray(u.roles)) return u.roles
+  if (u.roles instanceof Set) return Array.from(u.roles)
+  if (Array.isArray(u.authorities)) {
+    return u.authorities
+      .map((item) =>
+        typeof item === 'string' ? item : item?.authority || item?.name,
+      )
+      .filter(Boolean)
+  }
+  return []
+}
 
 // 规范化用户对象，统一头像字段为 avatarUrl
 function normalizeUser(u) {
   if (!u || typeof u !== 'object') return u
   const avatarUrl = u.avatarUrl || u.avatar || u.avatar_url || null
-  return { ...u, avatarUrl }
+  return { ...u, avatarUrl, roles: normalizeRoles(u) }
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -22,6 +36,11 @@ export const useUserStore = defineStore('user', () => {
   const user = ref(persistedUser)
   const token = ref(localStorage.getItem('token') || '')
   const isLoggedIn = ref(!!token.value)
+  const isAdmin = computed(() =>
+    Array.isArray(user.value?.roles)
+      ? user.value.roles.includes('ROLE_ADMIN')
+      : false,
+  )
   let refreshTimer = null
 
   const setUser = (userData) => {
@@ -106,6 +125,7 @@ export const useUserStore = defineStore('user', () => {
     user,
     token,
     isLoggedIn,
+    isAdmin,
     setUser,
     setToken,
     loadMe,

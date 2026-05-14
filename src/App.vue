@@ -1,11 +1,11 @@
 <template>
-    <div id="app">
-        <div class="app-backdrop"></div>
+        <div id="app">
+        <div class="app-backdrop" :class="{ 'app-backdrop--admin': isAdminCanvas }"></div>
 
-        <div class="app-shell">
+        <div class="app-shell" :class="{ 'app-shell--admin': isAdminCanvas }">
             <TopNavbar :mode="navbarMode" v-if="!route.meta.hideNavbar" />
 
-            <main class="app-main" :class="{ 'app-main--framed': !route.meta.hideNavbar }">
+            <main class="app-main" :class="{ 'app-main--framed': !route.meta.hideNavbar, 'app-main--admin': isAdminCanvas }">
                 <router-view v-slot="{ Component }">
                     <div class="route-stage">
                         <transition name="page-fade" mode="out-in" appear>
@@ -34,6 +34,7 @@ export default {
         const messageStore = useMessageStore()
         const favoritesStore = useFavoritesStore()
         const userStore = useUserStore()
+        const isAdminCanvas = computed(() => route.meta.adminCanvas === true)
         const navbarMode = computed(() => {
             const queryMode = Array.isArray(route.query.mode) ? route.query.mode[0] : route.query.mode
             return route.meta.navbarMode === 'seller' || queryMode === 'seller' ? 'seller' : 'buyer'
@@ -60,6 +61,7 @@ export default {
         })
 
         return {
+            isAdminCanvas,
             navbarMode,
             route,
             userStore
@@ -81,6 +83,10 @@ export default {
         linear-gradient(180deg, #f7faf8 0%, #f5f7fa 42%, #eef2f7 100%);
 }
 
+.app-shell--admin {
+    background: #010102;
+}
+
 .app-backdrop {
     position: fixed;
     inset: 0;
@@ -88,6 +94,12 @@ export default {
     background:
         linear-gradient(120deg, rgba(255, 255, 255, 0.45), transparent 35%),
         radial-gradient(circle at 85% 10%, rgba(0, 135, 90, 0.09), transparent 18%);
+}
+
+.app-backdrop--admin {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16%),
+        radial-gradient(circle at top right, rgba(94, 106, 210, 0.1), transparent 22%);
 }
 
 .app-shell {
@@ -104,6 +116,10 @@ export default {
 
 .app-main--framed {
     padding-top: 18px;
+}
+
+.app-main--admin {
+    padding: 0;
 }
 
 .route-stage {

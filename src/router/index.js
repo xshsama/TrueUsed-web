@@ -1,10 +1,20 @@
 import { useUserStore } from '@/stores/user'
 import { createRouter, createWebHistory } from 'vue-router'
 
+function hasAdminRole(user) {
+  return Array.isArray(user?.roles) && user.roles.includes('ROLE_ADMIN')
+}
+
 const routes = [
   {
     path: '/',
     redirect: '/home',
+  },
+  {
+    path: '/admin',
+    name: 'AdminConsole',
+    component: () => import('@/views/AdminConsole.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, hideNavbar: true, adminCanvas: true },
   },
   {
     path: '/coupon-center',
@@ -248,7 +258,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to) => {
   // 根据路由meta设置body class
   if (to.meta.hideNavbar) {
     document.body.classList.add('hide-navbar')
@@ -262,12 +272,26 @@ router.beforeEach((to, from, next) => {
     const store = useUserStore()
     const hasToken = store?.token || localStorage.getItem('token')
     if (!hasToken) {
-      next({ name: 'Login', query: { redirect: to.fullPath } })
-      return
+      return { name: 'Login', query: { redirect: to.fullPath } }
+    }
+
+    if (to.meta.requiresAdmin) {
+      if (!store.user && hasToken) {
+        try {
+          await store.loadMe()
+        } catch {
+          await store.logout()
+          return { name: 'Login', query: { redirect: to.fullPath } }
+        }
+      }
+
+      if (!hasAdminRole(store.user)) {
+        return { name: 'Home' }
+      }
     }
   }
 
-  next()
+  return true
 })
 
 export default router
