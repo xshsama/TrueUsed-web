@@ -1,5 +1,6 @@
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
+import { isMockEnabled, mockAdapter } from '@/mock/client'
 import axios from 'axios'
 import { showToast } from 'vant'
 
@@ -33,6 +34,9 @@ request.interceptors.request.use(
     } else if (token) {
       config.headers = config.headers || {}
       config.headers.Authorization = `Bearer ${token}`
+    }
+    if (isMockEnabled()) {
+      config.adapter = mockAdapter
     }
     return config
   },

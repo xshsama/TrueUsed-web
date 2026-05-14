@@ -126,7 +126,9 @@ npm run build
 ## 联调说明
 
 - 前端开发服务器默认端口：`5173`
-- `vite.config.js` 中已配置 `/api` 代理到 `http://localhost:8081`
+- `vite.config.js` 中已配置 `/api` 代理，默认目标为 `http://localhost:8081`
+- 可通过 `VITE_API_PROXY_TARGET` 覆盖后端地址，示例见 `.env.example`
+- 无后端时可设置 `VITE_USE_MOCK=true`，请求会走 `src/mock/client.js` 的本地 mock adapter
 - 启动前建议先确保后端服务可用
 - 若后端启用了 token 撤销，前端登出需要保留本地 access token 直至 `/auth/logout` 请求发出
 
